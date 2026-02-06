@@ -1,22 +1,8 @@
-
 /*状況確認用*/
-const log = document.getElementById("log");
-function debug(msg){
-  const p = document.createElement("p");
-  p.textContent = msg;
-  log.append(p);
-}
-function c(e){
-  try {
-    e.preventDefault();
-    // 通常処理
-  } catch (err) {
-    debug("ERROR: " + err.message);
-  }
-}
 let con=document.getElementById('con');
  /*それぞれの入力値*/
 let heavy=document.getElementById('heavy');
+	heavy.style.display="blocl";
 let vol=document.getElementById('vol');
 let amo=document.getElementById('amo');
 let sub=document.getElementsByClassName('sub')[0];

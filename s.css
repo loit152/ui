@@ -20,6 +20,9 @@ input{
 #con{
 	border:solid 1px;
 }
-#amo,#vol{
+#amo,#vol,#heavy{
 	display:none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
