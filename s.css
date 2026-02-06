@@ -1,0 +1,25 @@
+body{
+    background-color: #fbfcff;
+    height:2000px;
+    color:#2b262e;
+}
+main{
+    border: solid 1px;
+}
+footer{
+    height:40px;
+    border: solid 1px;   
+}
+input{
+    height:40px;
+    width:200px;
+}
+.div{
+	background-color:#aac;
+}
+#con{
+	border:solid 1px;
+}
+#amo,#vol{
+	display:none;
+}

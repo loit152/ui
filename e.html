@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Scroll Trigger Bar Chart</title>
+<style>
+  body {
+    height: 200vh; /* スクロール用 */
+    font-family: sans-serif;
+  }
+
+  .chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    height: 200px;
+    width: 300px;
+    margin: 120vh auto 0; /* 下の方に配置 */
+    border-left: 1px solid #444;
+    border-bottom: 1px solid #444;
+    padding: 10px;
+  }
+
+  .bar {
+    width: 40px;
+    background: steelblue;
+    height: 0;
+    transition: height 0.8s ease-out;
+  }
+</style>
+</head>
+<body>
+
+<div class="chart" id="chart"></div>
+
+<script>
+  const data = [40, 120, 80, 160, 100];
+  const max = Math.max(...data);
+
+  const chart = document.getElementById("chart");
+
+  // bar を生成
+  data.forEach(() => {
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    chart.appendChild(bar);
+  });
+
+  const bars = Array.from(chart.querySelectorAll(".bar"));
+  const count = bars.length;
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    if (!entries[0].isIntersecting) return;
+
+    bars.forEach((bar, index) => {
+      const delayIndex = count - 1 - index; // 右→左
+      const height = (data[index] / max) * 100;
+
+      setTimeout(() => {
+        bar.style.height = height + "%";
+      }, delayIndex * 150);
+    });
+
+    obs.disconnect();
+  }, {
+    rootMargin: "-40% 0px -40% 0px"
+  });
+
+  observer.observe(chart);
+</script>
+</body>
+</html>
