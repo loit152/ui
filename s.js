@@ -2,7 +2,7 @@
 let con=document.getElementById('con');
  /*初期値*/
 let heavy=document.getElementById('heavy');
-	heavy.style.display="blocl";
+	heavy.style.display="block";
 let vol=document.getElementById('vol');
 let amo=document.getElementById('amo');
 let sub=document.getElementsByClassName('sub')[0];
