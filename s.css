@@ -23,8 +23,12 @@ input{
 #amo,#vol,#heavy{
 	display:none;
     }
+.block{
+    display: block;
+}
 #sim{
-    display: flex;
-    justify-content: center;
+    height: max-content;
+    display:flex;
     align-items: center;
+    justify-content: center;
 }
