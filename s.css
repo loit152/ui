@@ -1,7 +1,9 @@
 body{
     background-color: #fbfcff;
+
     height:2000px;
-    color:#2b262e;
+    color: blue;
+    /*color:#2b262e;*/
 }
 main{
     border: solid 1px;
