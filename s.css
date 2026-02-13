@@ -19,9 +19,9 @@ input{
     height:40px;
     width:200px;
 }
-div{
+/*div{
 	border:1px solid white;
-}
+}*/
 img{   
     object-fit: cover;
 }
@@ -31,7 +31,7 @@ img{
 }
 /*---------------id指定----------------*/
 #frontimg{
-    width: calc(100% - 130px);
+    width: calc(90% - 130px);
 }
 #fronttext{
     margin: 10px;
@@ -43,10 +43,27 @@ img{
     text-orientation: upright;
     font-size: 50px;
 }
-#partoftext{
-    background:#fff;
-    margin-top: 150px;
+#titlee{
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 60px;
 }
+/*#partoftext{
+    margin-top: 150px;
+    animation: slideIn 2s cubic-bezier(0.25, 1, 0.5, 1) 1s forwards;
+}
+@keyframes slideIn {
+  0% {
+    transform: translateX(180px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+  }
+  40%,100% {
+    opacity: 1;
+  }
+} */
 #amo,#vol,#heavy{
 	display:none;
     }
@@ -58,4 +75,41 @@ img{
     display:flex;
     align-items: center;
     justify-content: center;
+}
+
+
+
+
+
+/*css animation*/
+.c07{
+  padding: 26px 26px;
+  background-image:
+    linear-gradient(to bottom, transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px),
+    linear-gradient(to left,   transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px),
+    linear-gradient(to top,    transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px),
+    linear-gradient(to right,  transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px);
+  background-repeat: no-repeat;
+  background-size: 0% 100%, 100% 0%, 0% 100%, 100% 0%;
+  background-position: top left, top left, right bottom, right bottom;
+}
+.c07 .active{
+    animation-name: kf_c07a, kf_c07b;
+    animation-duration: 1.5s, 0s;
+    animation-delay: 0s, 0.75s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+@keyframes kf_c07a {
+    50%{
+        background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    }
+    100%{
+        background-size: 0% 100%, 100% 0%, 0% 100%, 100% 0%;
+    }
+  }
+@keyframes kf_c07b {
+    100%{
+        background-position: right bottom, right bottom, top left, top left;
+    }
 }
