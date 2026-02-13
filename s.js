@@ -2,10 +2,11 @@
 let con=document.getElementById('con');
  /*初期値*/
 let heavy=document.getElementById('heavy');
-	heavy.style.display="block";
+	heavy.style.display="put";
 let vol=document.getElementById('vol');
 let amo=document.getElementById('amo');
 let form=document.getElementById("sim");
+let put=document.getElementById("put");
 /*クリック時の動作*/
 form.addEventListener("keydown",e =>{
 	if(e.key !== "Enter") return;
@@ -17,7 +18,7 @@ function create(e){
 			let newDiv=document.createElement('div');
 			newDiv.classList.add("div");
 			newDiv.textContent=e;
-			con.append(newDiv);
+			block.append(newDiv);
 }
 function check(e){
 	e.preventDefault();
@@ -49,6 +50,7 @@ function check(e){
 			create(amoValue);
 		}
 	}
+	else if(step>3)return;
 }
 		
 

@@ -5,25 +5,37 @@ sim = simulation
 
 
 -->
-<html lang="ja">
-<meta charset="UTF-8">
-<link  rel="stylesheet" href="s.css">
-<title></title>
+<head>
+    <html lang="ja">
+    <meta charset="UTF-8">
+    <link  rel="stylesheet" href="s.css">
+    <title>初めてお酒を飲む君へ</title>
+</head>
 <body>
-<div id="log"></div>
-<div id="con">console</div>
-           <form id="sim">
-            <div class="block">
-                <div id="heavy">
-                    <p>体重</p><input type="number" name="q1">
-               </div>
-                <div id="vol">
-                    <p>度数</p><input type="number" name="q2">
-               </div>
-                <div id="amo">
-                    <p>量</p><input type="number" name="q3">
-               </div>
-            </div>
+    <header>
+        <img src="img/Front.jpg" alt="front image" id="frontimg">
+        <div id="fronttext">
+            <div id="title"><span id="partoftext">君</span>へ</div><br>
+            <div id="title">初めてお酒を飲む</div>
+        </div>
+    </header>
+            <form id="sim">
+                <div id="put"></div>
+                <div id="block">
+                    <div id="heavy">
+                        <p>体重</p>
+                        <input type="number" name="q1">
+                </div>
+                    <div id="vol">
+                        <p>度数</p>
+                        <input type="number" name="q2">
+                </div>
+                    <div id="amo">
+                        <p>量</p>
+                        <input type="number" name="q3">
+                    </div>
+                </div>
+            </form>
+            <script type="text/javascript" src="s.js"></script>
     </body>
-<script type="text/javascript" src="s.js"></script>
 </html>

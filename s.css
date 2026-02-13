@@ -1,29 +1,56 @@
+/*---------------タグ指定----------------*/
+header{
+    display: flex;
+    margin-left: 5%;
+    margin-right: 5%;
+}
 body{
-    background-color: #fbfcff;
+    background-color: #242e33;
     height:2000px;
-    color:#2b262e;
+    color:#fff;
 }
 main{
     border: solid 1px;
 }
 footer{
     height:40px;
-    border: solid 1px;   
 }
 input{
     height:40px;
     width:200px;
 }
+div{
+	border:1px solid white;
+}
+img{   
+    object-fit: cover;
+}
+/*---------------クラス指定----------------*/
 .div{
 	background-color:#aac;
 }
-#con{
-	border:solid 1px;
+/*---------------id指定----------------*/
+#frontimg{
+    width: calc(100% - 130px);
+}
+#fronttext{
+    margin: 10px;
+    width: max-content;
+	 display:flex;
+}
+#title{
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 50px;
+}
+#partoftext{
+    background:#fff;
+    margin-top: 150px;
 }
 #amo,#vol,#heavy{
 	display:none;
     }
-.block{
+#block{
     display: block;
 }
 #sim{
