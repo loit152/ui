@@ -1,6 +1,5 @@
-/*状況確認用*/
-let con=document.getElementById('con');
  /*初期値*/
+document.querySelector('.mask-bg').classList.add('is-animated');
 let heavy=document.getElementById('heavy');
 	heavy.style.display="put";
 let vol=document.getElementById('vol');

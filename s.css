@@ -19,9 +19,9 @@ input{
     height:40px;
     width:200px;
 }
-/*div{
+div{
 	border:1px solid white;
-}*/
+}
 img{   
     object-fit: cover;
 }
@@ -31,7 +31,7 @@ img{
 }
 /*---------------id指定----------------*/
 #frontimg{
-    width: calc(90% - 130px);
+    width: calc(90% - 100px);
 }
 #fronttext{
     margin: 10px;
@@ -48,22 +48,10 @@ img{
     text-orientation: upright;
     font-size: 60px;
 }
-/*#partoftext{
+#partoftext{
     margin-top: 150px;
-    animation: slideIn 2s cubic-bezier(0.25, 1, 0.5, 1) 1s forwards;
+    padding-left:-40px;
 }
-@keyframes slideIn {
-  0% {
-    transform: translateX(180px);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-  }
-  40%,100% {
-    opacity: 1;
-  }
-} */
 #amo,#vol,#heavy{
 	display:none;
     }
@@ -89,27 +77,86 @@ img{
     linear-gradient(to left,   transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px),
     linear-gradient(to top,    transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px),
     linear-gradient(to right,  transparent 10px, #a675a5 10px, #a675a5 13px, transparent 13px);
+
   background-repeat: no-repeat;
+
   background-size: 0% 100%, 100% 0%, 0% 100%, 100% 0%;
+
   background-position: top left, top left, right bottom, right bottom;
 }
-.c07 .active{
-    animation-name: kf_c07a, kf_c07b;
-    animation-duration: 1.5s, 0s;
-    animation-delay: 0s, 0.75s;
+.c07.active{
+    animation-name: kf_c07a;
+    animation-duration: 1.5s;
+    animation-delay: 0s;
     animation-timing-function: linear;
     animation-fill-mode: forwards;
 }
 @keyframes kf_c07a {
-    50%{
+    100%{
         background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
     }
-    100%{
-        background-size: 0% 100%, 100% 0%, 0% 100%, 100% 0%;
-    }
+
+}
+#frontimg{
+  background-image: linear-gradient(to bottom, rgba(51,51,51,0) 0%, rgba(#333,1) 50%);
+  background-size: 100% 200%;
+  background-position: 0% -100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.active{
+    animation-name: kf_c02;
+    animation-duration: 2s;
+    animation-fill-mode: forwards;
   }
-@keyframes kf_c07b {
-    100%{
-        background-position: right bottom, right bottom, top left, top left;
-    }
+}
+@keyframes kf_c02 {
+  100%{
+    background-position: 0% 100%;
+  }
+}
+
+
+
+ /*-----2–---*/
+.mask-bg {
+  color: transparent;
+  display: inline-block;
+  font-weight: bold;
+  overflow: hidden;
+  position: relative;
+  transition: color 0ms 450ms;
+  line-height:1;
+}
+.mask-bg::after {
+  background: linear-gradient(to right, #362ae0 0%,#3b79cc 50%,#42d3ed 100%);
+  bottom: 0;
+  content: '';
+  display: block;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform: translate(0, 100%);
+}
+ 
+.mask-bg.is-animated {
+  color: #362ae0;
+}
+.mask-bg.is-animated::after {
+  animation: mask-bg 1.2s cubic-bezier(0.8, 0, 0.170, 1);
+}
+ 
+@keyframes mask-bg {
+  0% {
+    transform: translate(0, 101%)
+  }
+  40%, 60% {
+    transform: translate(0, 0%)
+  }
+  100% {
+    transform: translate(0, -100%)
+  }
 }
