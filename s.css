@@ -1,8 +1,11 @@
+/*{
+outline:1px solid white;
+}
 /*---------------タグ指定----------------*/
 header{
-    display: flex;
-    margin-left: 5%;
-    margin-right: 5%;
+    position: relative;
+    margin-left: 1.5%;
+    margin-right: 1.5%;
 }
 body{
     background-color: #242e33;
@@ -19,24 +22,23 @@ input{
     height:40px;
     width:200px;
 }
-/*div{
-	border:1px solid white;
-}*/
 img{   
     object-fit: cover;
 }
 /*---------------クラス指定----------------*/
-.div{
-	background-color:#aac;
-}
 /*---------------id指定----------------*/
 #frontimg{
-    width: calc(90% - 100px);
+    width: 100%;
 }
 #fronttext{
+    display:flex;
     margin: 10px;
     width: max-content;
-	 display:flex;
+}
+#pot{
+    position:absolute;
+    top:0%;
+    right:0%;
 }
 #title{
     writing-mode: vertical-rl;
@@ -47,10 +49,11 @@ img{
     writing-mode: vertical-rl;
     text-orientation: upright;
     font-size: 60px;
+    margin-left: -40px;
 }
 #partoftext{
     margin-top: 150px;
-    padding-left:-40px;
+    padding-left:-400px;
 }
 #amo,#vol,#heavy{
 	display:none;
@@ -97,25 +100,6 @@ img{
     }
 
 }
-#frontimg{
-  background-image: linear-gradient(to bottom, rgba(51,51,51,0) 0%, rgba(#333,1) 50%);
-  background-size: 100% 200%;
-  background-position: 0% -100%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.active{
-    animation-name: kf_c02;
-    animation-duration: 2s;
-    animation-fill-mode: forwards;
-}
-@keyframes kf_c02 {
-  100%{
-    background-position: 0% 100%;
-  }
-}
 
 
 
@@ -142,7 +126,7 @@ img{
 }
  
 .mask-bg.is-animated {
-  color: #362ae0;
+  color: #fff;
 }
 .mask-bg.is-animated::after {
   animation: mask-bg 1.2s cubic-bezier(0.8, 0, 0.170, 1);
