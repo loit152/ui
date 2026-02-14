@@ -19,9 +19,9 @@ input{
     height:40px;
     width:200px;
 }
-div{
+/*div{
 	border:1px solid white;
-}
+}*/
 img{   
     object-fit: cover;
 }
