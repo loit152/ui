@@ -77,10 +77,10 @@ img{
 .c07{
   padding: 26px 26px;
   background-image:
-    linear-gradient(to bottom, transparent 10px, #e95295 10px, #a675a5 13px, transparent 13px),
-    linear-gradient(to left,   transparent 10px, #e95295 10px, #a675a5 13px, transparent 13px),
-    linear-gradient(to top,    transparent 10px, #e95295 10px, #a675a5 13px, transparent 13px),
-    linear-gradient(to right,  transparent 10px, #e95295 10px, #a675a5 13px, transparent 13px);
+    linear-gradient(to bottom, transparent 10px, #e95295 10px, #e95295 13px, transparent 13px),
+    linear-gradient(to left,   transparent 10px, #e95295 10px, #e95295 13px, transparent 13px),
+    linear-gradient(to top,    transparent 10px, #e95295 10px, #e95295 13px, transparent 13px),
+    linear-gradient(to right,  transparent 10px, #e95295 10px, #e95295 13px, transparent 13px);
 
   background-repeat: no-repeat;
 
