@@ -110,7 +110,6 @@ img{
     animation-name: kf_c02;
     animation-duration: 2s;
     animation-fill-mode: forwards;
-  }
 }
 @keyframes kf_c02 {
   100%{

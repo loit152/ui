@@ -1,7 +1,7 @@
  /*初期値*/
 document.querySelector('.mask-bg').classList.add('is-animated');
 let heavy=document.getElementById('heavy');
-	heavy.style.display="put";
+	heavy.style.display="block";
 let vol=document.getElementById('vol');
 let amo=document.getElementById('amo');
 let form=document.getElementById("sim");
@@ -51,5 +51,3 @@ function check(e){
 	}
 	else if(step>3)return;
 }
-		
-
