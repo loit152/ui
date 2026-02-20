@@ -67,7 +67,7 @@ function check(e) {
       amo.style.display = "block";
 /*      create(abv);*/
       document.querySelector('[name="q3"]').focus();
-      pa.innerHTML = `${abv}kg`
+      pa.innerHTML = `${abv}%`
     }
 
   } else if (step === 3) {

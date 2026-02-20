@@ -34,8 +34,15 @@ article{
   font-size: 20px;
 }
 .articletitle{
-  font-size:25px;
-}
+    font-size: 2rem;              /* 視認性 */
+    font-weight: 700;             /* 強調 */
+    line-height: 1.4;             /* 読みやすさ */
+    letter-spacing: 0.02em;       /* 日本語の詰まり防止 */
+
+    margin: 1.2em 0 0.6em;        /* 上下余白 */
+    padding-bottom: 0.3em;
+
+    border-bottom: 3px solid #222; /* 視覚的区切り */}
 /*---------------id指定----------------*/
 #frontimg {
   width: 100%;
