@@ -22,12 +22,12 @@ form.addEventListener("keydown", (e) => {
 
 let step = 1;
 
-function create(value) {
+/*function create(value) {
   let newDiv = document.createElement("div");
   newDiv.classList.add("div");
   newDiv.textContent = value;
   block.append(newDiv);
-}
+}*/
 
 /* 計算関数（指定式） */
 function calcAlcohol(weight, abv, amount) {
