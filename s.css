@@ -76,7 +76,7 @@ article{
 }
 #sim {
   height: max-content;
-  display: flex;
+  /*display: flex;*/
   align-items: center;
   justify-content: center;
 }

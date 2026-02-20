@@ -51,7 +51,7 @@ function check(e) {
       step = 2;
       heavy.style.display = "none";
       vol.style.display = "block";
-      create(weight);
+/*      create(weight);*/
       document.querySelector('[name="q2"]').focus();
     }
 
@@ -61,7 +61,7 @@ function check(e) {
       step = 3;
       vol.style.display = "none";
       amo.style.display = "block";
-      create(abv);
+/*      create(abv);*/
       document.querySelector('[name="q3"]').focus();
     }
 
@@ -73,7 +73,7 @@ function check(e) {
     if (amount > 0) {
       step = 4;
       amo.style.display = "none";
-      create(amount);
+/*      create(amount);*/
 
       const result = calcAlcohol(weight, abv, amount);
 
@@ -84,4 +84,30 @@ function check(e) {
       `;
     }
   }
+}
+let resetBtn = document.getElementById("resetBtn");
+
+resetBtn.addEventListener("click", resetSim);
+
+function resetSim() {
+
+  // ステップ初期化
+  step = 1;
+
+  // 入力値クリア
+  form.reset();
+
+  // 表示リセット
+  heavy.style.display = "block";
+  vol.style.display = "none";
+  amo.style.display = "none";
+
+  // 結果削除
+  put.innerHTML = "";
+
+  // 入力履歴削除
+  block.querySelectorAll(".div").forEach(el => el.remove());
+
+  // フォーカス戻す
+  document.querySelector('[name="q1"]').focus();
 }
