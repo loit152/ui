@@ -25,9 +25,16 @@ input {
 img {
   object-fit: cover;
 }
+article{
+  width:90%;
+  background-color:#1e384d;
+}
 /*---------------クラス指定----------------*/
 .contents {
   font-size: 20px;
+}
+.articletitle{
+  font-size:25px;
 }
 /*---------------id指定----------------*/
 #frontimg {
