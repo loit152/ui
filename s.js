@@ -8,20 +8,20 @@ let form = document.getElementById("sim");
 let put = document.getElementById("put");
 /*クリック時の動作*/
 form.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  check(e);
+    if (e.key !== "Enter") return;
+    check(e);
 });
 
 let step = 1;
 function create(e) {
-  let newDiv = document.createElement("div");
-  newDiv.classList.add("div");
-  newDiv.textContent = e;
-  block.append(newDiv);
+    let newDiv = document.createElement("div");
+    newDiv.classList.add("div");
+    newDiv.textContent = e;
+    block.append(newDiv);
 }
 function check(e) {
-  e.preventDefault();
-  if (step == 1) {
+    e.preventDefault();
+    if (step == 1) {
     let heavyValue = document.querySelector('[name="q1"]').value;
     if (heavyValue > 0) {
       step = 2;

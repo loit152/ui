@@ -26,6 +26,9 @@ img {
   object-fit: cover;
 }
 /*---------------クラス指定----------------*/
+.contents {
+  font-size: 20px;
+}
 /*---------------id指定----------------*/
 #frontimg {
   width: 100%;

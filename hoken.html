@@ -7,53 +7,135 @@ sim = simulation
 -->
 <html lang="ja">
     <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="s.css" />
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="s.css">
     <title>初めてお酒を飲む君へ</title>
     </head>
     <body>
         <header>
-        <img src="Front.jpg" alt="front image" id="frontimg" />
+        <img src="Front.jpg" alt="front image" id="frontimg">
         <div id="pot">
         <div id="fronttext" class="c07 active">
           <div id="titlee">
             <span id="partoftext" class="mask-bg anim">あなたへ</span>
           </div>
-          <br />
+          <br>
           <div id="title">初めてお酒を飲む</div>
         </div>
       </div>
     </header>
     <article>
       <div class="articletitle">-お酒はどのようにしてできるのか</div>
-      <p class="contents">構成 /前提 /論拠 /結論</p>
+      <p class="contents">
+まず原料準備。
+　穀物（米・麦・トウモロコシ）や果実（ぶどうなど）にはデンプンまたは糖が含まれています。
+　・果実酒はすでに糖があるためそのまま発酵へ進めます。
+　・穀物酒はデンプンを糖に変える「糖化」が必要で、麦芽の酵素や麹菌を使います。
+
+次に発酵。
+　酵母（主に Saccharomyces 属）が糖を代謝し、
+　　糖 → エタノール ＋ 二酸化炭素 ＋ 熱
+　という反応が進みます。温度・酸素・糖濃度を管理すると風味が大きく変わります。
+
+その後、熟成。
+　タンクや樽で一定期間置くと、揮発成分や有機酸が変化して味が丸くなります。ワインやウイスキーではこの段階が品質を左右します。
+
+最後に仕上げ。
+　ろ過、加水、炭酸付与、ブレンドなどを行い、アルコール度数や香味を調整して完成です。
+
+補足として製法の分岐：
+　・醸造酒（ビール、ワイン、日本酒）＝発酵のみ
+　・蒸留酒（ウイスキー、焼酎、ジン）＝発酵後に蒸留してアルコールを濃縮
+　・混成酒（リキュール）＝酒に糖や香料を加える
+        </p>
     </article>
     <article>
       <div class="articletitle">-少しのお酒は体にいいのか</div>
-      <p class="contents">構成 /前提 /論拠 /結論</p>
+      <p class="contents">
+      皆さんの中にははお酒は少しだけならお酒は体にいいと思っている人がいるかも知れません。
+      「お酒は百薬の長」だとか聞いたことがあると思います。実際にはどうなのでしょうか。
+      下のグラフは飲酒量のグラフでjカーブという形をしています。
+      <img src="" alt="jカーブ">
+      これが皆さんの想像する、お酒のリスクをグラフにしたものだと思います。
+      しかし、最近の研究では下のグラフの要尾になっていることがわかってきました
+      <img src="" alt="実際のjカーブ">
+      グラフでは、
+      </p>
     </article>
     <article>
-      <div class="articletitle">-お酒に依存性はあるのか</div>
-      <p class="contents">構成 /前提 /論拠 /結論</p>
+      <div class="articletitle">どうしよう？</div>
+      <p class="contents">
+        まず吸収。
+アルコールは消化をほとんど必要とせず、
+約20％が胃、約80％が小腸から血液へ入ります。
+空腹時に酔いやすいのは、胃を通過して小腸に早く到達するためです。
+
+次に脳への作用。
+アルコールは中枢神経抑制薬で、脳のブレーキ役であるGABA系を強めます。
+その結果として
+・判断力低下
+・反応速度低下
+・気分の高揚
+が起こります。
+
+酔いの段階。
+血中アルコール濃度（BAC）が上がると症状が段階的に変わります。
+
+軽度（ほろ酔い）
+　リラックス・会話が増える
+
+中等度
+　注意力低下・ふらつき
+
+高度
+　運動失調・記憶障害
+
+重度
+　昏睡・呼吸抑制
+
+次に分解。
+アルコールは主に肝臓で
+アルコール → アセトアルデヒド → 酢酸
+の順で分解されます。
+
+このとき働く酵素が
+・ADH（アルコール脱水素酵素）
+・ALDH（アルデヒド脱水素酵素）
+です。
+
+顔が赤くなる理由。
+ALDHの働きが弱い体質ではアセトアルデヒドが蓄積し、
+顔面紅潮・動悸・吐き気が起こります。
+東アジアではこの体質が比較的多いことが知られています。
+
+最後に回復。
+アルコールの分解速度はほぼ一定で、
+一般的に
+1時間あたり約5〜10g程度
+しか処理できません。
+「早く酔いを覚ます方法」は基本的に存在せず、時間経過が唯一の解決策です。
+
+      </p>
     </article>
     <form id="sim">
       <div id="put"></div>
       <div id="block">
         <div id="heavy">
           <p>体重</p>
-          <input type="number" name="q1" />
+          <input type="number" name="q1">
         </div>
         <div id="vol">
           <p>度数</p>
-          <input type="number" name="q2" />
+          <input type="number" name="q2">
         </div>
         <div id="amo">
           <p>量</p>
-          <input type="number" name="q3" />
+          <input type="number" name="q3">
         </div>
       </div>
     </form>
-    <footer>4</footer>
+    <div id="s">GBD 2016 Alcohol Collaborators, et al. (2018). Alcohol use and burden for 195 countries and territories, 1990-2016. Lancet, 392(10152): 1015-1035.</div>
+    <footer>5</footer>
     <script type="text/javascript" src="s.js"></script>
   </body>
 </html>
