@@ -42,7 +42,7 @@ article{
     margin: 1.2em 0 0.6em;        /* 上下余白 */
     padding-bottom: 0.3em;
 
-    border-bottom: 3px solid #222; /* 視覚的区切り */
+    border-bottom: 3px solid #ddd; /* 視覚的区切り */
   }
   .i{
     width: 50%;
