@@ -1,1 +1,147 @@
-「お酒の場では本音が言える」のようなことを耳にすると思います。お酒の場でしか言えないような本音は本音と言えるのかお酒を飲んでいることで責任を逃避して、自信を持って言えないようなことは本音と言えないのではないだろうか。
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ミステリーボックス</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; }
+    .hint { margin: 12px 0; font-size: 20px; }
+    .choice { margin: 10px; padding: 10px 20px; font-size: 18px; 
+      
+    }
+    #nextHint, #nextQuestion { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
+    #nextHint {
+      margin-bottom:40px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎁ミステリーボックス🎁</h1>
+
+  <div id="hints"></div>
+  <button id="nextHint">次のヒント</button>
+
+  <div id="choices"></div>
+  <p id="result"></p>
+
+  <button id="nextQuestion" style="display:none;">次の問題</button>
+  
+  
+
+  <script>
+    // 複数問題データ
+    const questions = [
+      {
+        hints: [
+          "ヒント1：プロの野球選手です",
+          "ヒント2：日本人です",
+          "ヒント3：二刀流で有名です"
+        ],
+        choices: ["メッシ", "大谷翔平", "イチロー"],
+        answer: "大谷翔平"
+      },
+      {
+        hints: [
+          "ヒント1：歴史上の人物です",
+          "ヒント2：羽柴秀吉とも呼ばれます",
+          "ヒント3：天下統一しました"
+        ],
+        choices: ["豊臣秀吉", "織田信長", "明智光秀"],
+        answer: "豊臣秀吉"
+      },
+      {
+        hints: [
+          "ヒント1：",
+          "ヒント2:",
+          "ヒント3:",
+          ]
+      }
+    ];
+
+    let currentQuestionIndex = 0;
+    let currentHintIndex = 0;
+
+    const hintContainer = document.getElementById("hints");
+    const choiceContainer = document.getElementById("choices");
+    const result = document.getElementById("result");
+    const nextHintBtn = document.getElementById("nextHint");
+    const nextQuestionBtn = document.getElementById("nextQuestion");
+
+    // 問題を表示する
+    function loadQuestion() {
+      const q = questions[currentQuestionIndex];
+      hintContainer.innerHTML = "";
+      choiceContainer.innerHTML = "";
+      result.textContent = "";
+      nextQuestionBtn.style.display = "none";
+      currentHintIndex = 0;
+
+      // 最初のヒントだけ表示
+      showHint();
+
+      // 選択肢ボタン生成
+      q.choices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = choice;
+        btn.onclick = () => checkAnswer(choice);
+        choiceContainer.appendChild(btn);
+      });
+    }
+
+    // ヒント表示
+    function showHint() {
+      const q = questions[currentQuestionIndex];
+      if (currentHintIndex < q.hints.length) {
+        const p = document.createElement("p");
+        p.className = "hint";
+        p.textContent = q.hints[currentHintIndex];
+        hintContainer.appendChild(p);
+        currentHintIndex++;
+      } else {
+        nextHintBtn.disabled = true;
+      }
+    }
+
+    // 判定
+    function checkAnswer(choice) {
+      const q = questions[currentQuestionIndex];
+      if (choice === q.answer) {
+        result.textContent = "🎉 正解 🎉";
+      } else {
+        result.textContent = "❌不正解❌";
+      }
+
+      // 次の問題表示
+      nextQuestionBtn.style.display = "inline-block";
+      nextHintBtn.disabled = true;
+    }
+
+    // 次の問題
+    nextQuestionBtn.onclick = () => {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+        nextHintBtn.disabled = false;
+        loadQuestion();
+      } else {
+        hintContainer.innerHTML = "";
+        choiceContainer.innerHTML = "";
+        result.textContent = "〜おわり〜";
+        nextQuestionBtn.style.display = "none";
+        nextHintBtn.style.display = "none";
+      }
+    };
+
+    // ヒント
+    nextHintBtn.onclick = showHint;
+    
+    
+
+    
+    loadQuestion();
+  </script>
+</body>
+</html>
+
+
+
