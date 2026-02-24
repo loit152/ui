@@ -5,8 +5,15 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
     <style>
-      * { margin: 0; padding: 0; }
-      div { box-sizing:border-box; font-size:30px; background-color: white; }
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      div {
+        box-sizing:border-box;
+        font-size:30px;
+        background-color: white;
+      }
 
       .container {
         border:2px solid #333333;
@@ -44,10 +51,23 @@
         background:white;
       }
 
-      .hint { margin: 12px 0; font-size: 20px; }
-      .choice { margin: 10px; padding: 10px 20px; font-size: 18px; }
-      #nextHint, #nextQuestion { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
-      #nextHint { margin-bottom:40px; }
+      .hint {
+        margin: 12px 0;
+        font-size: 20px;
+      }
+      .choice {
+        margin: 10px;
+        padding: 10px 20px;
+        font-size: 18px;
+      }
+      #nextHint, #nextQuestion {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 18px;
+      }
+      #nextHint {
+        margin-bottom:40px;
+      }
     </style>
   </head>
 
@@ -78,7 +98,7 @@
   </div>
 
 <script>
-//問題データ　question.hint[n]みたいな感じで表現できる　keyword二次元配列 連想配列  
+//問題データ　question.hint[n]みたいな感じで表現できる　二次元配列 連想配列  
 const questions = [
     {
       hints: [
@@ -179,7 +199,7 @@ const questions = [
 
       score += gained;
     } else {
-      result.innerHTML = "❌不正解❌";
+      result.innerHTML = "❌不正解❌正解は" + questions[currentQuestionIndex].answer + "でした";
     }
 
     updateScore();
