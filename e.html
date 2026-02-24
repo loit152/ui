@@ -4,14 +4,27 @@
   <meta charset="UTF-8">
   <title>ミステリーボックス</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 40px; }
-    .hint { margin: 12px 0; font-size: 20px; }
-    .choice { margin: 10px; padding: 10px 20px; font-size: 18px; 
-      
+    body{
+        font-family: sans-serif;
+        text-align: center;
+        padding: 40px;
     }
-    #nextHint, #nextQuestion { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
-    #nextHint {
-      margin-bottom:40px;
+    .hint{
+        margin: 12px 0;
+        font-size: 20px;
+    }
+    .choice{
+        margin: 10px;
+        padding: 10px 20px;
+        font-size: 18px;
+    }
+    #nextHint,#nextQuestion{
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 18px;
+    }
+    #nextHint{
+        margin-bottom:40px;
     }
   </style>
 </head>
@@ -72,18 +85,18 @@
       const q = questions[currentQuestionIndex];
       hintContainer.innerHTML = "";
       choiceContainer.innerHTML = "";
-      result.textContent = "";
+      result.innerHTML = "";
       nextQuestionBtn.style.display = "none";
       currentHintIndex = 0;
 
       // 最初のヒントだけ表示
       showHint();
 
-      // 選択肢ボタン生成
+      // 選択肢ボタンの生成
       q.choices.forEach(choice => {
         const btn = document.createElement("button");
         btn.className = "choice";
-        btn.textContent = choice;
+        btn.innerHTML = choice;
         btn.onclick = () => checkAnswer(choice);
         choiceContainer.appendChild(btn);
       });
@@ -95,11 +108,11 @@
       if (currentHintIndex < q.hints.length) {
         const p = document.createElement("p");
         p.className = "hint";
-        p.textContent = q.hints[currentHintIndex];
+        p.innerHTML = q.hints[currentHintIndex];
         hintContainer.appendChild(p);
         currentHintIndex++;
       } else {
-        nextHintBtn.disabled = true;
+        nextHintBtn.innerHTML="ヒント終了";
       }
     }
 
@@ -107,9 +120,9 @@
     function checkAnswer(choice) {
       const q = questions[currentQuestionIndex];
       if (choice === q.answer) {
-        result.textContent = "🎉 正解 🎉";
+        result.innerHTML = "🎉 正解 🎉";
       } else {
-        result.textContent = "❌不正解❌";
+        result.innerHTML = "❌不正解❌";
       }
 
       // 次の問題表示
@@ -126,7 +139,7 @@
       } else {
         hintContainer.innerHTML = "";
         choiceContainer.innerHTML = "";
-        result.textContent = "〜おわり〜";
+        result.innerHTML = "〜おわり〜";
         nextQuestionBtn.style.display = "none";
         nextHintBtn.style.display = "none";
       }
