@@ -114,7 +114,7 @@
   const nextQuestionBtn = document.getElementById("nextQuestion");
 
   function updateScore() {
-    document.getElementById("score").textContent = "ポイント：" + score;
+    document.getElementById("score").innerHTML = "ポイント：" + score;
   }
 
   function loadQuestion() {
@@ -122,7 +122,7 @@
 
     hintContainer.innerHTML = "";
     choiceContainer.innerHTML = "";
-    result.textContent = "";
+    result.innerHTML = "";
     nextQuestionBtn.style.display = "none";
 
     currentHintIndex = 0;
@@ -141,7 +141,7 @@
     q.choices.forEach(choice => {
       const btn = document.createElement("button");
       btn.className = "choice";
-      btn.textContent = choice;
+      btn.innerHTML = choice;
       btn.onclick = () => checkAnswer(choice);
       choiceContainer.appendChild(btn);
     });
@@ -153,7 +153,7 @@
     if (currentHintIndex < q.hints.length) {
       const p = document.createElement("p");
       p.className = "hint";
-      p.textContent = q.hints[currentHintIndex];
+      p.innerHTML = q.hints[currentHintIndex];
       hintContainer.appendChild(p);
 
       currentHintIndex++;
@@ -167,14 +167,14 @@
     const q = questions[currentQuestionIndex];
 
     if (choice === q.answer) {
-      result.textContent = "🎉 正解 🎉";
+      result.innerHTML = "🎉 正解 🎉";
 
       let gained = 10 - (usedHints - 1) * 2;
       if (gained < 0) gained = 0;
 
       score += gained;
     } else {
-      result.textContent = "❌不正解❌";
+      result.innerHTML = "❌不正解❌";
     }
 
     updateScore();
