@@ -1,160 +1,211 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>ミステリーボックス</title>
-  <style>
-    body{
-        font-family: sans-serif;
-        text-align: center;
-        padding: 40px;
-    }
-    .hint{
-        margin: 12px 0;
-        font-size: 20px;
-    }
-    .choice{
-        margin: 10px;
-        padding: 10px 20px;
-        font-size: 18px;
-    }
-    #nextHint,#nextQuestion{
-        margin-top: 20px;
-        padding: 10px 20px;
-        font-size: 18px;
-    }
-    #nextHint{
-        margin-bottom:40px;
-    }
-  </style>
-</head>
+<html>
+  <head>
+    <title>ミステリーボックス</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <style>
+      * { margin: 0; padding: 0; }
+      div { box-sizing:border-box; font-size:30px; background-color: white; }
+
+      .container {
+        border:2px solid #333333;
+        margin-right: auto;
+        margin-left:  auto;
+        max-width: 960px;
+        height:auto;
+        background-color: gray;
+      }
+
+      .header{
+        width:100%;
+        height:100px;
+        padding: 20px;
+        background-color: green;
+        font-size:35px;
+        color:white;
+        text-align:center;
+      }
+
+      .hooter{
+        width:100%;
+        height:50px;
+        padding-top: 10px;
+        background-color: #006600;
+        color:white;
+        font-size:18px;
+        text-align:right;
+      }
+
+      .main{
+        width:100%;
+        padding:30px;
+        border-bottom: 1px solid #333333;
+        background:white;
+      }
+
+      .hint { margin: 12px 0; font-size: 20px; }
+      .choice { margin: 10px; padding: 10px 20px; font-size: 18px; }
+      #nextHint, #nextQuestion { margin-top: 20px; padding: 10px 20px; font-size: 18px; }
+      #nextHint { margin-bottom:40px; }
+    </style>
+  </head>
+
 <body>
-  <h1>🎁ミステリーボックス🎁</h1>
+  <div class="container">
 
-  <div id="hints"></div>
-  <button id="nextHint">次のヒント</button>
+    <div class="header">
+      🎁 ミステリーボックス 🎁
+    </div>
 
-  <div id="choices"></div>
-  <p id="result"></p>
+    <div class="main">
 
-  <button id="nextQuestion" style="display:none;">次の問題</button>
-  
-  
+      <p id="score">ポイント：0</p>
 
-  <script>
-    // 複数問題データ
-    const questions = [
-      {
-        hints: [
-          "ヒント1：プロの野球選手です",
-          "ヒント2：日本人です",
-          "ヒント3：二刀流で有名です"
-        ],
-        choices: ["メッシ", "大谷翔平", "イチロー"],
-        answer: "大谷翔平"
-      },
-      {
-        hints: [
-          "ヒント1：歴史上の人物です",
-          "ヒント2：羽柴秀吉とも呼ばれます",
-          "ヒント3：天下統一しました"
-        ],
-        choices: ["豊臣秀吉", "織田信長", "明智光秀"],
-        answer: "豊臣秀吉"
-      },
-      {
-        hints: [
-          "ヒント1：",
-          "ヒント2:",
-          "ヒント3:",
-          ]
-      }
-    ];
+      <div id="hints"></div>
+      <button id="nextHint">次のヒント</button>
 
-    let currentQuestionIndex = 0;
-    let currentHintIndex = 0;
+      <div id="choices"></div>
+      <p id="result"></p>
 
-    const hintContainer = document.getElementById("hints");
-    const choiceContainer = document.getElementById("choices");
-    const result = document.getElementById("result");
-    const nextHintBtn = document.getElementById("nextHint");
-    const nextQuestionBtn = document.getElementById("nextQuestion");
+      <button id="nextQuestion" style="display:none;">次の問題</button>
 
-    // 問題を表示する
-    function loadQuestion() {
-      const q = questions[currentQuestionIndex];
-      hintContainer.innerHTML = "";
-      choiceContainer.innerHTML = "";
-      result.innerHTML = "";
-      nextQuestionBtn.style.display = "none";
-      currentHintIndex = 0;
+    </div>
 
-      // 最初のヒントだけ表示
-      showHint();
+    <div class="hooter">
+      メンバー全員の番号と名前を書く
+    </div>
+  </div>
 
-      // 選択肢ボタンの生成
-      q.choices.forEach(choice => {
-        const btn = document.createElement("button");
-        btn.className = "choice";
-        btn.innerHTML = choice;
-        btn.onclick = () => checkAnswer(choice);
-        choiceContainer.appendChild(btn);
-      });
+<script>
+  // --- 問題データ ---
+  const questions = [
+    {
+      hints: [
+        "ヒント1：プロの野球選手です",
+        "ヒント2：日本人です",
+        "ヒント3：二刀流で有名です"
+      ],
+      choices: ["メッシ", "大谷翔平", "イチロー"],
+      answer: "大谷翔平",
+      image: "img/IMG_box.jpeg"
+    },
+    {
+      hints: [
+        "ヒント1：歴史上の人物です",
+        "ヒント2：羽柴秀吉とも呼ばれます",
+        "ヒント3：天下統一しました"
+      ],
+      choices: ["豊臣秀吉", "織田信長", "明智光秀"],
+      answer: "豊臣秀吉",
+      image: "img/IMG_box.jpeg"
+    }
+  ];
+
+  let currentQuestionIndex = 0;
+  let currentHintIndex = 0;
+  let usedHints = 0;
+  let score = 0;
+
+  const hintContainer = document.getElementById("hints");
+  const choiceContainer = document.getElementById("choices");
+  const result = document.getElementById("result");
+  const nextHintBtn = document.getElementById("nextHint");
+  const nextQuestionBtn = document.getElementById("nextQuestion");
+
+  function updateScore() {
+    document.getElementById("score").textContent = "ポイント：" + score;
+  }
+
+  function loadQuestion() {
+    const q = questions[currentQuestionIndex];
+
+    hintContainer.innerHTML = "";
+    choiceContainer.innerHTML = "";
+    result.textContent = "";
+    nextQuestionBtn.style.display = "none";
+
+    currentHintIndex = 0;
+    usedHints = 0;
+
+    if (q.image) {
+      const img = document.createElement("img");
+      img.src = q.image;
+      img.style.width = "250px";
+      img.style.marginBottom = "20px";
+      hintContainer.appendChild(img);
     }
 
-    // ヒント表示
-    function showHint() {
-      const q = questions[currentQuestionIndex];
-      if (currentHintIndex < q.hints.length) {
-        const p = document.createElement("p");
-        p.className = "hint";
-        p.innerHTML = q.hints[currentHintIndex];
-        hintContainer.appendChild(p);
-        currentHintIndex++;
-      } else {
-        nextHintBtn.innerHTML="ヒント終了";
-      }
-    }
+    showHint();
 
-    // 判定
-    function checkAnswer(choice) {
-      const q = questions[currentQuestionIndex];
-      if (choice === q.answer) {
-        result.innerHTML = "🎉 正解 🎉";
-      } else {
-        result.innerHTML = "❌不正解❌";
-      }
+    q.choices.forEach(choice => {
+      const btn = document.createElement("button");
+      btn.className = "choice";
+      btn.textContent = choice;
+      btn.onclick = () => checkAnswer(choice);
+      choiceContainer.appendChild(btn);
+    });
+  }
 
-      // 次の問題表示
-      nextQuestionBtn.style.display = "inline-block";
+  function showHint() {
+    const q = questions[currentQuestionIndex];
+
+    if (currentHintIndex < q.hints.length) {
+      const p = document.createElement("p");
+      p.className = "hint";
+      p.textContent = q.hints[currentHintIndex];
+      hintContainer.appendChild(p);
+
+      currentHintIndex++;
+      usedHints++;
+    } else {
       nextHintBtn.disabled = true;
     }
+  }
 
-    // 次の問題
-    nextQuestionBtn.onclick = () => {
-      currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) {
-        nextHintBtn.disabled = false;
-        loadQuestion();
-      } else {
-        hintContainer.innerHTML = "";
-        choiceContainer.innerHTML = "";
-        result.innerHTML = "〜おわり〜";
-        nextQuestionBtn.style.display = "none";
-        nextHintBtn.style.display = "none";
-      }
-    };
+  function checkAnswer(choice) {
+    const q = questions[currentQuestionIndex];
 
-    // ヒント
-    nextHintBtn.onclick = showHint;
-    
-    
+    if (choice === q.answer) {
+      result.textContent = "🎉 正解 🎉";
 
-    
-    loadQuestion();
-  </script>
+      let gained = 10 - (usedHints - 1) * 2;
+      if (gained < 0) gained = 0;
+
+      score += gained;
+    } else {
+      result.textContent = "❌不正解❌";
+    }
+
+    updateScore();
+
+    nextQuestionBtn.style.display = "inline-block";
+    nextHintBtn.disabled = true;
+  }
+
+  nextQuestionBtn.onclick = () => {
+    currentQuestionIndex++;
+
+    if (currentQuestionIndex < questions.length) {
+      nextHintBtn.disabled = false;
+      loadQuestion();
+    } else {
+      hintContainer.innerHTML = "";
+      choiceContainer.innerHTML = "";
+      result.innerHTML =
+        "〜おわり〜<br>あなたの最終スコアは <strong>" + score + " 点</strong> です！";
+
+      nextQuestionBtn.style.display = "none";
+      nextHintBtn.style.display = "none";
+    }
+  };
+
+  nextHintBtn.onclick = showHint;
+
+  loadQuestion();
+</script>
+
 </body>
 </html>
-
 
 
