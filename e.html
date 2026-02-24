@@ -191,7 +191,10 @@ const questions = [
 
   function checkAnswer(choice) {
     const q = questions[currentQuestionIndex];
-
+    // ★ ここで全選択肢を無効化
+  document.querySelectorAll(".choice").forEach(btn => {
+    btn.disabled = true;
+  });
     if (choice === q.answer) {
       result.innerHTML = "🎉 正解 🎉";
       let gained = 10 - (usedHints - 1) * 2;
@@ -199,7 +202,7 @@ const questions = [
 
       score += gained;
     } else {
-      result.innerHTML = "❌不正解❌正解は" + questions[currentQuestionIndex].answer + "でした";
+      result.innerHTML = "❌不正解❌正解は" + q.answer + "でした";
     }
 
     updateScore();
