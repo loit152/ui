@@ -78,8 +78,8 @@
   </div>
 
 <script>
-  // --- 問題データ ---
-  const questions = [
+//問題データ　question.hint[n]みたいな感じで表現できる　keyword二次元配列 連想配列  
+const questions = [
     {
       hints: [
         "ヒント1：プロの野球選手です",
@@ -112,7 +112,7 @@
   const result = document.getElementById("result");
   const nextHintBtn = document.getElementById("nextHint");
   const nextQuestionBtn = document.getElementById("nextQuestion");
-
+//以下関数
   function updateScore() {
     document.getElementById("score").innerHTML = "ポイント：" + score;
   }
@@ -150,7 +150,7 @@
   function showHint() {
     const q = questions[currentQuestionIndex];
 
-    if (currentHintIndex < q.hints.length) {
+    if (currentHintIndex+1 < q.hints.length) {
       const p = document.createElement("p");
       p.className = "hint";
       p.innerHTML = q.hints[currentHintIndex];
@@ -169,7 +169,6 @@
 
     if (choice === q.answer) {
       result.innerHTML = "🎉 正解 🎉";
-
       let gained = 10 - (usedHints - 1) * 2;
       if (gained < 0) gained = 0;
 
@@ -187,9 +186,11 @@
   nextQuestionBtn.onclick = () => {
     currentQuestionIndex++;
 
-    if (currentQuestionIndex < questions.length) {
+    if (currentQuestionIndex+1 < questions.length) {
       nextHintBtn.disabled = false;
+      nextHintBtn.innerHTML="次のヒント";
       loadQuestion();
+
     } else {
       hintContainer.innerHTML = "";
       choiceContainer.innerHTML = "";
