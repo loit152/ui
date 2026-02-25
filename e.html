@@ -93,7 +93,7 @@
     </div>
 
     <div class="hooter">
-      メンバー全員の番号と名前を書く
+		5石井19下平21須藤23清田
     </div>
   </div>
 
@@ -108,19 +108,68 @@ const questions = [
       ],
       choices: ["メッシ", "大谷翔平", "イチロー"],
       answer: "大谷翔平",
-      image: "img/IMG_box.jpeg"
+      image: "img/IMG_box.jpeg",
+      correctImage:"img/IMG_sho.jpeg"
     },
     {
       hints: [
         "ヒント1：歴史上の人物です",
-        "ヒント2：羽柴秀吉とも呼ばれます",
-        "ヒント3：天下統一しました"
+        "ヒント2：天下統一したことがあります",
+        "ヒント3：羽柴秀吉とも呼ばれます"
       ],
       choices: ["豊臣秀吉", "織田信長", "明智光秀"],
       answer: "豊臣秀吉",
-      image: "img/IMG_box.jpeg"
-    }
+      image: "img/IMG_box.jpeg",
+      correctImage:"img/IMG_toyo.jpeg"
+    },
+    {
+      hints: [
+        "世界的に有名なキャラクターです",
+        "黄色い身体をしています",
+        "電気を使った攻撃をします"
+        ],
+        choices: ["ドラえもん","スヌーピー","ピカチュウ"],
+        answer:"ピカチュウ",
+        image:"img/IMG_box.jpeg",
+        correctImage:"img/IMG_pika.webp"
+        
+    },
+    {
+  hints: [
+    "ヒント1：世界的に有名なゲームキャラクターです",
+    "ヒント2：職業は配管工です",
+    "ヒント3：赤い帽子をかぶっています"
+  ],
+  choices: ["ドンキーコング", "マリオ", "カービィ"],
+  answer: "マリオ",
+  image: "img/IMG_box.jpeg",
+  correctImage: "img/mario.jpeg"
+},
+{
+  hints: [
+    "ヒント1：動物です",
+    "ヒント2：竹を主食にしています",
+    "ヒント3：白と黒の体をしています"
+  ],
+  choices: ["パンダ", "シマウマ", "ホッキョクグマ"],
+  answer: "パンダ",
+  image: "img/IMG_box.jpeg",
+  correctImage: "img/panda.jpg"
+},
+{
+  hints: [
+    "ヒント1：世界的に有名な建物です",
+    "ヒント2：鉄でできています",
+    "ヒント3：フランスにあります"
+  ],
+  choices: ["エッフェル塔", "自由の女神", "ピラミッド"],
+  answer: "エッフェル塔",
+  image: "img/IMG_box.jpeg",
+  correctImage: "img/eiffel.jpg"
+}
+
   ];
+
 
   let currentQuestionIndex = 0;
   let currentHintIndex = 0;
@@ -196,11 +245,15 @@ const questions = [
     btn.disabled = true;
   });
     if (choice === q.answer) {
-      result.innerHTML = "🎉 正解 🎉";
+      result.innerHTML = "🎉 正解 🎉<br>";
       let gained = 10 - (usedHints - 1) * 2;
-      if (gained < 0) gained = 0;
-
       score += gained;
+		const img = document.createElement("img");
+      img.src = q.correctImage;
+      img.style.width = "250px";
+      img.style.marginTop = "20px";
+      result.appendChild(img);
+
     } else {
       result.innerHTML = "❌不正解❌正解は" + q.answer + "でした";
     }
@@ -222,8 +275,10 @@ const questions = [
     } else {
       hintContainer.innerHTML = "";
       choiceContainer.innerHTML = "";
-      result.innerHTML =
-        "〜おわり〜<br>あなたの最終スコアは <strong>" + score + " 点</strong> です！";
+      const maxScore = questions.length * 10;
+		result.innerHTML =
+			"〜おわり〜<br>あなたの最終スコアは <strong>" + score + "/" + maxScore + " 点</strong> です！";
+
 
       nextQuestionBtn.style.display = "none";
       nextHintBtn.style.display = "none";
@@ -237,5 +292,3 @@ const questions = [
 
 </body>
 </html>
-
-
