@@ -1,4 +1,9 @@
 list =[
+        {
+        question:"",
+        answer:"",
+    },
+
     {
         question:"アルコールはどのようなタイプの薬物か",    
         answer:"抑制剤",
