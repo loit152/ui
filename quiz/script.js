@@ -20,128 +20,44 @@ list =[
         answer:"アセトアルデヒドになり、アセトアルデヒド脱水素酵素/ALDH2型によって分解される",
     },
     {
-        question:"",
-        answer:"",
+        question:"薬物乱用とは",
+        answer:"医薬品を本来の目的から外れれて使用したり、違法薬物を不正に使用すること。脳や神経に一時的な快感を与える。",
     },
     {
-        question:"",
-        answer:"",
+        question:"健康被害",
+        answer:"中枢神経の破壊、幻想、妄想、記憶力、内臓機能、運動能力の低下、依存症への恐怖、犯罪を誘発",
     },
     {
-        question:"",
-        answer:"",
+        question:"恐ろしさ",
+        answer:"精神依存、退薬症候、耐性の形成、フッシュバック、資金調達に奔走・翻弄",
     },
     {
-        question:"",
-        answer:"",
+        question:"薬物が切れると起こる症状",
+        answer:"禁断症状",
     },
     {
-        question:"",
-        answer:"",
+        question:"依存になると抜け出すことが難しくなり、〜になる",
+        answer:"薬物中毒",
     },
     {
-        question:"",
-        answer:"",
+        question:"薬物の種類",
+        answer:"アヘン型、MDMA、コカイン型、覚醒剤、大麻、向精神薬、有機溶剤<br>抑制、興奮・幻覚、興奮、興奮・幻覚・フラシュバック、抑制、抑制、抑制",
     },
     {
-        question:"",
-        answer:"",
+        question:"近年のトピック<br>〜のとりすぎ<br>〜<br>〜<br>巧妙な手段での〜",
+        answer:"カフェイン、医薬品のオーバードーズ、危険ドラッグ、密輸密売、",
     },
     {
-        question:"",
-        answer:"",
+        question:"麻薬や覚醒剤の亜種",
+        answer:"危険ドラッグ",
     },
     {
-        question:"",
-        answer:"",
+        question:"その対策",
+        answer:"医療品医療機器法で指定薬物に指定",
     },
     {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
-    },
-    {
-        question:"",
-        answer:"",
+        question:"薬物四法",
+        answer:"麻薬及びこう精神薬取締法、大麻取締法、アヘン方、覚せい剤取締法、",
     },
 ]
 
