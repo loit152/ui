@@ -37,19 +37,14 @@ len = list.length;
 submit.onclick=submitf;
 next.onclick = nextf;
 function submitf(){
-    if (c <len){
         answer.textContent = list[c].answer;
         submit.style.display = "none";
         next.style.display = "block";
         c++;
         con.innerHTML="c=" + c;
-    }else{
-        answer.textContent = list[c].answer;
-        submit.style.display = "none";
-        next.style.display = "block";
-        answer.textContent = list.answer[len];
-        c = 0
-    }
+        if (c==len){
+            c=0
+        }
 }
 function nextf(){
     sentence.textContent = list[c].question;
