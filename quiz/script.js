@@ -163,4 +163,3 @@ function nextf(){
 submitf();
 scon.textContent = len;
 answer.innerHTML = "Here display the answer of the question.";
-、
