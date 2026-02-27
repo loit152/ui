@@ -19,6 +19,130 @@ list =[
         question:"分解されたアルコールは何になって何によって分解される？",
         answer:"アセトアルデヒドになり、アセトアルデヒド脱水素酵素/ALDH2型によって分解される",
     },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
 ]
 
 /*
@@ -31,7 +155,8 @@ let submit = document.getElementById("submit");
 let sentence = document.getElementById("sentence");
 let answer = document.getElementById("answer");
 let next = document.getElementById("next");
-let con = document.getElementById("console");
+let fcon = documet.getElementById("firstconsole");
+let scon = document.getElementById("secondconsole")
 c=0
 len = list.length;
 submit.onclick=submitf;
