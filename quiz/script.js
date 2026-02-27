@@ -166,7 +166,7 @@ function submitf(){
         submit.style.display = "none";
         next.style.display = "block";
         c++;
-        con.innerHTML="c=" + c;
+        fcon.innerHTML="c=" + c;
         if (c==len){
             c=0
         }
@@ -177,4 +177,5 @@ function nextf(){
     next.style.display = "none";
 }
 submitf();
+scon.textContent = len;
 answer.innerHTML = "Here display the answer of the question.";
