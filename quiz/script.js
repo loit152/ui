@@ -64,7 +64,7 @@ list =[
         answer:"アルコールハラスメント、飲酒運転、性被害",
     },
     {
-        question:"アルコール依存症→",
+        question:"アルコール依存症は",
         answer:"精神的・身体的健康を損なうとともに社会へ適応力を低下させる",
     },
     {
@@ -73,10 +73,10 @@ list =[
     },
     {
         question:"社会的問題",
-        answer:"未成年の飲酒、飲酒運転事故、アルコールハラスメント一気飲みの強要",
+        answer:"未成年の飲酒、飲酒運転事故、アルコールハラスメント、一気飲みの強要",
     },
     {
-        question:"飲酒運転の罰則",
+        question:"飲酒運転の罰則を定めた法",
         answer:"道路交通法",
     },
     {
@@ -86,7 +86,7 @@ list =[
     {
         question:"飲酒運転による懲罰",
         answer:"酒酔い<br>5年以下の懲役、100万円以下の罰金<br>酒気帯び<br>3年以下の懲役、50万円以下の罰金",
-    }
+    },
     {
         question:"薬物乱用とは",
         answer:"医薬品を本来の目的から外れれて使用したり、違法薬物を不正に使用すること。脳や神経に一時的な快感を与える。",
@@ -146,7 +146,7 @@ len = list.length;
 submit.onclick=submitf;
 next.onclick = nextf;
 function submitf(){
-        answer.textContent = list[c].answer;
+        answer.innerHTML = list[c].answer;
         submit.style.display = "none";
         next.style.display = "block";
         c++;
@@ -156,10 +156,11 @@ function submitf(){
         }
 }
 function nextf(){
-    sentence.textContent = list[c].question;
+    sentence.innerHTML = list[c].question;
     submit.style.display = "block";
     next.style.display = "none";
 }
 submitf();
 scon.textContent = len;
 answer.innerHTML = "Here display the answer of the question.";
+、
