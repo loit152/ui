@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>P2P Test</title>
+</head>
+<body>
+  <h3>Your ID: <span id="myid"></span></h3>
+
+  <input id="peerid" placeholder="相手のID">
+  <button id="connect">connect</button>
+
+  <br><br>
+
+  <input id="msg">
+  <button id="send">send</button>
+
+  <pre id="log"></pre>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const peer = new Peer();
+
+const log = txt => document.getElementById("log").textContent += txt + "\n";
+
+peer.on("open", id => {
+  document.getElementById("myid").textContent = id;
+});
+
+let conn;
+
+document.getElementById("connect").onclick = () => {
+  const id = document.getElementById("peerid").value;
+  conn = peer.connect(id);
+  setup();
+};
+
+peer.on("connection", c => {
+  conn = c;
+  setup();
+});
+
+function setup(){
+  conn.on("data", data => log("相手: " + data));
+}
+
+document.getElementById("send").onclick = () => {
+  const m = document.getElementById("msg").value;
+  conn.send(m);
+  log("自分: " + m);
+};
+</script>
+</body>
+</html>
