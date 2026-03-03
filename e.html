@@ -171,10 +171,10 @@ const questions = [
   ];
 
 
-  let currentQuestionIndex = 0;
-  let currentHintIndex = 0;
-  let usedHints = 0;
-  let score = 0;
+  let currentQuestionIndex = 0;//問題番号を管理
+  let currentHintIndex = 0;//ヒントをいくつ出したか
+  let usedHints = 0;//ヒントを使った数を記録
+  let score = 0;//スコアを記録
 
   const hintContainer = document.getElementById("hints");
   const choiceContainer = document.getElementById("choices");
@@ -182,10 +182,11 @@ const questions = [
   const nextHintBtn = document.getElementById("nextHint");
   const nextQuestionBtn = document.getElementById("nextQuestion");
 //以下関数
+//スコアの更新
   function updateScore() {
     document.getElementById("score").innerHTML = "ポイント：" + score;
   }
-
+//問題などの初期設定
   function loadQuestion() {
     const q = questions[currentQuestionIndex];
 
@@ -196,7 +197,7 @@ const questions = [
 
     currentHintIndex = 0;
     usedHints = 0;
-
+//imageがあれば表示　　ifいらないのでは
     if (q.image) {
       const img = document.createElement("img");
       img.src = q.image;
@@ -204,9 +205,9 @@ const questions = [
       img.style.marginBottom = "20px";
       hintContainer.appendChild(img);
     }
-
+//一つめのヒントを表示
     showHint();
-
+//選択肢を個数分表示
     q.choices.forEach(choice => {
       const btn = document.createElement("button");
       btn.className = "choice";
@@ -215,7 +216,7 @@ const questions = [
       choiceContainer.appendChild(btn);
     });
   }
-
+//ヒントボタンを押された時の処理
   function showHint() {
     const q = questions[currentQuestionIndex];
 
@@ -237,7 +238,7 @@ const questions = [
       nextHintBtn.innerHTML="ヒント終了";
     }
   }
-
+//答え合わせ
   function checkAnswer(choice) {
     const q = questions[currentQuestionIndex];
     // ★ ここで全選択肢を無効化
@@ -263,7 +264,7 @@ const questions = [
     nextQuestionBtn.style.display = "inline-block";
     nextHintBtn.disabled = true;
   }
-
+//次の問題へ
   nextQuestionBtn.onclick = () => {
     currentQuestionIndex++;
 
