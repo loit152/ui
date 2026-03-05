@@ -38,6 +38,7 @@ function nextf(){
     next.style.display = "none";
 }
 //preset
+next.style.display = "none";
 sentence.innerHTML = list[c-1].question;//
 scon.textContent = "問題数"+len;
 answer.innerHTML = "Here display the answer of the question.";
