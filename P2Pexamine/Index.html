@@ -1,82 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>P2P Test</title>
+  <meta charset="UTF-8">
+  <title>P2P Test</title>
 </head>
 <body>
+    
+  <h3>Your ID: <span id="myid"></span></h3>
 
-<h3>Your ID: <span id="myid"></span></h3>
+  <input id="peerid" placeholder="相手のID">
+  <button id="connect">connect</button>
 
-<input id="peerid" placeholder="相手のID">
-<button id="connect">connect</button>
+  <br><br>
+  
+  <input id="msg">
+  <button id="send">send</button>
 
-<br><br>
+  <pre id="log"></pre>
 
-<input id="msg">
-<button id="send">send</button>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
 
-<pre id="log"></pre>
+  const log = txt =>
+    document.getElementById("log").textContent += txt + "\n";
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>
-
-const log = txt =>
-  document.getElementById("log").textContent += txt + "\n";
-
-const peer = new Peer({
-  config:{ iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
-});
-
-peer.on("open", id=>{
-  myid.textContent = id;
-  log("Peer接続OK");
-});
-
-peer.on("error", err=>{
-  log("Peerエラー: " + err.type);
-});
-
-let conn;
-
-connect.onclick = ()=>{
-  const id = peerid.value;
-  log("接続試行: " + id);
-  conn = peer.connect(id);
-
-  conn.on("open", ()=>{
-    log("接続成功");
-    setup();
+  const peer = new Peer({
+    config:{ iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
   });
 
-  conn.on("error", e=>{
-    log("Connエラー");
+  peer.on("open", id=>{
+    myid.textContent = id;
+    log("Peer接続OK");
   });
-};
 
-peer.on("connection", c=>{
-  conn = c;
-  log("着信");
-  conn.on("open", ()=>{
-    log("接続成功");
-    setup();
+  peer.on("error", err=>{
+    log("Peerエラー: " + err.type);
   });
-});
 
-function setup(){
-  conn.on("data", d=> log("相手: " + d));
-}
+  let conn;
 
-send.onclick = ()=>{
-  if(!conn || !conn.open){
-    log("未接続");
-    return;
+  connect.onclick = ()=>{
+    const id = peerid.value;
+    log("接続試行: " + id);
+    conn = peer.connect(id);
+
+    conn.on("open", ()=>{
+      log("接続成功");
+      setup();
+    });
+
+    conn.on("error", e=>{
+      log("Connエラー");
+    });
+  };
+
+  peer.on("connection", c=>{
+    conn = c;
+    log("着信");
+    conn.on("open", ()=>{
+      log("接続成功");
+      setup();
+    });
+  });
+
+  function setup(){
+    conn.on("data", d=> log("相手: " + d));
   }
-  const m = msg.value;
-  conn.send(m);
-  log("自分: " + m);
-};
 
-</script>
+  send.onclick = ()=>{
+    if(!conn || !conn.open){
+      log("未接続");
+      return;
+    }
+    const m = msg.value;
+    conn.send(m);
+    log("自分: " + m);
+  };
+
+  </script>
 </body>
 </html>

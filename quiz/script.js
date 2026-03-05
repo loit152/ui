@@ -21,20 +21,21 @@ let c=1
 const len = list.length;
 submit.onclick=submitf;
 next.onclick = nextf;
+
 function submitf(){
     answer.innerHTML = list[c-1].answer;
     submit.style.display = "none";
     next.style.display = "block";
     fcon.innerHTML="問題番号" + c;
     if (c==len){
-        c=0
+        c=1
     }
 }
 function nextf(){
+    c++;
     sentence.innerHTML = list[c-1].question;//問題文の更新
     submit.style.display = "block";
     next.style.display = "none";
-    c++;
 }
 //preset
 sentence.innerHTML = list[c-1].question;//
