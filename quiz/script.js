@@ -59,12 +59,12 @@ function submitf(){
     submit.style.display = "none";
     next.style.display = "block";
     fcon.innerHTML="問題番号" + c;
-    if (c==len){
-        c=1
-    }
 }
 function nextf(){
     c++;
+    if (c > len){
+        c = 1
+    }
     sentence.innerHTML = list[c-1].question;//問題文の更新
     submit.style.display = "block";
     next.style.display = "none";
