@@ -497,6 +497,7 @@ function backf(){
     sentence.innerHTML = list[c-1].question;
     submit.style.display = "block";
     next.style.display = "none";
+    fcon.innerHTML="問題番号" + c;
 }
 //preset
 next.style.display = "none";
