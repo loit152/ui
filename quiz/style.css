@@ -10,3 +10,6 @@ button{
     height:90px;
     width:160px;
 }
+#bottunbox{
+    display:flex;
+}

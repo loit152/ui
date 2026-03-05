@@ -25,18 +25,433 @@ list =[
     },
         {
         question:"経済成長の長期化によって、貧富差が縮み個人消費が拡大したことによって社会階層の()、()、()の普及が起こった",
-        answer:"",
+        answer:"平準化、均質化、中流意識",
     },
         {
+        question:"（）地帯へ工業の集中→（）、（）などの環境の悪化→（）や環境保護活動",
+        answer:"太平洋ベルト、過疎化、四大公害、消費者運動",
+    },
+        {
+        question:"ドル＝ショックの背景:ベトナム戦争の戦費・大きな政府、日本や（）の躍進による貿易赤字",
+        answer:"西ドイツ",
+    },
+    {
         question:"",
         answer:"",
     },
-        {
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
+        question:"",
+        answer:"",
+    },
+    {
         question:"",
         answer:"",
     },
 ]
-
 /*trmprate   start copy from right→→→→
     {
         question:"",
@@ -49,10 +464,13 @@ let answer = document.getElementById("answer");
 let next = document.getElementById("next");
 let fcon = document.getElementById("firstconsole");
 let scon = document.getElementById("secondconsole");
+let back = document.getElementById("back");
+
 let c=1
 const len = list.length;
-submit.onclick=submitf;
+submit.onclick= submitf;
 next.onclick = nextf;
+back.onclick = backf;
 
 function submitf(){
     answer.innerHTML = list[c-1].answer;
@@ -60,6 +478,7 @@ function submitf(){
     next.style.display = "block";
     fcon.innerHTML="問題番号" + c;
 }
+
 function nextf(){
     c++;
     if (c > len){
@@ -69,8 +488,18 @@ function nextf(){
     submit.style.display = "block";
     next.style.display = "none";
 }
+
+function backf(){
+    c--;
+    if (c < 1){
+        c = len;
+    }
+    sentence.innerHTML = list[c-1].question;
+    submit.style.display = "block";
+    next.style.display = "none";
+}
 //preset
 next.style.display = "none";
-sentence.innerHTML = list[c-1].question;//
+sentence.innerHTML = list[c-1].question;
 scon.textContent = "問題数"+len;
 answer.innerHTML = "Here display the answer of the question.";
