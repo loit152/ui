@@ -1,89 +1,207 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>P2P Test</title>
+<meta charset="UTF-8">
+<title>Peer Chat</title>
+<style>
+body{
+    font-family:sans-serif;
+    max-width:600px;
+    margin:30px auto;
+}
+
+input{
+    width:250px;
+    padding:5px;
+    margin:5px;
+}
+
+button{
+    padding:5px 15px;
+}
+
+#log{
+    border:1px solid #888;
+    height:250px;
+    overflow:auto;
+    white-space:pre-wrap;
+    padding:10px;
+}
+</style>
 </head>
 <body>
-    
-  <h3>Your ID: <span id="myid"></span></h3>
-  <input id="selectId">
-  <button id="createId">作成</button>
-  <input id="peerid" placeholder="相手のID">
-  <button id="connect">connect</button>
 
-  <br><br>
-  <input id="msg">
-  <button id="send">send</button>
+<h2>P2P Chat</h2>
 
-  <pre id="log"></pre>
+<h3>自分</h3>
 
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script>
-  let peer;
-  let conn;
-      const log = txt =>
-    document.getElementById("log").textContent += txt + "\n";
-  document.getElementById("createId").onclick = async () => {
-    const hash = await sha256(selectId);
+<input id="myName" placeholder="自分の名前">
+<button id="create">作成</button>
 
+<p>
+状態：
+<span id="status">未作成</span>
+</p>
 
-  peer = new Peer(hash,{
-    config:{iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
-  });
-  
-  peer.on("open", id=>{
-    myid.textContent = id;
-    log("Peer接続OK");
-  });
+<hr>
 
-  peer.on("error", err=>{
-    log("Peerエラー: " + err.type);
-    
-  });
+<h3>接続</h3>
 
-  connect.onclick = ()=>{
-    const id = peerid.value;
-    log("接続試行: " + id);
-    conn = peer.connect(id);
+<input id="peerName" placeholder="相手の名前">
+<button id="connect">接続</button>
 
-    conn.on("open", ()=>{
-      log("接続成功");
-      setup();
-    });
+<hr>
 
-    conn.on("error", e=>{
-      log("Connエラー");
-    });
-  };
+<h3>チャット</h3>
 
-  peer.on("connection", c=>{
-    conn = c;
-    log("着信");
-    conn.on("open", ()=>{
-      log("接続成功");
-      setup();
-    });
-  });
-};
-  function setup(){
-    conn.on("data", d=> log("相手: " + d));
-  }
+<input id="msg" placeholder="メッセージ">
+<button id="send">送信</button>
 
-  send.onclick = ()=>{
-    if(!conn || !conn.open){
-      log("未接続");
-      return;
-    }
-    const m = msg.value;
-    conn.send(m);
-    log("自分: " + m);
-  };
-async function sha256(text){
-    const uint8  = new TextEncoder().encode(text)
-    const digest = await crypto.subtle.digest('SHA-256', uint8)
-    return Array.from(new Uint8Array(digest)).map(v => v.toString(16).padStart(2,'0')).join('')
+<pre id="log"></pre>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<script>
+
+const status=document.getElementById("status");
+const logArea=document.getElementById("log");
+
+let peer=null;
+let conn=null;
+
+function log(text){
+    logArea.textContent+=text+"\n";
+    logArea.scrollTop=logArea.scrollHeight;
 }
-  </script>
+
+async function sha256(text){
+
+    const data=new TextEncoder().encode(text);
+
+    const hash=await crypto.subtle.digest(
+        "SHA-256",
+        data
+    );
+
+    return [...new Uint8Array(hash)]
+        .map(v=>v.toString(16).padStart(2,"0"))
+        .join("");
+}
+
+create.onclick=async()=>{
+
+    if(peer){
+        log("Peerは既に作成済みです。");
+        return;
+    }
+
+    const name=myName.value.trim();
+
+    if(name===""){
+        alert("名前を入力してください");
+        return;
+    }
+
+    const id=await sha256(name);
+
+    peer=new Peer(id,{
+        config:{
+            iceServers:[
+                {urls:"stun:stun.l.google.com:19302"}
+            ]
+        }
+    });
+
+    peer.on("open",()=>{
+
+        status.textContent="接続待機中";
+        log("自分の名前 : "+name);
+
+    });
+
+    peer.on("connection",c=>{
+
+        conn=c;
+
+        log("相手が接続しました");
+
+        setupConnection();
+
+    });
+
+    peer.on("error",e=>{
+
+        log("Peer Error : "+e.type);
+
+    });
+
+};
+
+connect.onclick=async()=>{
+
+    if(!peer){
+        alert("先に自分を作成してください");
+        return;
+    }
+
+    const target=peerName.value.trim();
+
+    if(target===""){
+        alert("相手の名前を入力してください");
+        return;
+    }
+
+    const id=await sha256(target);
+
+    log(target+" に接続中...");
+
+    conn=peer.connect(id);
+
+    conn.on("open",()=>{
+
+        log("接続成功");
+
+        setupConnection();
+
+    });
+
+    conn.on("error",()=>{
+
+        log("接続失敗");
+
+    });
+
+};
+
+function setupConnection(){
+
+    conn.on("data",msg=>{
+
+        log("相手 : "+msg);
+
+    });
+
+}
+
+send.onclick=()=>{
+
+    if(!conn||!conn.open){
+
+        log("未接続");
+
+        return;
+
+    }
+
+    conn.send(msg.value);
+
+    log("自分 : "+msg.value);
+
+    msg.value="";
+
+};
+
+</script>
+
 </body>
 </html>
