@@ -7,12 +7,12 @@
 <body>
     
   <h3>Your ID: <span id="myid"></span></h3>
-
+  <input id="selectId">
+  <button id="createId">作成</button>
   <input id="peerid" placeholder="相手のID">
   <button id="connect">connect</button>
 
   <br><br>
-  
   <input id="msg">
   <button id="send">send</button>
 
@@ -20,14 +20,16 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
+  document.getElementById("createId").onclick = async () => {
+    const hash = await sha256(selectId.value);
 
-  const log = txt =>
+      const log = txt =>
     document.getElementById("log").textContent += txt + "\n";
 
   const peer = new Peer({
-    config:{ iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
+    config:{hash,iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
   });
-
+};
   peer.on("open", id=>{
     myid.textContent = id;
     log("Peer接続OK");
@@ -76,7 +78,11 @@
     conn.send(m);
     log("自分: " + m);
   };
-
+async function sha256(text){
+    const uint8  = new TextEncoder().encode(text)
+    const digest = await crypto.subtle.digest('SHA-256', uint8)
+    return Array.from(new Uint8Array(digest)).map(v => v.toString(16).padStart(2,'0')).join('')
+}
   </script>
 </body>
 </html>
