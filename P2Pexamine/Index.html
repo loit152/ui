@@ -21,16 +21,17 @@
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
   let peer;
-  document.getElementById("createId").onclick = async () => {
-    const hash = await sha256(selectId.value);
-
+  let conn;
       const log = txt =>
     document.getElementById("log").textContent += txt + "\n";
+  document.getElementById("createId").onclick = async () => {
+    const hash = await sha256(selectId);
+
 
   peer = new Peer(hash,{
     config:{iceServers:[{ urls:"stun:stun.l.google.com:19302" }] }
   });
-
+  
   peer.on("open", id=>{
     myid.textContent = id;
     log("Peer接続OK");
@@ -38,9 +39,8 @@
 
   peer.on("error", err=>{
     log("Peerエラー: " + err.type);
+    
   });
-
-  let conn;
 
   connect.onclick = ()=>{
     const id = peerid.value;
