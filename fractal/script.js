@@ -10,9 +10,13 @@ const pixels = image.data;
 for(let y=0; y<height; y++){
 
     for(let x=0; x<width; x++){
-
+        const index = (y * width + x) * 4;
+        pixels[index] = 255;      // 赤
+        pixels[index + 1] = 0;    // 緑
+        pixels[index + 2] = 0;    // 青
+        pixels[index + 3] = 255;  // 不透明
     }
 
 }
-const real = x / width * 3.5 - 2.5;
-const imag = y / height * 2 - 1;
+ctx.putImageData(image, 0, 0);
+
