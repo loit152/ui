@@ -50,21 +50,31 @@ for (let y = 0; y < height; y += step) {
                 iteration++;
             }
 
-            const index = (y * width + x) * 4;
+            let color;
 
-            if (iteration === maxIteration) {
-                pixels[index] = 0;
-                pixels[index + 1] = 0;
-                pixels[index + 2] = 0;
-            } else {
-                const color = Math.floor(255 * iteration / maxIteration);
+if (iteration === maxIteration) {
+    color = 0;
+} else {
+    color = Math.floor(255 * iteration / maxIteration);
+}
 
-                pixels[index] = color;
-                pixels[index + 1] = color;
-                pixels[index + 2] = color;
-            }
 
-            pixels[index + 3] = 255;
+for(let dy = 0; dy < step; dy++){
+    for(let dx = 0; dx < step; dx++){
+
+        const px = x + dx;
+        const py = y + dy;
+
+        if(px >= width || py >= height) continue;
+
+        const index = (py * width + px) * 4;
+
+        pixels[index] = color;
+        pixels[index + 1] = color;
+        pixels[index + 2] = color;
+        pixels[index + 3] = 255;
+    }
+}
         }
     }
 
