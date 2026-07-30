@@ -16,6 +16,7 @@ let zoom = 1;
 let dragging = false;
 let lastX = 0;
 let lastY = 0;
+let pinchDistance = 0;
 
 function draw(step = 1) {
 
@@ -83,110 +84,93 @@ for(let dy = 0; dy < step; dy++){
 
 draw();
 
-// マウスホイールでズーム
-canvas.addEventListener("wheel", function (event) {
-
-    event.preventDefault();
-
-    const mx = event.offsetX;
-    const my = event.offsetY;
-
-    const oldRangeX = 3.5 / zoom;
-    const oldRangeY = 2.0 / zoom;
-
-    // ズーム前のカーソル位置の複素数
-    const beforeReal = centerX + (mx / width - 0.5) * oldRangeX;
-    const beforeImag = centerY + (my / height - 0.5) * oldRangeY;
-
-    if (event.deltaY < 0) {
-        zoom *= 1.2;
-    } else {
-        zoom /= 1.2;
-    }
-
-    const newRangeX = 3.5 / zoom;
-    const newRangeY = 2.0 / zoom;
-
-    // カーソル位置が変わらないように中心を調整
-    centerX = beforeReal - (mx / width - 0.5) * newRangeX;
-    centerY = beforeImag - (my / height - 0.5) * newRangeY;
-
-    draw();
-
-}, { passive: false });
-
-canvas.addEventListener("mousedown", (e) => {
-
-    dragging = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-
-});
-
-
-window.addEventListener("mouseup", () => {
-
-    dragging = false;
-
-});
-
-
-window.addEventListener("mousemove", (e) => {
-
-    if (!dragging) return;
-
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-
-    lastX = e.clientX;
-    lastY = e.clientY;
-
-    const rangeX = 3.5 / zoom;
-    const rangeY = 2 / zoom;
-
-    centerX -= dx / width * rangeX;
-    centerY -= dy / height * rangeY;
-
-    draw();
-
-});
 
 
 canvas.addEventListener("touchstart", (e)=>{
 
-    if(e.touches.length !== 1) return;
+    if(e.touches.length === 1){
 
-    dragging = true;
+        dragging = true;
 
-    lastX = e.touches[0].clientX;
-    lastY = e.touches[0].clientY;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+
+    }
+
+    if(e.touches.length === 2){
+
+        dragging = false;
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+
+        pinchDistance = Math.sqrt(dx * dx + dy * dy);
+    }
 
 });
-
-
 canvas.addEventListener("touchmove",(e)=>{
 
-    if(!dragging) return;
+    e.preventDefault();
 
-    const touch = e.touches[0];
 
-    const dx = touch.clientX - lastX;
-    const dy = touch.clientY - lastY;
+    // 1本指 → 移動
+    if(e.touches.length === 1 && dragging){
 
-    lastX = touch.clientX;
-    lastY = touch.clientY;
+        const touch = e.touches[0];
 
-    const rangeX = 3.5 / zoom;
-    const rangeY = 2 / zoom;
+        const dx = touch.clientX - lastX;
+        const dy = touch.clientY - lastY;
 
-    centerX -= dx / width * rangeX;
-    centerY -= dy / height * rangeY;
+        lastX = touch.clientX;
+        lastY = touch.clientY;
 
-    draw(4);
-});
+
+        const rangeX = 3.5 / zoom;
+        const rangeY = 2 / zoom;
+
+        centerX -= dx / width * rangeX;
+        centerY -= dy / height * rangeY;
+
+
+        draw(4);
+    }
+
+
+    // 2本指 → ズーム
+    if(e.touches.length === 2){
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+
+        if(pinchDistance > 0){
+
+            if(distance > pinchDistance){
+                zoom *= 1.05;
+            }
+            else{
+                zoom /= 1.05;
+            }
+
+            draw(4);
+        }
+
+
+        pinchDistance = distance;
+    }
+
+
+}, {passive:false});
 
 
 canvas.addEventListener("touchend",()=>{
+
     dragging = false;
+
+    pinchDistance = 0;
+
     draw(1);
+
 });
