@@ -7,16 +7,44 @@ const height = canvas.height;
 const image = ctx.createImageData(width, height);
 const pixels = image.data;
 
-for(let y=0; y<height; y++){
+const maxIteration = 100;
 
-    for(let x=0; x<width; x++){
+for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+
+        // キャンバス座標 → 複素平面
+        const real = x / width * 3.5 - 2.5;
+        const imag = y / height * 2 - 1;
+
+        let zr = 0;
+        let zi = 0;
+
+        let iteration = 0;
+
+        while (iteration < maxIteration) {
+
+            const newZR = zr * zr - zi * zi + real;
+            const newZI = 2 * zr * zi + imag;
+
+            zr = newZR;
+            zi = newZI;
+
+            if (zr * zr + zi * zi > 4) {
+                break;
+            }
+
+            iteration++;
+        }
+
         const index = (y * width + x) * 4;
-        pixels[index] = 255;      // 赤
-        pixels[index + 1] = 0;    // 緑
-        pixels[index + 2] = 0;    // 青
-        pixels[index + 3] = 255;  // 不透明
+
+        const color = iteration === maxIteration ? 0 : 255;
+
+        pixels[index] = color;
+        pixels[index + 1] = color;
+        pixels[index + 2] = color;
+        pixels[index + 3] = 255;
     }
-
 }
-ctx.putImageData(image, 0, 0);
 
+ctx.putImageData(image, 0, 0);
