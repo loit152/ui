@@ -177,7 +177,6 @@ canvas.addEventListener("touchmove",(e)=>{
 
 
 canvas.addEventListener("touchend",()=>{
-
     dragging = false;
-
+    draw(1);
 });
