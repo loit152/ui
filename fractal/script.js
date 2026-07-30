@@ -7,7 +7,7 @@ canvas.height = window.innerHeight;
 const width = canvas.width;
 const height = canvas.height;
 
-const maxIteration = 100;
+const maxIteration = 50;
 
 // 表示する複素平面
 let centerX = -0.75;
