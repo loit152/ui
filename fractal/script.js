@@ -51,3 +51,30 @@ for (let y = 0; y < height; y++) {
 }
 
 ctx.putImageData(image, 0, 0);
+canvas.addEventListener("wheel", function (event) {
+
+    event.preventDefault();
+
+    const mx = event.offsetX;
+    const my = event.offsetY;
+
+    const rangeX = 3.5 / zoom;
+    const rangeY = 2 / zoom;
+
+    const beforeReal = centerX + (mx / width - 0.5) * rangeX;
+    const beforeImag = centerY + (my / height - 0.5) * rangeY;
+
+    if (event.deltaY < 0)
+        zoom *= 1.2;
+    else
+        zoom /= 1.2;
+
+    const newRangeX = 3.5 / zoom;
+    const newRangeY = 2 / zoom;
+
+    centerX = beforeReal - (mx / width - 0.5) * newRangeX;
+    centerY = beforeImag - (my / height - 0.5) * newRangeY;
+
+    draw();
+
+}, { passive: false });
