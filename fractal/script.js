@@ -1,8 +1,8 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const width = canvas.width;
-const height = canvas.height;
+const width = window.innerWidth;
+const height = window.innerHeight;
 
 const image = ctx.createImageData(width, height);
 const pixels = image.data;
