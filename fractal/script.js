@@ -17,17 +17,15 @@ let dragging = false;
 let lastX = 0;
 let lastY = 0;
 
-function draw() {
+function draw(step = 1) {
 
     const image = ctx.createImageData(width, height);
     const pixels = image.data;
 
     const rangeX = 3.5 / zoom;
     const rangeY = 2.0 / zoom;
-
-    for (let y = 0; y < height; y++) {
-
-        for (let x = 0; x < width; x++) {
+for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
 
             // キャンバス座標 → 複素平面
             const real = centerX + (x / width - 0.5) * rangeX;
@@ -174,8 +172,7 @@ canvas.addEventListener("touchmove",(e)=>{
     centerX -= dx / width * rangeX;
     centerY -= dy / height * rangeY;
 
-    draw();
-
+    draw(4);
 });
 
 
