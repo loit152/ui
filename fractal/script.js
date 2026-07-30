@@ -13,6 +13,9 @@ const maxIteration = 100;
 let centerX = -0.75;
 let centerY = 0;
 let zoom = 1;
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
 
 function draw() {
 
@@ -103,3 +106,81 @@ canvas.addEventListener("wheel", function (event) {
     draw();
 
 }, { passive: false });
+
+canvas.addEventListener("mousedown", (e) => {
+
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+});
+
+
+window.addEventListener("mouseup", () => {
+
+    dragging = false;
+
+});
+
+
+window.addEventListener("mousemove", (e) => {
+
+    if (!dragging) return;
+
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    const rangeX = 3.5 / zoom;
+    const rangeY = 2 / zoom;
+
+    centerX -= dx / width * rangeX;
+    centerY -= dy / height * rangeY;
+
+    draw();
+
+});
+
+
+canvas.addEventListener("touchstart", (e)=>{
+
+    if(e.touches.length !== 1) return;
+
+    dragging = true;
+
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+
+});
+
+
+canvas.addEventListener("touchmove",(e)=>{
+
+    if(!dragging) return;
+
+    const touch = e.touches[0];
+
+    const dx = touch.clientX - lastX;
+    const dy = touch.clientY - lastY;
+
+    lastX = touch.clientX;
+    lastY = touch.clientY;
+
+    const rangeX = 3.5 / zoom;
+    const rangeY = 2 / zoom;
+
+    centerX -= dx / width * rangeX;
+    centerY -= dy / height * rangeY;
+
+    draw();
+
+});
+
+
+canvas.addEventListener("touchend",()=>{
+
+    dragging = false;
+
+});
