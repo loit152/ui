@@ -7,7 +7,7 @@ canvas.height = window.innerHeight;
 const width = canvas.width;
 const height = canvas.height;
 
-const maxIteration = Math.floor(50 + Math.log2(zoom) * 20);
+
 // 表示する複素平面
 let centerX = -0.75;
 let centerY = 0;
@@ -21,6 +21,7 @@ function draw(step = 1) {
 
     const image = ctx.createImageData(width, height);
     const pixels = image.data;
+    const maxIteration = Math.floor(50 + Math.log2(zoom) * 20);
 
     const rangeX = 3.5 / zoom;
     const rangeY = 2.0 / zoom;
