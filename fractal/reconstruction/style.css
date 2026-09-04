@@ -1,0 +1,7 @@
+#console{
+    mix-blend-mode: difference; /*背景と反対色にする*/
+} 
+#canvas{
+    height:max;
+    width:max;
+}
