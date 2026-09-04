@@ -347,48 +347,176 @@ canvas.addEventListener(
     }
 );
 // ========================================
-// Wheel Zoom
+// Touch / Pinch Zoom
 // ========================================
-canvas.addEventListener(
-    "wheel",
-    event => {
-        event.preventDefault();
-        // Mouse position
+
+const pointers = new Map();
+
+let lastPinchDistance = null;
+
+
+// Pointer down
+canvas.addEventListener("pointerdown", event => {
+
+    pointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+    });
+
+    // 1本指
+    if (pointers.size === 1) {
+
+        dragging = true;
+
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+    }
+
+    // 2本指になった
+    if (pointers.size === 2) {
+
+        dragging = false;
+
+        const points = [...pointers.values()];
+
+        lastPinchDistance =
+            Math.hypot(
+                points[0].x - points[1].x,
+                points[0].y - points[1].y
+            );
+    }
+
+    canvas.setPointerCapture(event.pointerId);
+});
+
+
+// Pointer move
+canvas.addEventListener("pointermove", event => {
+
+    if (!pointers.has(event.pointerId)) {
+        return;
+    }
+
+    pointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY
+    });
+
+
+    // ====================================
+    // 1本指 → 移動
+    // ====================================
+
+    if (pointers.size === 1 && dragging) {
+
+        const dx =
+            event.clientX - lastMouseX;
+
+        const dy =
+            event.clientY - lastMouseY;
+
+        const scale =
+            2.0
+            /
+            zoom
+            /
+            canvas.clientHeight;
+
+        centerX -= dx * scale;
+        centerY += dy * scale;
+
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+
+        draw();
+
+        return;
+    }
+
+
+    // ====================================
+    // 2本指 → ピンチズーム
+    // ====================================
+
+    if (pointers.size === 2) {
+
+        const points = [...pointers.values()];
+
+        const x1 = points[0].x;
+        const y1 = points[0].y;
+
+        const x2 = points[1].x;
+        const y2 = points[1].y;
+
+
+        const distance =
+            Math.hypot(
+                x1 - x2,
+                y1 - y2
+            );
+
+
+        if (lastPinchDistance === null) {
+
+            lastPinchDistance = distance;
+
+            return;
+        }
+
+
+        // ピンチ倍率
+        const factor =
+            distance / lastPinchDistance;
+
+
+        // 2本指の中心
+        const mouseX =
+            (x1 + x2) / 2;
+
+        const mouseY =
+            (y1 + y2) / 2;
+
+
+        // 現在の中心点を複素平面へ
         const rect =
             canvas.getBoundingClientRect();
-        const mouseX =
-            event.clientX - rect.left;
-        const mouseY =
-            event.clientY - rect.top;
-        // Before zoom
+
+        const px =
+            mouseX - rect.left;
+
+        const py =
+            mouseY - rect.top;
+
         const aspect =
             canvas.clientWidth
-            / canvas.clientHeight;
-        const oldX =
+            /
+            canvas.clientHeight;
+
+
+        const beforeX =
             centerX
-            + (
-                mouseX
-                / canvas.clientWidth
-                * 2
-                - 1
+            +
+            (
+                px / canvas.clientWidth * 2 - 1
             )
             * aspect
-            / zoom;
-        const oldY =
+            /
+            zoom;
+
+
+        const beforeY =
             centerY
-            - (
-                mouseY
-                / canvas.clientHeight
-                * 2
-                - 1
+            -
+            (
+                py / canvas.clientHeight * 2 - 1
             )
-            / zoom;
-        // Zoom
-        const factor =
-            Math.exp(
-                -event.deltaY * 0.001
-            );
+            /
+            zoom;
+
+
+        // ズーム
         zoom *= factor;
+
         zoom =
             Math.max(
                 0.1,
@@ -397,29 +525,169 @@ canvas.addEventListener(
                     1e12
                 )
             );
-        // After zoom
-        const newX =
+
+
+        // ズーム後
+        const afterX =
             centerX
-            + (
-                mouseX
-                / canvas.clientWidth
-                * 2
-                - 1
+            +
+            (
+                px / canvas.clientWidth * 2 - 1
             )
             * aspect
-            / zoom;
-        const newY =
+            /
+            zoom;
+
+
+        const afterY =
             centerY
-            - (
-                mouseY
-                / canvas.clientHeight
-                * 2
-                - 1
+            -
+            (
+                py / canvas.clientHeight * 2 - 1
             )
-            / zoom;
-        // Keep mouse position fixed
-        centerX += oldX - newX;
-        centerY += oldY - newY;
+            /
+            zoom;
+
+
+        // 指の中心位置を固定
+        centerX += beforeX - afterX;
+        centerY += beforeY - afterY;
+
+
+        lastPinchDistance = distance;
+
+        draw();
+    }
+});
+
+
+// Pointer up
+canvas.addEventListener("pointerup", event => {
+
+    pointers.delete(event.pointerId);
+
+    if (pointers.size === 0) {
+
+        dragging = false;
+        lastPinchDistance = null;
+    }
+
+    if (pointers.size === 1) {
+
+        const point =
+            [...pointers.values()][0];
+
+        dragging = true;
+
+        lastMouseX = point.x;
+        lastMouseY = point.y;
+
+        lastPinchDistance = null;
+    }
+});
+
+
+canvas.addEventListener("pointercancel", event => {
+
+    pointers.delete(event.pointerId);
+
+    if (pointers.size < 2) {
+        lastPinchDistance = null;
+    }
+
+    if (pointers.size === 0) {
+        dragging = false;
+    }
+});
+
+
+// ========================================
+// Wheel Zoom (PC)
+// ========================================
+
+canvas.addEventListener(
+    "wheel",
+    event => {
+
+        event.preventDefault();
+
+        const rect =
+            canvas.getBoundingClientRect();
+
+        const mouseX =
+            event.clientX - rect.left;
+
+        const mouseY =
+            event.clientY - rect.top;
+
+        const aspect =
+            canvas.clientWidth
+            /
+            canvas.clientHeight;
+
+
+        const beforeX =
+            centerX
+            +
+            (
+                mouseX / canvas.clientWidth * 2 - 1
+            )
+            * aspect
+            /
+            zoom;
+
+
+        const beforeY =
+            centerY
+            -
+            (
+                mouseY / canvas.clientHeight * 2 - 1
+            )
+            /
+            zoom;
+
+
+        const factor =
+            Math.exp(
+                -event.deltaY * 0.001
+            );
+
+        zoom *= factor;
+
+        zoom =
+            Math.max(
+                0.1,
+                Math.min(
+                    zoom,
+                    1e12
+                )
+            );
+
+
+        const afterX =
+            centerX
+            +
+            (
+                mouseX / canvas.clientWidth * 2 - 1
+            )
+            * aspect
+            /
+            zoom;
+
+
+        const afterY =
+            centerY
+            -
+            (
+                mouseY / canvas.clientHeight * 2 - 1
+            )
+            /
+            zoom;
+
+
+        centerX += beforeX - afterX;
+        centerY += beforeY - afterY;
+
         draw();
     },
     { passive: false }
