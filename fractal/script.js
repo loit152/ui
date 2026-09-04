@@ -40,8 +40,6 @@ window.addEventListener("resize", resizeCanvas);
 // ========================================
 let centerX = -0.75;
 let centerY = 0;
-// zoomそのものではなくlog2(zoom)を保持する。
-// これなら非常に大きなzoomでもInfinityになりにくい。
 let logZoom = 0;
 function getZoom() {
     return Math.pow(2, logZoom);
@@ -60,7 +58,7 @@ let lastX = 0;
 let lastY = 0;
 let pinchDistance = 0;
 // ========================================
-// Shader
+// Vertex Shader
 // ========================================
 const vertexShaderSource = `#version 300 es
 in vec2 a_position;
@@ -72,6 +70,9 @@ void main() {
     );
 }
 `;
+// ========================================
+// Fragment Shader
+// ========================================
 const fragmentShaderSource = `#version 300 es
 precision highp float;
 out vec4 outColor;
@@ -79,27 +80,29 @@ uniform vec2 u_resolution;
 uniform vec2 u_center;
 uniform float u_zoom;
 uniform int u_maxIteration;
-// ========================================
-// Mandelbrot
-// ========================================
 void main() {
     vec2 uv =
         gl_FragCoord.xy /
         u_resolution;
-    // 画面中央を0にする
+    // 画面中央を原点にする
     vec2 p =
         uv -
         vec2(0.5);
-    // 元の表示範囲
-    float rangeX = 3.5 / u_zoom;
-    float rangeY = 2.0 / u_zoom;
+    // 複素平面の表示範囲
+    float rangeX =
+        3.5 / u_zoom;
+    float rangeY =
+        2.0 / u_zoom;
+    // ピクセル → 複素数
     vec2 c =
         u_center +
         vec2(
             p.x * rangeX,
             p.y * rangeY
         );
-    vec2 z = vec2(0.0);
+    // Mandelbrot
+    vec2 z =
+        vec2(0.0);
     int iteration = 0;
     for (int i = 0; i < 2000; i++) {
         if (i >= u_maxIteration) {
@@ -124,8 +127,9 @@ void main() {
         }
     }
     // ========================================
-    // 白黒
+    // 白黒表示
     // ========================================
+    // Mandelbrot集合内部
     if (iteration >= u_maxIteration) {
         outColor =
             vec4(
@@ -136,7 +140,9 @@ void main() {
             );
         return;
     }
-    // 滑らかな脱出時間
+    // ========================================
+    // Smooth Coloring
+    // ========================================
     float r2 =
         dot(z, z);
     float smoothIteration =
@@ -157,6 +163,9 @@ void main() {
     // コントラスト
     t =
         pow(t, 0.4);
+    // ========================================
+    // グレースケール
+    // ========================================
     outColor =
         vec4(
             vec3(t),
@@ -165,7 +174,7 @@ void main() {
 }
 `;
 // ========================================
-// Shader compile
+// Shader Compile
 // ========================================
 function createShader(type, source) {
     const shader =
@@ -226,13 +235,14 @@ if (
 }
 gl.useProgram(program);
 // ========================================
-// Fullscreen triangle
+// Fullscreen Triangle
 // ========================================
-const vertices = new Float32Array([
-    -1, -1,
-     3, -1,
-    -1,  3
-]);
+const vertices =
+    new Float32Array([
+        -1, -1,
+         3, -1,
+        -1,  3
+    ]);
 const buffer =
     gl.createBuffer();
 gl.bindBuffer(
@@ -284,12 +294,11 @@ const iterationLocation =
         "u_maxIteration"
     );
 // ========================================
-// Drawing
+// Draw
 // ========================================
 function draw() {
     const zoom =
         getZoom();
-    // ズームするほどiterationを増やす
     const maxIteration =
         Math.min(
             2000,
@@ -322,9 +331,7 @@ function draw() {
         0,
         3
     );
-    updateConsole(
-        "WebGL"
-    );
+    updateConsole("WebGL");
 }
 // ========================================
 // Initial
@@ -341,7 +348,7 @@ gl.viewport(
 );
 draw();
 // ========================================
-// Touch start
+// Touch Start
 // ========================================
 canvas.addEventListener(
     "touchstart",
@@ -371,14 +378,14 @@ canvas.addEventListener(
     { passive: false }
 );
 // ========================================
-// Touch move
+// Touch Move
 // ========================================
 canvas.addEventListener(
     "touchmove",
     (e) => {
         e.preventDefault();
         // ====================================
-        // 1 finger → move
+        // 1本指 → 移動
         // ====================================
         if (
             e.touches.length === 1 &&
@@ -411,7 +418,7 @@ canvas.addEventListener(
             draw();
         }
         // ====================================
-        // 2 fingers → zoom
+        // 2本指 → ズーム
         // ====================================
         if (
             e.touches.length === 2
@@ -431,13 +438,8 @@ canvas.addEventListener(
                 const ratio =
                     distance /
                     pinchDistance;
-                // logZoomを使うことで
-                // zoomの巨大化による精度低下を防ぐ
                 logZoom +=
                     Math.log2(ratio);
-                // 上限はJavaScriptの
-                // Numberそのものではなく
-                // logZoom側で管理
                 logZoom =
                     Math.max(
                         -20,
@@ -455,7 +457,7 @@ canvas.addEventListener(
     { passive: false }
 );
 // ========================================
-// Touch end
+// Touch End
 // ========================================
 canvas.addEventListener(
     "touchend",
