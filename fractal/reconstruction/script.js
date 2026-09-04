@@ -5,8 +5,8 @@ setInterval(() => {
 
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("webgl2");
-const height = canvas.height;
-const width = canvas.width;
+const height = window.innerHeight;
+const width = window.innerWidth;
 const con = document.getElementById("console");
 
 con.innerHTML += `height: ${height}, width: ${width}<br>`;
