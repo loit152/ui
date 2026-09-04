@@ -89,6 +89,13 @@ for(let dy = 0; dy < step; dy++){
     }
 
     ctx.putImageData(image, 0, 0);
+    function updateConsole() {
+    consoleElement.textContent =
+        `Mandelbrot Viewer
+zoom: ${zoom}
+centerX: ${centerX}
+centerY: ${centerY}`;
+}
 }
 
 draw();
