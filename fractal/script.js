@@ -105,20 +105,28 @@ function draw(step = 1) {
             }
             // ==========================
             // Color
-            // ==========================
-            let color;
-            if (iteration === maxIteration) {
-                // マンデルブロ集合内部
-                color = 0;
-            } else {
-                // 発散するまでの速さ
-                color =
-                    Math.floor(
-                        255 *
-                        iteration /
-                        maxIteration
-                    );
-            }
+            // ==========================let color;
+
+if (iteration === maxIteration) {
+
+    color = 0;
+
+} else {
+
+    const logZn =
+        Math.log(zr * zr + zi * zi) / 2;
+
+    const nu =
+        Math.log(logZn / Math.log(2)) / Math.log(2);
+
+    const smoothIteration =
+        iteration + 1 - nu;
+
+    color =
+        Math.floor(
+            255 * smoothIteration / maxIteration
+        );
+}
             // ==========================
             // step分のピクセルを塗る
             // ==========================
