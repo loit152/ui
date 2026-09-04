@@ -2,9 +2,6 @@ const consoleElement = document.getElementById("console");
 function log(...messages){
     consoleElement.textContent += messages.join(" ") + "\n";
 }
-log("Mandelbrot Viewer");
-log("zoom:", zoom);
-log("center:", centerX, centerY);
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -24,6 +21,10 @@ let dragging = false;
 let lastX = 0;
 let lastY = 0;
 let pinchDistance = 0;
+
+log("Mandelbrot Viewer");
+log("zoom:", zoom);
+log("center:", centerX, centerY);
 
 function draw(step = 1) {
 
