@@ -1,7 +1,7 @@
 const canvas = document.querySelector("canvas");
 const ctx = canvas.getContext("webgl2");
-const height = document.HTMLCanvasElement.height;
-const width = document.HTMLCanvasElement.width;
-const console = document.getElementById("console");
+const height = canvas.height;
+const width = canvas.width;
+const con = document.getElementById("console");
 
-console.innerHTML += `height: ${height}, width: ${width}<br>`;
+con.innerHTML += `height: ${height}, width: ${width}<br>`;
