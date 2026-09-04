@@ -1,3 +1,11 @@
+const consoleElement = document.getElementById("console");
+function log(...messages){
+    consoleElement.textContent += messages.join(" ") + "\n";
+}
+log("Mandelbrot Viewer");
+log("zoom:", zoom);
+log("center:", centerX, centerY);
+
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
