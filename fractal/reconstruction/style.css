@@ -2,6 +2,7 @@ body{
     background-color:black;
 }
 #console{
+    color: white;
     mix-blend-mode: difference; /*背景と反対色にする*/
 } 
 #canvas{
