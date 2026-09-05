@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>WebGL Diagnostic</title>
+
+<style>
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+
+    background: #111;
+    color: white;
+
+    font-family: monospace;
+}
+
+#result {
+    padding: 16px;
+
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    line-height: 1.5;
+}
+
+canvas {
+    display: block;
+
+    width: 200px;
+    height: 100px;
+
+    margin: 16px;
+
+    border: 1px solid white;
+}
+
+.ok {
+    color: #00ff88;
+}
+
+.ng {
+    color: #ff5555;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="result">
+WebGL診断中...
+</div>
+
+<canvas id="canvas"></canvas>
+
+
+<script>
+
+"use strict";
+
+
+const result =
+    document.getElementById("result");
+
+const canvas =
+    document.getElementById("canvas");
+
+
+let output = "";
+
+
+function line(text = "")
+{
+    output += text + "\n";
+}
+
+
+function section(title)
+{
+    line("");
+    line("================================");
+    line(title);
+    line("================================");
+}
+
+
+/* =========================================================
+   Browser
+========================================================= */
+
+section("Browser / Environment");
+
+line(
+    "User Agent:"
+);
+
+line(
+    navigator.userAgent
+);
+
+line(
+    "Platform: " +
+    navigator.platform
+);
+
+line(
+    "Language: " +
+    navigator.language
+);
+
+line(
+    "Device Pixel Ratio: " +
+    window.devicePixelRatio
+);
+
+line(
+    "Screen: " +
+    screen.width +
+    " x " +
+    screen.height
+);
+
+
+/* =========================================================
+   Canvas 2D
+========================================================= */
+
+section("Canvas 2D");
+
+let ctx2d = null;
+
+try
+{
+    ctx2d =
+        canvas.getContext("2d");
+}
+catch (e)
+{
+    line(
+        "ERROR: " +
+        e.message
+    );
+}
+
+
+if (ctx2d)
+{
+    line(
+        "Canvas 2D: OK"
+    );
+
+    ctx2d.fillStyle =
+        "white";
+
+    ctx2d.fillRect(
+        0,
+        0,
+        200,
+        100
+    );
+}
+else
+{
+    line(
+        "Canvas 2D: FAILED"
+    );
+}
+
+
+/* =========================================================
+   WebGL 1
+========================================================= */
+
+section("WebGL 1");
+
+let gl1 = null;
+
+try
+{
+    gl1 =
+        canvas.getContext(
+            "webgl",
+            {
+                antialias: false
+            }
+        );
+}
+catch (e)
+{
+    line(
+        "ERROR: " +
+        e.message
+    );
+}
+
+
+if (!gl1)
+{
+    line(
+        "WebGL 1: FAILED"
+    );
+}
+else
+{
+    line(
+        "WebGL 1: CREATED"
+    );
+
+    line(
+        "Context lost: " +
+        gl1.isContextLost()
+    );
+
+    line(
+        "Version: " +
+        gl1.getParameter(
+            gl1.VERSION
+        )
+    );
+
+    line(
+        "Vendor: " +
+        gl1.getParameter(
+            gl1.VENDOR
+        )
+    );
+
+    line(
+        "Renderer: " +
+        gl1.getParameter(
+            gl1.RENDERER
+        )
+    );
+
+    line(
+        "GLSL: " +
+        gl1.getParameter(
+            gl1.SHADING_LANGUAGE_VERSION
+        )
+    );
+
+
+    const debugExtension =
+        gl1.getExtension(
+            "WEBGL_debug_renderer_info"
+        );
+
+
+    if (debugExtension)
+    {
+        line(
+            "Unmasked Vendor: " +
+            gl1.getParameter(
+                debugExtension.UNMASKED_VENDOR_WEBGL
+            )
+        );
+
+        line(
+            "Unmasked Renderer: " +
+            gl1.getParameter(
+                debugExtension.UNMASKED_RENDERER_WEBGL
+            )
+        );
+    }
+
+
+    line(
+        "MAX_TEXTURE_SIZE: " +
+        gl1.getParameter(
+            gl1.MAX_TEXTURE_SIZE
+        )
+    );
+
+
+    line(
+        "MAX_VIEWPORT_DIMS: " +
+        Array.from(
+            gl1.getParameter(
+                gl1.MAX_VIEWPORT_DIMS
+            )
+        ).join(" x ")
+    );
+}
+
+
+/* =========================================================
+   WebGL 2
+========================================================= */
+
+section("WebGL 2");
+
+let gl2 = null;
+
+try
+{
+    gl2 =
+        canvas.getContext(
+            "webgl2",
+            {
+                antialias: false,
+                powerPreference:
+                    "high-performance"
+            }
+        );
+}
+catch (e)
+{
+    line(
+        "ERROR: " +
+        e.message
+    );
+}
+
+
+if (!gl2)
+{
+    line(
+        "WebGL 2: FAILED"
+    );
+}
+else
+{
+    line(
+        "WebGL 2: CREATED"
+    );
+
+    line(
+        "Context lost: " +
+        gl2.isContextLost()
+    );
+
+
+    line(
+        "Version: " +
+        gl2.getParameter(
+            gl2.VERSION
+        )
+    );
+
+
+    line(
+        "Vendor: " +
+        gl2.getParameter(
+            gl2.VENDOR
+        )
+    );
+
+
+    line(
+        "Renderer: " +
+        gl2.getParameter(
+            gl2.RENDERER
+        )
+    );
+
+
+    line(
+        "GLSL: " +
+        gl2.getParameter(
+            gl2.SHADING_LANGUAGE_VERSION
+        )
+    );
+
+
+    const debugExtension =
+        gl2.getExtension(
+            "WEBGL_debug_renderer_info"
+        );
+
+
+    if (debugExtension)
+    {
+        line(
+            "Unmasked Vendor: " +
+            gl2.getParameter(
+                debugExtension.UNMASKED_VENDOR_WEBGL
+            )
+        );
+
+
+        line(
+            "Unmasked Renderer: " +
+            gl2.getParameter(
+                debugExtension.UNMASKED_RENDERER_WEBGL
+            )
+        );
+    }
+
+
+    line(
+        "MAX_TEXTURE_SIZE: " +
+        gl2.getParameter(
+            gl2.MAX_TEXTURE_SIZE
+        )
+    );
+
+
+    line(
+        "MAX_VIEWPORT_DIMS: " +
+        Array.from(
+            gl2.getParameter(
+                gl2.MAX_VIEWPORT_DIMS
+            )
+        ).join(" x ")
+    );
+
+
+    line(
+        "MAX_FRAGMENT_UNIFORM_VECTORS: " +
+        gl2.getParameter(
+            gl2.MAX_FRAGMENT_UNIFORM_VECTORS
+        )
+    );
+
+
+    line(
+        "MAX_FRAGMENT_SHADER_STORAGE_BLOCKS: " +
+        gl2.getParameter(
+            gl2.MAX_FRAGMENT_SHADER_STORAGE_BLOCKS
+        )
+    );
+
+
+    line(
+        "GL ERROR: " +
+        gl2.getError()
+    );
+}
+
+
+/* =========================================================
+   WebGL2 shader creation test
+========================================================= */
+
+section("WebGL2 Shader Test");
+
+if (!gl2)
+{
+    line(
+        "SKIPPED: WebGL2 unavailable."
+    );
+}
+else
+{
+    const shaderSource = `#version 300 es
+
+precision highp float;
+
+out vec4 outColor;
+
+void main()
+{
+    outColor =
+        vec4(
+            1.0,
+            1.0,
+            1.0,
+            1.0
+        );
+}
+`;
+
+
+    line(
+        "Context lost before shader: " +
+        gl2.isContextLost()
+    );
+
+
+    let shader = null;
+
+
+    try
+    {
+        shader =
+            gl2.createShader(
+                gl2.FRAGMENT_SHADER
+            );
+    }
+    catch (e)
+    {
+        line(
+            "createShader exception: " +
+            e.message
+        );
+    }
+
+
+    if (!shader)
+    {
+        line(
+            "createShader: FAILED"
+        );
+
+        line(
+            "Context lost: " +
+            gl2.isContextLost()
+        );
+
+        line(
+            "GL error: " +
+            gl2.getError()
+        );
+    }
+    else
+    {
+        line(
+            "createShader: OK"
+        );
+
+
+        gl2.shaderSource(
+            shader,
+            shaderSource
+        );
+
+
+        gl2.compileShader(
+            shader
+        );
+
+
+        const compiled =
+            gl2.getShaderParameter(
+                shader,
+                gl2.COMPILE_STATUS
+            );
+
+
+        line(
+            "Shader compile: " +
+            (
+                compiled
+                    ? "OK"
+                    : "FAILED"
+            )
+        );
+
+
+        if (!compiled)
+        {
+            line(
+                "Shader log:"
+            );
+
+            line(
+                gl2.getShaderInfoLog(
+                    shader
+                )
+            );
+        }
+
+
+        gl2.deleteShader(
+            shader
+        );
+    }
+}
+
+
+/* =========================================================
+   WebGL2 draw test
+========================================================= */
+
+section("WebGL2 Draw Test");
+
+if (!gl2)
+{
+    line(
+        "SKIPPED"
+    );
+}
+else
+{
+    line(
+        "Context lost before draw: " +
+        gl2.isContextLost()
+    );
+
+
+    if (!gl2.isContextLost())
+    {
+        canvas.width = 200;
+        canvas.height = 100;
+
+
+        gl2.viewport(
+            0,
+            0,
+            200,
+            100
+        );
+
+
+        gl2.clearColor(
+            1.0,
+            1.0,
+            1.0,
+            1.0
+        );
+
+
+        gl2.clear(
+            gl2.COLOR_BUFFER_BIT
+        );
+
+
+        line(
+            "clear(): executed"
+        );
+
+
+        line(
+            "Context lost after draw test: " +
+            gl2.isContextLost()
+        );
+
+
+        line(
+            "GL error: " +
+            gl2.getError()
+        );
+    }
+}
+
+
+/* =========================================================
+   Context lost events
+========================================================= */
+
+section("Context Events");
+
+
+canvas.addEventListener(
+    "webglcontextlost",
+    function(e)
+    {
+        e.preventDefault();
+
+        line(
+            "EVENT: webglcontextlost"
+        );
+
+        line(
+            "Status: " +
+            gl2.isContextLost()
+        );
+
+        result.textContent =
+            output;
+    }
+);
+
+
+canvas.addEventListener(
+    "webglcontextrestored",
+    function()
+    {
+        line(
+            "EVENT: webglcontextrestored"
+        );
+
+        result.textContent =
+            output;
+    }
+);
+
+
+/* =========================================================
+   Final output
+========================================================= */
+
+section("Summary");
+
+if (gl1)
+{
+    line(
+        "WebGL1 object: EXISTS"
+    );
+}
+else
+{
+    line(
+        "WebGL1 object: NONE"
+    );
+}
+
+
+if (gl2)
+{
+    line(
+        "WebGL2 object: EXISTS"
+    );
+}
+else
+{
+    line(
+        "WebGL2 object: NONE"
+    );
+}
+
+
+if (
+    gl2 &&
+    gl2.isContextLost()
+)
+{
+    line(
+        "RESULT: WebGL2 CONTEXT LOST"
+    );
+}
+else if (gl2)
+{
+    line(
+        "RESULT: WebGL2 CONTEXT OK"
+    );
+}
+else
+{
+    line(
+        "RESULT: WebGL2 UNAVAILABLE"
+    );
+}
+
+
+result.textContent =
+    output;
+
+</script>
+
+</body>
+</html>
