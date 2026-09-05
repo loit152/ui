@@ -100,29 +100,51 @@ input {
 </div>
 
 <script>
-const canvas = document.getElementById("canvas");
-const gl = canvas.getContext("webgl2", {
-    antialias: false,
-    powerPreference: "high-performance"
-});
+
+/* =========================================================
+   WebGL
+========================================================= */
+
+const canvas =
+    document.getElementById("canvas");
+
+const gl =
+    canvas.getContext("webgl2", {
+        antialias: false,
+        powerPreference: "high-performance"
+    });
 
 if (!gl) {
     alert("WebGL2が利用できません。");
     throw new Error("WebGL2 unavailable");
 }
 
-const zoomText = document.getElementById("zoomText");
-const iterationText = document.getElementById("iterationText");
-const iterationInput = document.getElementById("iterations");
 
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+/* =========================================================
+   UI
+========================================================= */
 
-const resetButton = document.getElementById("reset");
+const zoomText =
+    document.getElementById("zoomText");
+
+const iterationText =
+    document.getElementById("iterationText");
+
+const iterationInput =
+    document.getElementById("iterations");
+
+const progress =
+    document.getElementById("progress");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const resetButton =
+    document.getElementById("reset");
 
 
 /* =========================================================
-   State
+   Mandelbrot state
 ========================================================= */
 
 let centerX = -0.75;
@@ -132,11 +154,18 @@ let zoom = 1.0;
 
 let maxIterations = 500;
 
+
+/* =========================================================
+   Render state
+========================================================= */
+
 let renderVersion = 0;
+
 let qualityTimer = null;
 
-let activeRender = null;
 let renderAnimationFrame = null;
+
+let activeRender = null;
 
 
 /* =========================================================
@@ -157,15 +186,22 @@ const vertexShaderSource = `#version 300 es
 in vec2 a_position;
 
 void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
+    gl_Position =
+        vec4(a_position, 0.0, 1.0);
 }
 `;
 
 
 /* =========================================================
    Fragment Shader
-   ---------------------------------------------------------
-   Double-Single arithmetic
+   ========================================================
+   座標を double-single 形式で扱う。
+
+   value = high + low
+
+   通常の WebGL float は 32-bit だが、
+   1つの座標を2つのfloatに分けることで
+   中心座標の精度を改善する。
 ========================================================= */
 
 const fragmentShaderSource = `#version 300 es
@@ -174,9 +210,16 @@ precision highp float;
 precision highp int;
 
 
-/* -------------------------
+/* =========================================================
+   Fragment output
+========================================================= */
+
+out vec4 outColor;
+
+
+/* =========================================================
    Uniforms
-------------------------- */
+========================================================= */
 
 uniform vec2 u_resolution;
 
@@ -189,99 +232,139 @@ uniform int u_iterations;
 
 
 /* =========================================================
-   Double-Single
-   ---------------------------------------------------------
-   A value is represented as:
-
-       high + low
-
-   Both are ordinary 32-bit floats.
+   Double-Single arithmetic
 ========================================================= */
 
 
-/* Two-Sum */
+/* -----------------------------------------
+   Two-Sum
+
+   a + b を high + low に分解
+----------------------------------------- */
+
 vec2 twoSum(float a, float b) {
 
     float s = a + b;
 
     float bb = s - a;
 
-    float e = (a - (s - bb))
-            + (b - bb);
+    float e =
+        (a - (s - bb))
+        + (b - bb);
 
     return vec2(s, e);
 }
 
 
-/* Fast Two-Sum */
+/* -----------------------------------------
+   Fast Two-Sum
+----------------------------------------- */
+
 vec2 fastTwoSum(float a, float b) {
 
     float s = a + b;
 
-    float e = b - (s - a);
+    float e =
+        b - (s - a);
 
     return vec2(s, e);
 }
 
 
-/* Double-Single addition */
+/* -----------------------------------------
+   Double-Single addition
+----------------------------------------- */
+
 vec2 dsAdd(vec2 a, vec2 b) {
 
-    vec2 s = twoSum(a.x, b.x);
+    vec2 s =
+        twoSum(a.x, b.x);
 
     float e =
         s.y +
         a.y +
         b.y;
 
-    vec2 r = fastTwoSum(s.x, e);
-
-    return r;
+    return fastTwoSum(
+        s.x,
+        e
+    );
 }
 
 
-/* Double-Single subtraction */
+/* -----------------------------------------
+   Double-Single subtraction
+----------------------------------------- */
+
 vec2 dsSub(vec2 a, vec2 b) {
 
-    vec2 nb = vec2(-b.x, -b.y);
-
-    return dsAdd(a, nb);
+    return dsAdd(
+        a,
+        vec2(-b.x, -b.y)
+    );
 }
 
 
-/* Double-Single multiplication */
+/* -----------------------------------------
+   Double-Single multiplication
+----------------------------------------- */
+
 vec2 dsMul(vec2 a, vec2 b) {
 
-    float p = a.x * b.x;
+    float p =
+        a.x * b.x;
 
     float e =
-        fma(a.x, b.x, -p);
+        fma(
+            a.x,
+            b.x,
+            -p
+        );
 
     e +=
         a.x * b.y +
         a.y * b.x;
 
-    vec2 r = fastTwoSum(p, e);
-
-    return r;
+    return fastTwoSum(
+        p,
+        e
+    );
 }
 
 
-/* Double-Single multiplication by float */
-vec2 dsMulFloat(vec2 a, float b) {
+/* -----------------------------------------
+   Double-Single × float
+----------------------------------------- */
 
-    float p = a.x * b;
+vec2 dsMulFloat(
+    vec2 a,
+    float b
+) {
+
+    float p =
+        a.x * b;
 
     float e =
-        fma(a.x, b, -p);
+        fma(
+            a.x,
+            b,
+            -p
+        );
 
-    e += a.y * b;
+    e +=
+        a.y * b;
 
-    return fastTwoSum(p, e);
+    return fastTwoSum(
+        p,
+        e
+    );
 }
 
 
-/* Double-Single square */
+/* -----------------------------------------
+   Square
+----------------------------------------- */
+
 vec2 dsSquare(vec2 a) {
 
     return dsMul(a, a);
@@ -291,18 +374,24 @@ vec2 dsSquare(vec2 a) {
 /* =========================================================
    Color
    ---------------------------------------------------------
-   元コードのグレースケールをそのまま維持
+   元コードのグレースケールを維持
 ========================================================= */
 
 vec3 colorize(float t) {
 
     float r =
         0.5 +
-        0.5 * cos(
-            6.2831853 * (t + 0.00)
+        0.5 *
+        cos(
+            6.2831853 *
+            (t + 0.00)
         );
 
-    return vec3(r, r, r);
+    return vec3(
+        r,
+        r,
+        r
+    );
 }
 
 
@@ -312,7 +401,18 @@ vec3 colorize(float t) {
 
 void main() {
 
-    vec2 pixel = gl_FragCoord.xy;
+    /*
+       gl_FragCoord は画面全体の
+       pixel coordinate。
+    */
+
+    vec2 pixel =
+        gl_FragCoord.xy;
+
+
+    /* -----------------------------------------
+       Screen → complex plane
+    ----------------------------------------- */
 
     float scale =
         min(
@@ -321,55 +421,71 @@ void main() {
         );
 
 
-    /* -------------------------
-       Pixel offset
-    ------------------------- */
-
     vec2 offset =
-        (pixel - 0.5 * u_resolution)
+        (
+            pixel -
+            0.5 * u_resolution
+        )
         / scale;
 
-
-    /*
-       offset / zoom
-
-       ここは通常float。
-       ただし中心座標そのものは
-       double-singleで保持する。
-    */
 
     vec2 offsetScaled =
         offset / u_zoom;
 
 
-    /* -------------------------
+    /* -----------------------------------------
        Center
-       high + low
-    ------------------------- */
+
+       center = high + low
+    ----------------------------------------- */
 
     vec2 cx =
         dsAdd(
-            vec2(u_centerHigh.x, u_centerLow.x),
-            vec2(offsetScaled.x, 0.0)
+            vec2(
+                u_centerHigh.x,
+                u_centerLow.x
+            ),
+
+            vec2(
+                offsetScaled.x,
+                0.0
+            )
         );
+
 
     vec2 cy =
         dsAdd(
-            vec2(u_centerHigh.y, u_centerLow.y),
-            vec2(offsetScaled.y, 0.0)
+            vec2(
+                u_centerHigh.y,
+                u_centerLow.y
+            ),
+
+            vec2(
+                offsetScaled.y,
+                0.0
+            )
         );
 
 
-    /* -------------------------
-       Mandelbrot
-    ------------------------- */
+    /* -----------------------------------------
+       z = 0
+    ----------------------------------------- */
 
-    vec2 zx = vec2(0.0, 0.0);
-    vec2 zy = vec2(0.0, 0.0);
+    vec2 zx =
+        vec2(0.0, 0.0);
+
+    vec2 zy =
+        vec2(0.0, 0.0);
+
 
     float smoothIteration = 0.0;
 
     bool escaped = false;
+
+
+    /* -----------------------------------------
+       Mandelbrot iteration
+    ----------------------------------------- */
 
     for (int i = 0; i < 100000; i++) {
 
@@ -377,7 +493,9 @@ void main() {
             break;
 
 
-        /* z² */
+        /*
+           z²
+        */
 
         vec2 zx2 =
             dsSquare(zx);
@@ -386,7 +504,10 @@ void main() {
             dsSquare(zy);
 
 
-        /* real = zx² - zy² */
+        /*
+           real:
+               zx² - zy²
+        */
 
         vec2 real =
             dsSub(
@@ -395,7 +516,10 @@ void main() {
             );
 
 
-        /* imaginary = 2*zx*zy */
+        /*
+           imaginary:
+               2zxzy
+        */
 
         vec2 product =
             dsMul(
@@ -410,7 +534,9 @@ void main() {
             );
 
 
-        /* z² + c */
+        /*
+           z² + c
+        */
 
         zx =
             dsAdd(
@@ -428,8 +554,8 @@ void main() {
         /*
            Escape test
 
-           high component is sufficient here
-           because this is only a magnitude test.
+           escape threshold:
+               |z|² > 256
         */
 
         float magnitudeSquared =
@@ -437,21 +563,34 @@ void main() {
             zy.x * zy.x;
 
 
-        if (magnitudeSquared > 256.0) {
+        if (
+            magnitudeSquared >
+            256.0
+        ) {
+
+            /*
+               Smooth coloring
+            */
 
             float logZn =
-                log(magnitudeSquared) * 0.5;
+                log(
+                    magnitudeSquared
+                ) * 0.5;
+
 
             float nu =
                 log(
                     logZn /
                     log(2.0)
-                ) / log(2.0);
+                )
+                / log(2.0);
+
 
             smoothIteration =
                 float(i)
                 + 1.0
                 - nu;
+
 
             escaped = true;
 
@@ -460,26 +599,27 @@ void main() {
     }
 
 
-    /* -------------------------
-       Interior
-    ------------------------- */
+    /* -----------------------------------------
+       Inside Mandelbrot set
+    ----------------------------------------- */
 
     if (!escaped) {
 
-        gl_FragColor = vec4(
-            0.0,
-            0.0,
-            0.0,
-            1.0
-        );
+        outColor =
+            vec4(
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            );
 
         return;
     }
 
 
-    /* -------------------------
+    /* -----------------------------------------
        Smooth coloring
-    ------------------------- */
+    ----------------------------------------- */
 
     float t =
         pow(
@@ -495,7 +635,7 @@ void main() {
         );
 
 
-    gl_FragColor =
+    outColor =
         vec4(
             colorize(t),
             1.0
@@ -505,25 +645,35 @@ void main() {
 
 
 /* =========================================================
-   Shader utilities
+   Shader compilation
 ========================================================= */
 
-function createShader(type, source) {
+function createShader(
+    type,
+    source
+) {
 
     const shader =
         gl.createShader(type);
+
 
     gl.shaderSource(
         shader,
         source
     );
 
-    gl.compileShader(shader);
 
-    if (!gl.getShaderParameter(
-        shader,
-        gl.COMPILE_STATUS
-    )) {
+    gl.compileShader(
+        shader
+    );
+
+
+    if (
+        !gl.getShaderParameter(
+            shader,
+            gl.COMPILE_STATUS
+        )
+    ) {
 
         console.error(
             gl.getShaderInfoLog(shader)
@@ -534,36 +684,57 @@ function createShader(type, source) {
         );
     }
 
+
     return shader;
 }
 
 
+/* =========================================================
+   Program
+========================================================= */
+
 function createProgram() {
 
-    const vs =
+    const vertexShader =
         createShader(
             gl.VERTEX_SHADER,
             vertexShaderSource
         );
 
-    const fs =
+
+    const fragmentShader =
         createShader(
             gl.FRAGMENT_SHADER,
             fragmentShaderSource
         );
 
+
     const program =
         gl.createProgram();
 
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
 
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(
+    gl.attachShader(
         program,
-        gl.LINK_STATUS
-    )) {
+        vertexShader
+    );
+
+    gl.attachShader(
+        program,
+        fragmentShader
+    );
+
+
+    gl.linkProgram(
+        program
+    );
+
+
+    if (
+        !gl.getProgramParameter(
+            program,
+            gl.LINK_STATUS
+        )
+    ) {
 
         console.error(
             gl.getProgramInfoLog(program)
@@ -573,6 +744,7 @@ function createProgram() {
             "Program linking failed"
         );
     }
+
 
     return program;
 }
@@ -591,7 +763,9 @@ gl.useProgram(program);
 const vao =
     gl.createVertexArray();
 
-gl.bindVertexArray(vao);
+gl.bindVertexArray(
+    vao
+);
 
 
 const positionBuffer =
@@ -622,9 +796,11 @@ const positionLocation =
         "a_position"
     );
 
+
 gl.enableVertexAttribArray(
     positionLocation
 );
+
 
 gl.vertexAttribPointer(
     positionLocation,
@@ -637,7 +813,7 @@ gl.vertexAttribPointer(
 
 
 /* =========================================================
-   Uniforms
+   Uniform locations
 ========================================================= */
 
 const resolutionLocation =
@@ -672,27 +848,28 @@ const iterationsLocation =
 
 
 /* =========================================================
-   Double-Single conversion
+   Double → two floats
 ========================================================= */
 
-/*
-   JS number is already approximately double precision.
-
-   We split it into:
-
-       high
-       low
-
-   so that the GPU receives the value using two floats.
-*/
-
 function splitDouble(value) {
+
+    /*
+       high:
+       32-bit floatとして表現できる部分
+    */
 
     const high =
         Math.fround(value);
 
+
+    /*
+       low:
+       highとの差
+    */
+
     const low =
         value - high;
+
 
     return [
         high,
@@ -702,7 +879,7 @@ function splitDouble(value) {
 
 
 /* =========================================================
-   Canvas
+   Canvas resize
 ========================================================= */
 
 function resizeCanvas() {
@@ -712,6 +889,7 @@ function resizeCanvas() {
             window.devicePixelRatio || 1,
             2
         );
+
 
     const width =
         Math.floor(
@@ -766,10 +944,15 @@ function setProgress(value) {
     value =
         Math.max(
             0,
-            Math.min(1, value)
+            Math.min(
+                1,
+                value
+            )
         );
 
+
     progress.style.opacity = "1";
+
 
     progressBar.style.width =
         `${value * 100}%`;
@@ -778,30 +961,37 @@ function setProgress(value) {
 
 function finishProgress() {
 
-    progressBar.style.width = "100%";
+    progressBar.style.width =
+        "100%";
+
 
     setTimeout(() => {
 
-        progress.style.opacity = "0";
+        progress.style.opacity =
+            "0";
 
     }, 250);
 }
 
 
 /* =========================================================
-   Cancel
+   Cancel current rendering
 ========================================================= */
 
 function cancelRender() {
 
-    if (renderAnimationFrame !== null) {
+    if (
+        renderAnimationFrame !== null
+    ) {
 
         cancelAnimationFrame(
             renderAnimationFrame
         );
 
-        renderAnimationFrame = null;
+        renderAnimationFrame =
+            null;
     }
+
 
     activeRender = null;
 }
@@ -827,10 +1017,12 @@ function estimatedWork(rate) {
 
 
 /* =========================================================
-   Uniform setup
+   Set shader uniforms
 ========================================================= */
 
-function setRenderUniforms(iterations) {
+function setRenderUniforms(
+    iterations
+) {
 
     const cx =
         splitDouble(centerX);
@@ -839,7 +1031,10 @@ function setRenderUniforms(iterations) {
         splitDouble(centerY);
 
 
-    gl.useProgram(program);
+    gl.useProgram(
+        program
+    );
+
 
     gl.uniform2f(
         resolutionLocation,
@@ -876,14 +1071,20 @@ function setRenderUniforms(iterations) {
 
 
 /* =========================================================
-   Full render
+   Full-screen render
    ---------------------------------------------------------
-   Used for moving preview.
+   移動中はこちら。
+
+   解像度は落とさず、
+   iterationだけ減らす。
 ========================================================= */
 
-function renderFull(iterationRate) {
+function renderFull(
+    iterationRate
+) {
 
     resizeCanvas();
+
 
     const iterations =
         Math.max(
@@ -922,11 +1123,7 @@ function renderFull(iterationRate) {
 
 
 /* =========================================================
-   Tile renderer
-   ---------------------------------------------------------
-   Canvas resolution is NOT reduced.
-
-   Scissor only restricts which pixels are calculated.
+   Tiles
 ========================================================= */
 
 const TILE_SIZE = 128;
@@ -935,6 +1132,7 @@ const TILE_SIZE = 128;
 function createTiles() {
 
     const tiles = [];
+
 
     for (
         let y = 0;
@@ -950,9 +1148,9 @@ function createTiles() {
 
             tiles.push({
 
-                x,
+                x: x,
 
-                y,
+                y: y,
 
                 width:
                     Math.min(
@@ -969,12 +1167,13 @@ function createTiles() {
         }
     }
 
+
     return tiles;
 }
 
 
 /* =========================================================
-   Start tiled stage
+   Start tiled render
 ========================================================= */
 
 function startTiledStage(
@@ -982,10 +1181,11 @@ function startTiledStage(
     progressStart,
     progressEnd,
     version,
-    clearFirst = false
+    clearFirst
 ) {
 
     resizeCanvas();
+
 
     const iterations =
         Math.max(
@@ -1000,6 +1200,15 @@ function startTiledStage(
     const tiles =
         createTiles();
 
+
+    /*
+       必要な場合だけ画面をクリア。
+       Medium → Finalではクリアしない。
+
+       これにより、
+       古い段階の画像を「クッション」として
+       残しながら高精度画像を上書きできる。
+    */
 
     if (clearFirst) {
 
@@ -1020,16 +1229,16 @@ function startTiledStage(
     }
 
 
-    setRenderUniforms(
-        iterations
-    );
-
-
     gl.viewport(
         0,
         0,
         canvas.width,
         canvas.height
+    );
+
+
+    setRenderUniforms(
+        iterations
     );
 
 
@@ -1040,15 +1249,20 @@ function startTiledStage(
 
     activeRender = {
 
-        version,
+        version:
+            version,
 
-        tiles,
+        tiles:
+            tiles,
 
-        index: 0,
+        index:
+            0,
 
-        progressStart,
+        progressStart:
+            progressStart,
 
-        progressEnd
+        progressEnd:
+            progressEnd
     };
 
 
@@ -1057,7 +1271,7 @@ function startTiledStage(
 
 
 /* =========================================================
-   Process tiles
+   Tile processing
 ========================================================= */
 
 function processTiles() {
@@ -1065,6 +1279,10 @@ function processTiles() {
     if (!activeRender)
         return;
 
+
+    /*
+       古いレンダリングなら破棄。
+    */
 
     if (
         activeRender.version !==
@@ -1082,8 +1300,10 @@ function processTiles() {
 
 
     /*
-       Keep some time for UI/input.
-       GPU commands are still submitted normally.
+       1フレームあたり約7msまで
+       GPUへの描画命令を投入する。
+
+       残りは次のrequestAnimationFrameへ。
     */
 
     const budget = 7;
@@ -1101,8 +1321,8 @@ function processTiles() {
 
 
         /*
-           WebGL scissor coordinates have
-           their origin at the bottom-left.
+           WebGLの原点は左下。
+           タイル座標は左上基準なので変換。
         */
 
         const scissorY =
@@ -1118,6 +1338,12 @@ function processTiles() {
             tile.height
         );
 
+
+        /*
+           フルスクリーン三角形を描くが、
+           scissorによってこのタイル部分だけ
+           fragment shaderが実行される。
+        */
 
         gl.drawArrays(
             gl.TRIANGLES,
@@ -1139,21 +1365,34 @@ function processTiles() {
     }
 
 
+    /*
+       ステージ内の進捗
+    */
+
     const ratio =
         activeRender.index /
         activeRender.tiles.length;
 
+
+    /*
+       全体進捗へ変換
+    */
 
     const value =
         activeRender.progressStart +
         (
             activeRender.progressEnd -
             activeRender.progressStart
-        ) * ratio;
+        ) *
+        ratio;
 
 
     setProgress(value);
 
+
+    /*
+       完了
+    */
 
     if (
         activeRender.index >=
@@ -1164,11 +1403,26 @@ function processTiles() {
             gl.SCISSOR_TEST
         );
 
+
         activeRender = null;
 
-        renderAnimationFrame = null;
+        renderAnimationFrame =
+            null;
 
-        onStageFinished();
+
+        if (
+            window.__stageCallback
+        ) {
+
+            const callback =
+                window.__stageCallback;
+
+            window.__stageCallback =
+                null;
+
+            callback();
+        }
+
 
         return;
     }
@@ -1182,28 +1436,7 @@ function processTiles() {
 
 
 /* =========================================================
-   Stage transition
-========================================================= */
-
-function onStageFinished() {
-
-    if (
-        !activeRender &&
-        window.__stageCallback
-    ) {
-
-        const callback =
-            window.__stageCallback;
-
-        window.__stageCallback = null;
-
-        callback();
-    }
-}
-
-
-/* =========================================================
-   High quality pipeline
+   High-quality pipeline
 ========================================================= */
 
 function scheduleHighQuality() {
@@ -1230,15 +1463,25 @@ function scheduleHighQuality() {
             resizeCanvas();
 
 
+            /*
+               各段階の計算量
+
+               Moving = 25%
+               Medium = 50%
+               Final = 100%
+            */
+
             const movingWork =
                 estimatedWork(
                     MOVING_ITERATION_RATE
                 );
 
+
             const mediumWork =
                 estimatedWork(
                     MEDIUM_ITERATION_RATE
                 );
+
 
             const finalWork =
                 estimatedWork(
@@ -1252,10 +1495,24 @@ function scheduleHighQuality() {
                 finalWork;
 
 
+            /*
+               Moving終了時
+
+               0.25 / 1.75
+               ≒ 14.29%
+            */
+
             const movingEnd =
                 movingWork /
                 totalWork;
 
+
+            /*
+               Medium終了時
+
+               (0.25 + 0.50) / 1.75
+               ≒ 42.86%
+            */
 
             const mediumEnd =
                 (
@@ -1266,19 +1523,11 @@ function scheduleHighQuality() {
 
 
             /*
-               Medium
+               Medium開始
             */
 
-            window.__stageCallback = () => {
-
-                if (
-                    version !==
-                    renderVersion
-                )
-                    return;
-
-
-                setTimeout(() => {
+            window.__stageCallback =
+                () => {
 
                     if (
                         version !==
@@ -1287,43 +1536,60 @@ function scheduleHighQuality() {
                         return;
 
 
-                    /*
-                       Final
-                    */
+                    setTimeout(() => {
 
-                    window.__stageCallback =
-                        () => {
-
-                            if (
-                                version !==
-                                renderVersion
-                            )
-                                return;
+                        if (
+                            version !==
+                            renderVersion
+                        )
+                            return;
 
 
-                            setProgress(1);
+                        /*
+                           Final開始
+                        */
 
-                            finishProgress();
-                        };
+                        window.__stageCallback =
+                            () => {
+
+                                if (
+                                    version !==
+                                    renderVersion
+                                )
+                                    return;
 
 
-                    startTiledStage(
-                        FINAL_ITERATION_RATE,
-                        mediumEnd,
-                        1.0,
-                        version,
-                        false
-                    );
+                                setProgress(1);
 
-                }, 50);
-            };
+                                finishProgress();
+                            };
+
+
+                        startTiledStage(
+                            FINAL_ITERATION_RATE,
+
+                            mediumEnd,
+
+                            1.0,
+
+                            version,
+
+                            false
+                        );
+
+                    }, 50);
+                };
 
 
             startTiledStage(
                 MEDIUM_ITERATION_RATE,
+
                 movingEnd,
+
                 mediumEnd,
+
                 version,
+
                 false
             );
 
@@ -1339,11 +1605,14 @@ function renderMoving() {
 
     renderVersion++;
 
+
     clearTimeout(
         qualityTimer
     );
 
+
     cancelRender();
+
 
     resizeCanvas();
 
@@ -1353,10 +1622,12 @@ function renderMoving() {
             MOVING_ITERATION_RATE
         );
 
+
     const mediumWork =
         estimatedWork(
             MEDIUM_ITERATION_RATE
         );
+
 
     const finalWork =
         estimatedWork(
@@ -1379,8 +1650,8 @@ function renderMoving() {
 
 
     /*
-       Full-resolution preview.
-       Only iteration count is reduced.
+       移動中は即座に全画面を描画。
+       ただしiterationだけ25%。
     */
 
     renderFull(
@@ -1389,7 +1660,7 @@ function renderMoving() {
 
 
     /*
-       Moving stage is now complete.
+       Moving段階の計算終了。
     */
 
     setProgress(
@@ -1399,18 +1670,21 @@ function renderMoving() {
 
 
 /* =========================================================
-   Immediate final
+   Immediate final render
 ========================================================= */
 
 function renderFinal() {
 
     renderVersion++;
 
+
     clearTimeout(
         qualityTimer
     );
 
+
     cancelRender();
+
 
     setProgress(0);
 
@@ -1419,14 +1693,21 @@ function renderFinal() {
 
 
     /*
-       Direct final render is also tile based.
+       Resetやiteration変更時など。
+
+       Moving画像がないので、
+       最初に画面をクリアする。
     */
 
     startTiledStage(
         FINAL_ITERATION_RATE,
+
         0,
+
         1,
+
         renderVersion,
+
         true
     );
 }
@@ -1450,6 +1731,7 @@ function zoomAt(
         clientX -
         rect.left;
 
+
     const y =
         clientY -
         rect.top;
@@ -1461,6 +1743,10 @@ function zoomAt(
             rect.height
         );
 
+
+    /*
+       ズーム前のカーソル位置
+    */
 
     const beforeX =
         centerX +
@@ -1485,6 +1771,10 @@ function zoomAt(
     zoom *= factor;
 
 
+    /*
+       ズーム後のカーソル位置
+    */
+
     const afterX =
         centerX +
         (
@@ -1504,6 +1794,10 @@ function zoomAt(
         scale /
         zoom;
 
+
+    /*
+       カーソル位置を固定
+    */
 
     centerX +=
         beforeX - afterX;
@@ -1525,6 +1819,7 @@ function zoomAt(
 ========================================================= */
 
 let dragging = false;
+
 let lastX = 0;
 let lastY = 0;
 
@@ -1537,6 +1832,7 @@ canvas.addEventListener(
 
         lastX = e.clientX;
         lastY = e.clientY;
+
 
         renderVersion++;
 
@@ -1586,6 +1882,7 @@ canvas.addEventListener(
             scale /
             zoom;
 
+
         centerY +=
             dy /
             scale /
@@ -1606,6 +1903,7 @@ window.addEventListener(
         if (!dragging)
             return;
 
+
         dragging = false;
 
         scheduleHighQuality();
@@ -1623,9 +1921,11 @@ canvas.addEventListener(
 
         e.preventDefault();
 
+
         const factor =
             Math.exp(
-                -e.deltaY * 0.0015
+                -e.deltaY *
+                0.0015
             );
 
 
@@ -1634,6 +1934,7 @@ canvas.addEventListener(
             e.clientY,
             factor
         );
+
     },
     {
         passive: false
@@ -1648,7 +1949,9 @@ canvas.addEventListener(
 const touches =
     new Map();
 
+
 let pinchStartDistance = 0;
+
 let pinchStartZoom = 1;
 
 
@@ -1657,6 +1960,7 @@ function touchDistance() {
     const values =
         [...touches.values()];
 
+
     if (values.length < 2)
         return 0;
 
@@ -1664,6 +1968,7 @@ function touchDistance() {
     const dx =
         values[0].clientX -
         values[1].clientX;
+
 
     const dy =
         values[0].clientY -
@@ -1676,6 +1981,10 @@ function touchDistance() {
     );
 }
 
+
+/* -----------------------------------------
+   Touch start
+----------------------------------------- */
 
 canvas.addEventListener(
     "touchstart",
@@ -1695,22 +2004,32 @@ canvas.addEventListener(
         setProgress(0);
 
 
-        for (const t of e.changedTouches) {
+        for (
+            const t of e.changedTouches
+        ) {
 
             touches.set(
                 t.identifier,
                 {
-                    clientX: t.clientX,
-                    clientY: t.clientY,
+                    clientX:
+                        t.clientX,
 
-                    lastX: t.clientX,
-                    lastY: t.clientY
+                    clientY:
+                        t.clientY,
+
+                    lastX:
+                        t.clientX,
+
+                    lastY:
+                        t.clientY
                 }
             );
         }
 
 
-        if (touches.size === 2) {
+        if (
+            touches.size === 2
+        ) {
 
             pinchStartDistance =
                 touchDistance();
@@ -1718,12 +2037,17 @@ canvas.addEventListener(
             pinchStartZoom =
                 zoom;
         }
+
     },
     {
         passive: false
     }
 );
 
+
+/* -----------------------------------------
+   Touch move
+----------------------------------------- */
 
 canvas.addEventListener(
     "touchmove",
@@ -1732,23 +2056,35 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        for (const t of e.changedTouches) {
+        for (
+            const t of e.changedTouches
+        ) {
 
             const data =
                 touches.get(
                     t.identifier
                 );
 
+
             if (!data)
                 continue;
 
 
-            data.clientX = t.clientX;
-            data.clientY = t.clientY;
+            data.clientX =
+                t.clientX;
+
+            data.clientY =
+                t.clientY;
         }
 
 
-        if (touches.size === 1) {
+        /*
+           Single finger → pan
+        */
+
+        if (
+            touches.size === 1
+        ) {
 
             const data =
                 [...touches.values()][0];
@@ -1757,6 +2093,7 @@ canvas.addEventListener(
             const dx =
                 data.clientX -
                 data.lastX;
+
 
             const dy =
                 data.clientY -
@@ -1786,6 +2123,7 @@ canvas.addEventListener(
                 scale /
                 zoom;
 
+
             centerY +=
                 dy /
                 scale /
@@ -1798,7 +2136,13 @@ canvas.addEventListener(
         }
 
 
-        else if (touches.size === 2) {
+        /*
+           Two fingers → pinch
+        */
+
+        else if (
+            touches.size === 2
+        ) {
 
             const distance =
                 touchDistance();
@@ -1819,12 +2163,17 @@ canvas.addEventListener(
                 renderMoving();
             }
         }
+
     },
     {
         passive: false
     }
 );
 
+
+/* -----------------------------------------
+   Touch end
+----------------------------------------- */
 
 canvas.addEventListener(
     "touchend",
@@ -1833,7 +2182,9 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        for (const t of e.changedTouches) {
+        for (
+            const t of e.changedTouches
+        ) {
 
             touches.delete(
                 t.identifier
@@ -1841,10 +2192,18 @@ canvas.addEventListener(
         }
 
 
-        if (touches.size === 1) {
+        /*
+           2本指 → 1本指に戻ったときの
+           急激なジャンプを防ぐ。
+        */
+
+        if (
+            touches.size === 1
+        ) {
 
             const remaining =
                 [...touches.values()][0];
+
 
             remaining.lastX =
                 remaining.clientX;
@@ -1854,18 +2213,25 @@ canvas.addEventListener(
         }
 
 
-        if (touches.size === 0) {
+        if (
+            touches.size === 0
+        ) {
 
             pinchStartDistance = 0;
 
             scheduleHighQuality();
         }
+
     },
     {
         passive: false
     }
 );
 
+
+/* -----------------------------------------
+   Touch cancel
+----------------------------------------- */
 
 canvas.addEventListener(
     "touchcancel",
@@ -1878,6 +2244,7 @@ canvas.addEventListener(
         pinchStartDistance = 0;
 
         scheduleHighQuality();
+
     },
     {
         passive: false
@@ -1886,7 +2253,7 @@ canvas.addEventListener(
 
 
 /* =========================================================
-   Iteration
+   Iteration input
 ========================================================= */
 
 iterationInput.addEventListener(
@@ -1926,9 +2293,11 @@ resetButton.addEventListener(
     () => {
 
         centerX = -0.75;
+
         centerY = 0.0;
 
         zoom = 1.0;
+
 
         updateInfo();
 
