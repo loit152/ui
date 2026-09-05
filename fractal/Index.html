@@ -196,11 +196,15 @@ const resetButton =
     深いズームで中心位置を保持しやすい。
 */
 
-let centerXHi = -0.75;
-let centerXLo = 0;
+let centerX = -0.75;
+let centerY = 0;
 
-let centerYHi = 0;
-let centerYLo = 0;
+let zoom = 1;
+
+let maxIterations = 500;
+
+let renderVersion = 0;
+let qualityTimer = null;
 
 
 /*
@@ -266,95 +270,33 @@ precision highp float;
 out vec4 outColor;
 
 uniform vec2 u_resolution;
-
-/*
-    中心座標
-    hi + lo の double-double
-*/
-uniform vec2 u_centerX;
-uniform vec2 u_centerY;
-
-/*
-    zoom = 2 ^ u_zoomPower
-*/
-uniform float u_zoomPower;
-
+uniform vec2 u_center;
+uniform float u_zoom;
 uniform int u_iterations;
 
 
-/* =========================================================
-   Double-double
-========================================================= */
-
-vec2 twoSum(float a, float b)
-{
-    float s = a + b;
-    float v = s - a;
-
-    float e =
-        (a - (s - v)) +
-        (b - v);
-
-    return vec2(s, e);
-}
-
-
-vec2 quickTwoSum(float a, float b)
-{
-    float s = a + b;
-    float e = b - (s - a);
-
-    return vec2(s, e);
-}
-
-
-vec2 ddAdd(vec2 a, vec2 b)
-{
-    vec2 s = twoSum(a.x, b.x);
-
-    float e =
-        s.y +
-        a.y +
-        b.y;
-
-    return quickTwoSum(s.x, e);
-}
-
-
-/* =========================================================
-   Color
-========================================================= */
-
 vec3 colorize(float t)
 {
-    return
-        0.5 +
-        0.5 *
-        cos(
-            6.28318530718 *
-            (
-                t +
-                vec3(
-                    0.00,
-                    0.15,
-                    0.30
-                )
-            )
-        );
+    /*
+        青～紫～オレンジ系の
+        Mandelbrotカラー
+    */
+
+    return 0.5 + 0.5 * cos(
+        6.2831853 *
+        (
+            t +
+            vec3(0.00, 0.12, 0.25)
+        )
+    );
 }
 
-
-/* =========================================================
-   Main
-========================================================= */
 
 void main()
 {
-    vec2 pixel =
-        gl_FragCoord.xy;
+    vec2 pixel = gl_FragCoord.xy;
 
-
-    float screenScale =
+    float scale =
         min(
             u_resolution.x,
             u_resolution.y
@@ -362,97 +304,35 @@ void main()
 
 
     /*
-        画面中心からの相対座標
+        複素平面座標
+
+        Y方向は上をプラスにする。
     */
 
-    vec2 p =
+    vec2 c =
+        u_center +
         (
             pixel -
             0.5 * u_resolution
         )
-        / screenScale;
-
-
-    /*
-        zoomPowerを整数部分と小数部分に分離。
-
-        これが重要。
-
-        exp2(-1000) のような値を
-        直接作らない。
-    */
-
-    float zFloor =
-        floor(u_zoomPower);
-
-    float zFrac =
-        u_zoomPower - zFloor;
-
-
-    /*
-        小数部分だけGPU floatで計算。
-
-        0.5 ～ 1.0程度なので安全。
-    */
-
-    float localScale =
-        exp2(-zFrac);
-
-
-    /*
-        pに対して大きな指数を
-       直接掛けない。
-
-        ここでは実用的な深度まで
-        floatとして扱う。
-    */
-
-    float exponentScale =
-        exp2(
-            clamp(
-                -zFloor,
-                -120.0,
-                120.0
-            )
-        );
-
-
-    vec2 delta =
-        p *
-        localScale *
-        exponentScale;
-
-
-    /*
-        中心 + delta
-
-        通常の深度では
-        double-doubleを使用。
-    */
-
-    vec2 cx =
-        ddAdd(
-            u_centerX,
-            vec2(delta.x, 0.0)
-        );
-
-    vec2 cy =
-        ddAdd(
-            u_centerY,
-            vec2(delta.y, 0.0)
-        );
+        / scale
+        / u_zoom;
 
 
     float zx = 0.0;
     float zy = 0.0;
 
-    bool escaped = false;
-
     float smoothIteration = 0.0;
+
+    bool escaped = false;
 
 
     /*
         Mandelbrot
+
+            z = z² + c
+
+        計算をできるだけ軽くする。
     */
 
     for (int i = 0; i < 100000; i++)
@@ -461,26 +341,24 @@ void main()
             break;
 
 
-        float xx =
-            zx * zx;
-
-        float yy =
-            zy * zy;
-
-
-        float r2 =
-            xx + yy;
-
+        float xx = zx * zx;
+        float yy = zy * zy;
 
         /*
-            早期脱出。
+            escape判定
 
-            256ではなく64でも
-            smooth coloringには十分。
+            4ではなく16まで許容。
+            これでもMandelbrotの判定には十分。
         */
 
-        if (r2 > 64.0)
+        float r2 = xx + yy;
+
+        if (r2 > 16.0)
         {
+            /*
+                smooth coloring
+            */
+
             float logZn =
                 0.5 * log(r2);
 
@@ -511,19 +389,18 @@ void main()
         zx =
             xx -
             yy +
-            cx.x;
+            c.x;
 
 
         zy =
             xy +
             xy +
-            cy.x * 0.0 +
-            cy.y;
+            c.y;
     }
 
 
     /*
-        Mandelbrot内部
+        集合内部
     */
 
     if (!escaped)
@@ -775,7 +652,17 @@ function render(iterationRate)
             )
         );
 
+
+    gl.viewport(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
     gl.useProgram(program);
+
 
     gl.uniform2f(
         resolutionLocation,
@@ -783,33 +670,25 @@ function render(iterationRate)
         canvas.height
     );
 
-    gl.uniform2f(
-        centerXLocation,
-        centerXHi,
-        centerXLo
-    );
 
     gl.uniform2f(
-        centerYLocation,
-        centerYHi,
-        centerYLo
+        centerLocation,
+        centerX,
+        centerY
     );
 
-    /*
-        clampしない。
-
-        深いズームでもzoomPowerを維持。
-    */
 
     gl.uniform1f(
-        zoomPowerLocation,
-        zoomPower
+        zoomLocation,
+        zoom
     );
+
 
     gl.uniform1i(
         iterationsLocation,
         iterations
     );
+
 
     gl.drawArrays(
         gl.TRIANGLES,
@@ -968,11 +847,12 @@ function moveCenter(
 function zoomAt(
     screenX,
     screenY,
-    powerDelta
+    factor
 )
 {
     const rect =
         canvas.getBoundingClientRect();
+
 
     const x =
         screenX -
@@ -982,6 +862,7 @@ function zoomAt(
         screenY -
         rect.top;
 
+
     const scale =
         Math.min(
             rect.width,
@@ -990,144 +871,65 @@ function zoomAt(
 
 
     /*
-        カーソル位置の
-        現在の複素座標との差。
-
-        深度に応じたscaleは
-        JS側でexp2を使用。
+        ズーム前のカーソル位置
     */
 
-    const localScale =
-        Math.pow(
-            2,
-            -zoomPower
-        );
-
-
-    const dx =
+    const worldX =
+        centerX +
         (
             x -
             rect.width * 0.5
-        ) /
-        scale *
-        localScale;
+        )
+        / scale
+        / zoom;
 
-    const dy =
+
+    const worldY =
+        centerY +
         (
             rect.height * 0.5 -
             y
-        ) /
-        scale *
-        localScale;
+        )
+        / scale
+        / zoom;
 
 
     /*
-        ズーム前のカーソル位置を
-        center + delta として取得。
+        ズーム
     */
 
-    const worldXHi =
-        centerXHi + dx;
-
-    const worldXLo =
-        centerXLo +
-        (
-            dx -
-            (
-                worldXHi -
-                centerXHi
-            )
-        );
-
-
-    const worldYHi =
-        centerYHi + dy;
-
-    const worldYLo =
-        centerYLo +
-        (
-            dy -
-            (
-                worldYHi -
-                centerYHi
-            )
-        );
+    zoom *= factor;
 
 
     /*
-        zoom
+        カーソル位置を固定
     */
 
-    zoomPower += powerDelta;
-
-
-    /*
-        ズーム後に同じ画面位置へ
-        カーソル位置を戻す。
-
-        deltaAfter =
-            deltaBefore / 2^powerDelta
-    */
-
-    const afterScale =
-        Math.pow(
-            2,
-            -zoomPower
-        );
-
-
-    const afterDX =
+    centerX =
+        worldX -
         (
             x -
             rect.width * 0.5
-        ) /
-        scale *
-        afterScale;
+        )
+        / scale
+        / zoom;
 
-    const afterDY =
+
+    centerY =
+        worldY -
         (
             rect.height * 0.5 -
             y
-        ) /
-        scale *
-        afterScale;
-
-
-    centerXHi =
-        worldXHi -
-        afterDX;
-
-    centerXLo =
-        worldXLo -
-        (
-            afterDX -
-            (
-                worldXHi -
-                centerXHi
-            )
-        );
-
-
-    centerYHi =
-        worldYHi -
-        afterDY;
-
-    centerYLo =
-        worldYLo -
-        (
-            afterDY -
-            (
-                worldYHi -
-                centerYHi
-            )
-        );
+        )
+        / scale
+        / zoom;
 
 
     updateInfo();
 
     renderMoving();
 
-    scheduleFinal();
+    scheduleHighQuality();
 }
 
 
