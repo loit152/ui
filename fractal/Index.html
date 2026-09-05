@@ -56,6 +56,7 @@ canvas {
 
 #iterations {
     width: 80px;
+
     padding: 5px 7px;
 
     border: 1px solid rgba(255,255,255,.25);
@@ -96,7 +97,7 @@ canvas {
 
     opacity: 0;
 
-    transition: opacity .2s ease;
+    transition: opacity .15s ease;
 }
 
 #progressBar {
@@ -128,7 +129,9 @@ canvas {
         inputmode="numeric"
     >
 
-    <button id="reset">Reset</button>
+    <button id="reset">
+        Reset
+    </button>
 
 </div>
 
@@ -187,15 +190,6 @@ const resetButton =
    State
 ========================================================= */
 
-/*
-    中心座標。
-
-    hi + lo の double-double 表現。
-
-    JavaScript Numberだけの場合よりも、
-    深いズームで中心位置を保持しやすい。
-*/
-
 let centerX = -0.75;
 let centerY = 0;
 
@@ -203,45 +197,32 @@ let zoom = 1;
 
 let maxIterations = 500;
 
-let renderVersion = 0;
-let qualityTimer = null;
-
-
-/*
-    ズームは
-
-        zoom = 2 ^ zoomPower
-
-    として管理。
-
-    これにより Number の上限による
-    zoom *= factor の問題を避ける。
-*/
-
-let zoomPower = 0;
-
-
-/*
-    画面移動中の軽量反復回数。
-*/
-
-let maxIterations = 500;
-
 
 /*
     描画世代。
+
+    古い高品質描画が、
+    新しい操作後に実行されるのを防ぐ。
 */
 
 let renderVersion = 0;
 
-let qualityTimer = 0;
+let qualityTimer = null;
 
 
 /* =========================================================
    Rendering quality
 ========================================================= */
 
-const MOVING_RATE = 0.16;
+const MOVING_RATE = 0.15;
+
+
+/*
+    移動中は15%。
+
+    指を止めると500回へ戻す。
+*/
+
 const FINAL_RATE = 1.0;
 
 
@@ -253,8 +234,14 @@ const vertexShaderSource = `#version 300 es
 
 in vec2 a_position;
 
-void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
+void main()
+{
+    gl_Position =
+        vec4(
+            a_position,
+            0.0,
+            1.0
+        );
 }
 `;
 
@@ -270,31 +257,50 @@ precision highp float;
 out vec4 outColor;
 
 uniform vec2 u_resolution;
+
 uniform vec2 u_center;
+
 uniform float u_zoom;
+
 uniform int u_iterations;
 
 
+/* =========================================================
+   Color
+========================================================= */
+
 vec3 colorize(float t)
 {
-    /*
-        青～紫～オレンジ系の
-        Mandelbrotカラー
-    */
-
-    return 0.5 + 0.5 * cos(
-        6.2831853 *
-        (
-            t +
-            vec3(0.00, 0.12, 0.25)
-        )
-    );
+    return
+        0.5 +
+        0.5 *
+        cos(
+            6.28318530718 *
+            (
+                t +
+                vec3(
+                    0.00,
+                    0.12,
+                    0.25
+                )
+            )
+        );
 }
 
 
+/* =========================================================
+   Mandelbrot
+========================================================= */
+
 void main()
 {
-    vec2 pixel = gl_FragCoord.xy;
+    vec2 pixel =
+        gl_FragCoord.xy;
+
+
+    /*
+        アスペクト比を維持。
+    */
 
     float scale =
         min(
@@ -304,9 +310,9 @@ void main()
 
 
     /*
-        複素平面座標
+        複素平面上のc。
 
-        Y方向は上をプラスにする。
+        Y方向は上を正にする。
     */
 
     vec2 c =
@@ -322,45 +328,57 @@ void main()
     float zx = 0.0;
     float zy = 0.0;
 
+
     float smoothIteration = 0.0;
 
     bool escaped = false;
 
 
     /*
-        Mandelbrot
+        Mandelbrot iteration
 
             z = z² + c
-
-        計算をできるだけ軽くする。
     */
 
-    for (int i = 0; i < 100000; i++)
+    for (int i = 0; i < 100000; ++i)
     {
         if (i >= u_iterations)
             break;
 
 
-        float xx = zx * zx;
-        float yy = zy * zy;
-
         /*
-            escape判定
-
-            4ではなく16まで許容。
-            これでもMandelbrotの判定には十分。
+            z²
         */
 
-        float r2 = xx + yy;
+        float xx =
+            zx * zx;
+
+        float yy =
+            zy * zy;
+
+
+        /*
+            escape判定。
+
+            4ではなく16にして、
+            smooth coloringのための
+           余計な計算を減らす。
+        */
+
+        float r2 =
+            xx + yy;
+
 
         if (r2 > 16.0)
         {
             /*
-                smooth coloring
+                Smooth iteration
             */
 
             float logZn =
-                0.5 * log(r2);
+                0.5 *
+                log(r2);
+
 
             float nu =
                 log(
@@ -375,6 +393,7 @@ void main()
                 float(i) +
                 1.0 -
                 nu;
+
 
             escaped = true;
 
@@ -400,7 +419,7 @@ void main()
 
 
     /*
-        集合内部
+        Mandelbrot集合内部
     */
 
     if (!escaped)
@@ -417,6 +436,10 @@ void main()
     }
 
 
+    /*
+        色付け
+    */
+
     float t =
         smoothIteration /
         float(u_iterations);
@@ -424,7 +447,11 @@ void main()
 
     t =
         pow(
-            clamp(t, 0.0, 1.0),
+            clamp(
+                t,
+                0.0,
+                1.0
+            ),
             0.35
         );
 
@@ -437,8 +464,9 @@ void main()
 }
 `;
 
+
 /* =========================================================
-   Shader
+   Shader compilation
 ========================================================= */
 
 function createShader(type, source)
@@ -446,17 +474,23 @@ function createShader(type, source)
     const shader =
         gl.createShader(type);
 
+
     gl.shaderSource(
         shader,
         source
     );
 
+
     gl.compileShader(shader);
 
-    if (!gl.getShaderParameter(
-        shader,
-        gl.COMPILE_STATUS
-    )) {
+
+    if (
+        !gl.getShaderParameter(
+            shader,
+            gl.COMPILE_STATUS
+        )
+    )
+    {
         const error =
             gl.getShaderInfoLog(shader);
 
@@ -465,45 +499,72 @@ function createShader(type, source)
         throw new Error(error);
     }
 
+
     return shader;
 }
 
 
-function createProgram(vsSource, fsSource)
+function createProgram(
+    vertexSource,
+    fragmentSource
+)
 {
-    const vs =
+    const vertexShader =
         createShader(
             gl.VERTEX_SHADER,
-            vsSource
+            vertexSource
         );
 
-    const fs =
+
+    const fragmentShader =
         createShader(
             gl.FRAGMENT_SHADER,
-            fsSource
+            fragmentSource
         );
 
-    const p =
+
+    const program =
         gl.createProgram();
 
-    gl.attachShader(p, vs);
-    gl.attachShader(p, fs);
 
-    gl.linkProgram(p);
+    gl.attachShader(
+        program,
+        vertexShader
+    );
 
-    if (!gl.getProgramParameter(
-        p,
-        gl.LINK_STATUS
-    )) {
+
+    gl.attachShader(
+        program,
+        fragmentShader
+    );
+
+
+    gl.linkProgram(program);
+
+
+    if (
+        !gl.getProgramParameter(
+            program,
+            gl.LINK_STATUS
+        )
+    )
+    {
         throw new Error(
-            gl.getProgramInfoLog(p)
+            gl.getProgramInfoLog(program)
         );
     }
 
-    gl.deleteShader(vs);
-    gl.deleteShader(fs);
 
-    return p;
+    gl.deleteShader(
+        vertexShader
+    );
+
+    gl.deleteShader(
+        fragmentShader
+    );
+
+
+    return program;
 }
 
 
@@ -512,6 +573,7 @@ const program =
         vertexShaderSource,
         fragmentShaderSource
     );
+
 
 gl.useProgram(program);
 
@@ -527,13 +589,16 @@ const vertices =
         -1,  3
     ]);
 
+
 const buffer =
     gl.createBuffer();
+
 
 gl.bindBuffer(
     gl.ARRAY_BUFFER,
     buffer
 );
+
 
 gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -541,15 +606,18 @@ gl.bufferData(
     gl.STATIC_DRAW
 );
 
+
 const positionLocation =
     gl.getAttribLocation(
         program,
         "a_position"
     );
 
+
 gl.enableVertexAttribArray(
     positionLocation
 );
+
 
 gl.vertexAttribPointer(
     positionLocation,
@@ -571,23 +639,20 @@ const resolutionLocation =
         "u_resolution"
     );
 
-const centerXLocation =
+
+const centerLocation =
     gl.getUniformLocation(
         program,
-        "u_centerX"
+        "u_center"
     );
 
-const centerYLocation =
+
+const zoomLocation =
     gl.getUniformLocation(
         program,
-        "u_centerY"
+        "u_zoom"
     );
 
-const zoomPowerLocation =
-    gl.getUniformLocation(
-        program,
-        "u_zoomPower"
-    );
 
 const iterationsLocation =
     gl.getUniformLocation(
@@ -602,29 +667,46 @@ const iterationsLocation =
 
 function resizeCanvas()
 {
+    /*
+        DPRを最大2に制限。
+
+        Retina画面での計算量爆発を防ぐ。
+    */
+
     const dpr =
         Math.min(
             window.devicePixelRatio || 1,
             2
         );
 
+
     const width =
-        Math.floor(
-            canvas.clientWidth * dpr
+        Math.max(
+            1,
+            Math.floor(
+                canvas.clientWidth * dpr
+            )
         );
 
+
     const height =
-        Math.floor(
-            canvas.clientHeight * dpr
+        Math.max(
+            1,
+            Math.floor(
+                canvas.clientHeight * dpr
+            )
         );
+
 
     if (
         canvas.width !== width ||
         canvas.height !== height
-    ) {
+    )
+    {
         canvas.width = width;
         canvas.height = height;
     }
+
 
     gl.viewport(
         0,
@@ -643,6 +725,7 @@ function render(iterationRate)
 {
     resizeCanvas();
 
+
     const iterations =
         Math.max(
             1,
@@ -651,14 +734,6 @@ function render(iterationRate)
                 iterationRate
             )
         );
-
-
-    gl.viewport(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
 
 
     gl.useProgram(program);
@@ -699,16 +774,18 @@ function render(iterationRate)
 
 
 /* =========================================================
-   Quality
+   Moving render
 ========================================================= */
 
 function renderMoving()
 {
     renderVersion++;
 
+
     clearTimeout(
         qualityTimer
     );
+
 
     render(
         MOVING_RATE
@@ -716,27 +793,39 @@ function renderMoving()
 }
 
 
+/* =========================================================
+   Final render
+========================================================= */
+
 function scheduleFinal()
 {
     const version =
         renderVersion;
 
+
     clearTimeout(
         qualityTimer
     );
 
+
     qualityTimer =
-        setTimeout(() =>
-        {
-            if (
-                version !== renderVersion
-            ) {
-                return;
-            }
+        setTimeout(
+            () =>
+            {
+                if (
+                    version !== renderVersion
+                )
+                {
+                    return;
+                }
 
-            render(FINAL_RATE);
 
-        }, 120);
+                render(
+                    FINAL_RATE
+                );
+            },
+            120
+        );
 }
 
 
@@ -744,105 +833,21 @@ function renderFinal()
 {
     renderVersion++;
 
+
     clearTimeout(
         qualityTimer
     );
 
-    render(FINAL_RATE);
-}
 
-
-/* =========================================================
-   Double-double helpers
-========================================================= */
-
-function normalizeDD(hi, lo)
-{
-    const s =
-        hi + lo;
-
-    const e =
-        lo - (s - hi);
-
-    return [s, e];
-}
-
-
-function addDD(
-    aHi,
-    aLo,
-    bHi,
-    bLo
-)
-{
-    const s =
-        aHi + bHi;
-
-    const v =
-        s - aHi;
-
-    const e =
-        (
-            aHi - (s - v)
-        ) +
-        (
-            bHi - v
-        ) +
-        aLo +
-        bLo;
-
-    return normalizeDD(
-        s,
-        e
+    render(
+        FINAL_RATE
     );
-}
-
-
-/* =========================================================
-   Coordinate movement
-========================================================= */
-
-function moveCenter(
-    dx,
-    dy
-)
-{
-    const x =
-        addDD(
-            centerXHi,
-            centerXLo,
-            dx,
-            0
-        );
-
-    const y =
-        addDD(
-            centerYHi,
-            centerYLo,
-            dy,
-            0
-        );
-
-    centerXHi = x[0];
-    centerXLo = x[1];
-
-    centerYHi = y[0];
-    centerYLo = y[1];
 }
 
 
 /* =========================================================
    Zoom
 ========================================================= */
-
-/*
-    zoomPower += amount
-
-    1 = 2倍
-    2 = 4倍
-    10 = 1024倍
-    100 = 約1.27e30倍
-*/
 
 function zoomAt(
     screenX,
@@ -858,6 +863,7 @@ function zoomAt(
         screenX -
         rect.left;
 
+
     const y =
         screenY -
         rect.top;
@@ -871,7 +877,7 @@ function zoomAt(
 
 
     /*
-        ズーム前のカーソル位置
+        ズーム前のカーソル位置。
     */
 
     const worldX =
@@ -895,14 +901,14 @@ function zoomAt(
 
 
     /*
-        ズーム
+        ズーム。
     */
 
     zoom *= factor;
 
 
     /*
-        カーソル位置を固定
+        カーソル下の点を固定。
     */
 
     centerX =
@@ -927,9 +933,10 @@ function zoomAt(
 
     updateInfo();
 
+
     renderMoving();
 
-    scheduleHighQuality();
+    scheduleFinal();
 }
 
 
@@ -949,13 +956,16 @@ canvas.addEventListener(
     {
         dragging = true;
 
+
         lastMouseX =
             e.clientX;
 
         lastMouseY =
             e.clientY;
 
+
         renderVersion++;
+
 
         clearTimeout(
             qualityTimer
@@ -971,9 +981,11 @@ window.addEventListener(
         if (!dragging)
             return;
 
+
         const dx =
             e.clientX -
             lastMouseX;
+
 
         const dy =
             e.clientY -
@@ -988,26 +1000,31 @@ window.addEventListener(
 
 
         const worldScale =
-            Math.pow(
-                2,
-                -zoomPower
-            );
+            1 / zoom;
 
 
-        moveCenter(
-            -dx / scale * worldScale,
-             dy / scale * worldScale
-        );
+        centerX -=
+            dx /
+            scale *
+            worldScale;
+
+
+        centerY +=
+            dy /
+            scale *
+            worldScale;
 
 
         lastMouseX =
             e.clientX;
+
 
         lastMouseY =
             e.clientY;
 
 
         updateInfo();
+
 
         renderMoving();
     }
@@ -1021,7 +1038,9 @@ window.addEventListener(
         if (!dragging)
             return;
 
+
         dragging = false;
+
 
         scheduleFinal();
     }
@@ -1038,20 +1057,24 @@ canvas.addEventListener(
     {
         e.preventDefault();
 
-        /*
-            1 wheel notch ≒ 2^(0.35)
 
-            通常の倍率計算より
-            滑らか。
+        /*
+            滑らかな指数ズーム。
+
+            上方向 → zoom in
+            下方向 → zoom out
         */
 
-        const power =
-            -e.deltaY * 0.003;
+        const factor =
+            Math.exp(
+                -e.deltaY * 0.0015
+            );
+
 
         zoomAt(
             e.clientX,
             e.clientY,
-            power
+            factor
         );
     },
     {
@@ -1067,14 +1090,15 @@ canvas.addEventListener(
 const touches =
     new Map();
 
+
 let pinchStartDistance = 0;
 
-let pinchStartPower = 0;
+let pinchStartZoom = 1;
 
 let pinchCenter = null;
 
 
-function distance(a, b)
+function touchDistance(a, b)
 {
     return Math.hypot(
         a.clientX - b.clientX,
@@ -1083,7 +1107,7 @@ function distance(a, b)
 }
 
 
-function midpoint(a, b)
+function touchMidpoint(a, b)
 {
     return {
         x:
@@ -1101,22 +1125,33 @@ canvas.addEventListener(
     {
         e.preventDefault();
 
+
         for (
-            const t of e.changedTouches
-        ) {
+            const touch
+            of e.changedTouches
+        )
+        {
             touches.set(
-                t.identifier,
+                touch.identifier,
                 {
-                    clientX: t.clientX,
-                    clientY: t.clientY,
-                    lastX: t.clientX,
-                    lastY: t.clientY
+                    clientX:
+                        touch.clientX,
+
+                    clientY:
+                        touch.clientY,
+
+                    lastX:
+                        touch.clientX,
+
+                    lastY:
+                        touch.clientY
                 }
             );
         }
 
 
         renderVersion++;
+
 
         clearTimeout(
             qualityTimer
@@ -1128,14 +1163,17 @@ canvas.addEventListener(
             const [a, b] =
                 [...touches.values()];
 
-            pinchStartDistance =
-                distance(a, b);
 
-            pinchStartPower =
-                zoomPower;
+            pinchStartDistance =
+                touchDistance(a, b);
+
+
+            pinchStartZoom =
+                zoom;
+
 
             pinchCenter =
-                midpoint(a, b);
+                touchMidpoint(a, b);
         }
     },
     {
@@ -1152,29 +1190,41 @@ canvas.addEventListener(
 
 
         for (
-            const t of e.changedTouches
-        ) {
+            const touch
+            of e.changedTouches
+        )
+        {
             const old =
                 touches.get(
-                    t.identifier
+                    touch.identifier
                 );
+
 
             if (old)
             {
-                old.clientX = t.clientX;
-                old.clientY = t.clientY;
+                old.clientX =
+                    touch.clientX;
+
+                old.clientY =
+                    touch.clientY;
             }
         }
 
+
+        /*
+            1本指 = パン
+        */
 
         if (touches.size === 1)
         {
             const touch =
                 [...touches.values()][0];
 
+
             const dx =
                 touch.clientX -
                 touch.lastX;
+
 
             const dy =
                 touch.clientY -
@@ -1187,21 +1237,26 @@ canvas.addEventListener(
                     canvas.clientHeight
                 );
 
+
             const worldScale =
-                Math.pow(
-                    2,
-                    -zoomPower
-                );
+                1 / zoom;
 
 
-            moveCenter(
-                -dx / scale * worldScale,
-                 dy / scale * worldScale
-            );
+            centerX -=
+                dx /
+                scale *
+                worldScale;
+
+
+            centerY +=
+                dy /
+                scale *
+                worldScale;
 
 
             touch.lastX =
                 touch.clientX;
+
 
             touch.lastY =
                 touch.clientY;
@@ -1209,9 +1264,14 @@ canvas.addEventListener(
 
             updateInfo();
 
+
             renderMoving();
         }
 
+
+        /*
+            2本指 = ピンチ
+        */
 
         else if (
             touches.size === 2 &&
@@ -1223,29 +1283,110 @@ canvas.addEventListener(
 
 
             const currentDistance =
-                distance(a, b);
+                touchDistance(a, b);
 
-
-            /*
-                ピンチ距離を
-                2の指数へ変換。
-            */
 
             const ratio =
                 currentDistance /
                 pinchStartDistance;
 
 
-            const powerDelta =
-                Math.log2(ratio);
+            /*
+                ズーム倍率
+            */
+
+            zoom =
+                pinchStartZoom *
+                ratio;
 
 
-            zoomPower =
-                pinchStartPower +
-                powerDelta;
+            /*
+                ピンチ中心を維持。
+
+                現在の中心を一度
+                ピンチ中心基準に変換する。
+            */
+
+            if (pinchCenter)
+            {
+                const rect =
+                    canvas.getBoundingClientRect();
+
+
+                const mx =
+                    pinchCenter.x -
+                    rect.left;
+
+
+                const my =
+                    pinchCenter.y -
+                    rect.top;
+
+
+                const scale =
+                    Math.min(
+                        rect.width,
+                        rect.height
+                    );
+
+
+                /*
+                    ピンチ開始時の
+                    ワールド座標を推定。
+                */
+
+                const startScale =
+                    1 / pinchStartZoom;
+
+
+                const wx =
+                    centerX +
+                    (
+                        mx -
+                        rect.width * 0.5
+                    )
+                    / scale *
+                    startScale;
+
+
+                const wy =
+                    centerY +
+                    (
+                        rect.height * 0.5 -
+                        my
+                    )
+                    / scale *
+                    startScale;
+
+
+                /*
+                    新しいズームで
+                    ピンチ中心を固定。
+                */
+
+                centerX =
+                    wx -
+                    (
+                        mx -
+                        rect.width * 0.5
+                    )
+                    / scale /
+                    zoom;
+
+
+                centerY =
+                    wy -
+                    (
+                        rect.height * 0.5 -
+                        my
+                    )
+                    / scale /
+                    zoom;
+            }
 
 
             updateInfo();
+
 
             renderMoving();
         }
@@ -1262,17 +1403,24 @@ canvas.addEventListener(
     {
         e.preventDefault();
 
+
         for (
-            const t of e.changedTouches
-        ) {
+            const touch
+            of e.changedTouches
+        )
+        {
             touches.delete(
-                t.identifier
+                touch.identifier
             );
         }
 
 
         if (touches.size === 0)
         {
+            pinchStartDistance = 0;
+
+            pinchCenter = null;
+
             scheduleFinal();
         }
     },
@@ -1287,6 +1435,10 @@ canvas.addEventListener(
     () =>
     {
         touches.clear();
+
+        pinchStartDistance = 0;
+
+        pinchCenter = null;
 
         scheduleFinal();
     }
@@ -1309,7 +1461,9 @@ iterationsInput.addEventListener(
 
 
         if (!Number.isFinite(value))
+        {
             value = 500;
+        }
 
 
         value =
@@ -1325,8 +1479,10 @@ iterationsInput.addEventListener(
         maxIterations =
             value;
 
+
         iterationsInput.value =
             value;
+
 
         iterationText.textContent =
             value;
@@ -1345,13 +1501,11 @@ resetButton.addEventListener(
     "click",
     () =>
     {
-        centerXHi = -0.75;
-        centerXLo = 0;
+        centerX = -0.75;
 
-        centerYHi = 0;
-        centerYLo = 0;
+        centerY = 0;
 
-        zoomPower = 0;
+        zoom = 1;
 
 
         updateInfo();
@@ -1367,37 +1521,16 @@ resetButton.addEventListener(
 
 function updateInfo()
 {
-    /*
-        zoom = 2^zoomPower
-
-        巨大な値を直接計算しない。
-    */
-
-    if (
-        zoomPower > 1000
-    ) {
-        zoomText.textContent =
-            "2^" +
-            Math.floor(zoomPower);
-
-    }
-    else if (
-        zoomPower > 20
-    ) {
-        zoomText.textContent =
-            "2^" +
-            zoomPower.toFixed(2);
-
-    }
-    else {
-        const zoom =
-            Math.pow(
-                2,
-                zoomPower
-            );
-
+    if (zoom < 1000000)
+    {
         zoomText.textContent =
             zoom.toPrecision(4) +
+            "×";
+    }
+    else
+    {
+        zoomText.textContent =
+            zoom.toExponential(3) +
             "×";
     }
 
