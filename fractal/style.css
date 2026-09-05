@@ -1,56 +1,66 @@
 * {
     box-sizing: border-box;
 }
+
 html,
 body {
+
     width: 100%;
     height: 100%;
+
     margin: 0;
     padding: 0;
+
     overflow: hidden;
-    background: black;
+
+    background: #000;
 }
+
 #canvas {
+
     display: block;
+
     width: 100vw;
     height: 100vh;
+
     touch-action: none;
+
     cursor: grab;
-    /*
-     * ブラウザによる画像の
-     * 不自然な拡大を防ぐ
-     */
+
     image-rendering: auto;
 }
+
 #canvas:active {
     cursor: grabbing;
 }
+
 #console {
+
     position: fixed;
+
     top: 20px;
     left: 20px;
+
     color: white;
+
     font-family:
         "SFMono-Regular",
         Consolas,
         "Liberation Mono",
         monospace;
+
     font-size: 13px;
+
     line-height: 1.5;
-    /*
-     * 黒背景なら白、
-     * 白背景なら黒のように見える
-     */
+
     mix-blend-mode: difference;
+
     pointer-events: none;
+
     user-select: none;
     -webkit-user-select: none;
 }
+
 #status {
     margin-bottom: 5px;
-    letter-spacing: 0.05em;
-}
-#coordinates,
-#zoom {
-    white-space: nowrap;
 }

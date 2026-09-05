@@ -1,57 +1,44 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
-        content="width=device-width,
-                 initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no"
+        content="
+            width=device-width,
+            initial-scale=1.0,
+            maximum-scale=1.0,
+            user-scalable=no
+        "
     >
+
     <title>Mandelbrot Viewer</title>
+
     <link rel="stylesheet" href="style.css">
+
+    <!-- 高精度10進数 -->
+    <script src="https://cdn.jsdelivr.net/npm/decimal.js@10.6.0/decimal.min.js"></script>
+
 </head>
+
 <body>
+
     <canvas id="canvas"></canvas>
+
     <div id="console">
+
         <div id="status">● HD</div>
-        <div id="coordinates">
-            x: -0.75<br>
-            y: 0
-        </div>
-        <div id="zoom">
-            zoom: 1
-        </div>
+
+        <div id="coordinates"></div>
+
+        <div id="zoom"></div>
+
     </div>
+
     <script src="script.js"></script>
+
 </body>
-</html><!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width,
-                 initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no"
-    >
-    <title>Mandelbrot Viewer</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <canvas id="canvas"></canvas>
-    <div id="console">
-        <div id="status">● HD</div>
-        <div id="coordinates">
-            x: -0.75<br>
-            y: 0
-        </div>
-        <div id="zoom">
-            zoom: 1
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
+
 </html>
