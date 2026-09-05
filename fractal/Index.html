@@ -150,9 +150,6 @@ button:active {
 const canvas =
     document.getElementById("canvas");
 
-const canvas =
-    document.getElementById("canvas");
-
 const gl =
     canvas.getContext(
         "webgl2",
@@ -163,95 +160,12 @@ const gl =
     );
 
 if (!gl) {
-
-    const error =
-        document.getElementById("error");
-
-    error.style.display = "block";
-
-    error.textContent =
-        "WebGL2 context の作成に失敗しました。";
-
-    throw new Error(
-        "WebGL2 context could not be created."
+    showError(
+        "WebGL2 が利用できません。"
     );
 }
 
 
-/* WebGLコンテキストの状態を確認 */
-
-console.log(
-    "WebGL2:",
-    gl
-);
-
-console.log(
-    "Context lost:",
-    gl.isContextLost()
-);
-
-console.log(
-    "Initial GL error:",
-    gl.getError()
-);
-
-
-/* 最低限のWebGLテスト */
-
-const testShader =
-    gl.createShader(
-        gl.VERTEX_SHADER
-    );
-
-
-if (!testShader) {
-
-    const error =
-        document.getElementById("error");
-
-    error.style.display = "block";
-
-    error.textContent =
-        "gl.createShader() が失敗しました。\n\n" +
-
-        "Context lost: " +
-        gl.isContextLost() +
-        "\n\n" +
-
-        "GL error: " +
-        gl.getError() +
-        "\n\n" +
-
-        "WebGL2:\n" +
-        gl.getParameter(
-            gl.VERSION
-        ) +
-        "\n\n" +
-
-        "Renderer:\n" +
-        gl.getParameter(
-            gl.RENDERER
-        ) +
-        "\n\n" +
-
-        "Vendor:\n" +
-        gl.getParameter(
-            gl.VENDOR
-        );
-
-    throw new Error(
-        "gl.createShader() failed."
-    );
-}
-
-
-gl.deleteShader(
-    testShader
-);
-
-console.log(
-    "Basic WebGL shader creation: OK"
-);
 /* =========================================================
    UI
 ========================================================= */
