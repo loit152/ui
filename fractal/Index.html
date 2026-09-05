@@ -2,87 +2,84 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-
 <meta name="viewport"
-      content="width=device-width,
-               initial-scale=1,
-               maximum-scale=1,
-               user-scalable=no">
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>Mandelbrot Explorer</title>
 
 <style>
-* {
-    box-sizing: border-box;
-}
+    * {
+        box-sizing: border-box;
+    }
 
-html,
-body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #000;
-}
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+    }
 
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    cursor: grab;
-}
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+    }
 
-canvas:active {
-    cursor: grabbing;
-}
+    canvas:active {
+        cursor: grabbing;
+    }
 
-#info {
-    position: fixed;
-    top: 14px;
-    left: 14px;
+    #info {
+        position: fixed;
+        top: 16px;
+        left: 16px;
 
-    color: rgba(255,255,255,.75);
+        padding: 10px 13px;
 
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+        color: rgba(255,255,255,.8);
+        background: rgba(0,0,0,.35);
 
-    font-size: 12px;
-    line-height: 1.6;
+        border-radius: 8px;
 
-    pointer-events: none;
-    user-select: none;
+        font-family:
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
 
-    text-shadow:
-        0 1px 4px rgba(0,0,0,.8);
-}
+        font-size: 12px;
+        line-height: 1.6;
 
-#reset {
-    position: fixed;
-    right: 14px;
-    bottom: 14px;
+        pointer-events: none;
+        user-select: none;
 
-    padding: 8px 12px;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
 
-    color: rgba(255,255,255,.75);
-    background: rgba(0,0,0,.35);
+    #reset {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
 
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 7px;
+        padding: 9px 13px;
 
-    font-size: 12px;
+        color: rgba(255,255,255,.8);
+        background: rgba(0,0,0,.4);
 
-    cursor: pointer;
+        border: 1px solid rgba(255,255,255,.15);
+        border-radius: 8px;
 
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-}
+        font-size: 12px;
 
-#reset:active {
-    background: rgba(255,255,255,.15);
-}
+        cursor: pointer;
+    }
+
+    #reset:active {
+        background: rgba(255,255,255,.15);
+    }
 </style>
 </head>
 
@@ -99,374 +96,206 @@ canvas:active {
 
 <script>
 
-const canvas =
-    document.getElementById("canvas");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-const ctx =
-    canvas.getContext("2d");
-
-
-const zoomText =
-    document.getElementById("zoom");
-
-const iterationText =
-    document.getElementById("iterations");
-
+const zoomText = document.getElementById("zoom");
+const iterationText = document.getElementById("iterations");
 
 let width;
 let height;
-
-
-/* =========================
-   Mandelbrot coordinates
-========================= */
 
 let centerX = -0.75;
 let centerY = 0;
 
 let zoom = 1;
 
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
 
-/* =========================
-   Rendering
-========================= */
-
-let renderVersion = 0;
-
-let rendering = false;
-
-let highQualityTimer = null;
+let renderID = 0;
 
 
-/*
-    step
+// ========================
+// Canvas
+// ========================
 
-    1 = 全ピクセル
-    2 = 1ピクセルおき
-    4 = 4ピクセルおき
+function resize() {
 
-    移動中は4程度にして高速化。
-*/
-function draw(step = 1) {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
 
-    const version =
-        ++renderVersion;
+    draw();
+}
 
-    rendering = true;
+window.addEventListener("resize", resize);
 
 
-    const image =
-        ctx.createImageData(
-            width,
-            height
-        );
+// ========================
+// Mandelbrot
+// ========================
 
-    const data =
-        image.data;
+function getIterations() {
 
-
-    const maxIteration =
-        getIterations();
+    return Math.floor(
+        80 + Math.log2(zoom) * 18
+    );
+}
 
 
-    /*
-        複素平面上の表示範囲
-    */
+function draw() {
 
-    const scale =
-        4 / zoom;
+    const id = ++renderID;
 
-    const aspect =
-        width / height;
+    const image = ctx.createImageData(width, height);
+    const data = image.data;
 
-    const rangeX =
-        scale;
-
-    const rangeY =
-        scale / aspect;
-
-
-    const minX =
-        centerX - rangeX / 2;
-
-    const minY =
-        centerY - rangeY / 2;
-
+    const maxIteration = getIterations();
 
     /*
-        step > 1 の場合、
-        計算した色をブロック状に描画する。
+        表示範囲
 
-        つまり移動中は
+        zoom = 1
+            → 約4 × 4の範囲
 
-            ████
-            ████
-            ████
-            ████
-
-        のような粗い画像になる。
+        zoomが増えるほど
+            → 見える範囲が狭くなる
     */
 
-    for (
-        let py = 0;
-        py < height;
-        py += step
-    ) {
+    const scale = 4 / zoom;
 
-        /*
-            描画途中に新しい操作が来たら
-            古い計算を中断する。
-        */
+    const aspect = width / height;
 
-        if (
-            version !== renderVersion
-        ) {
-            return;
-        }
+    const rangeX = scale;
+    const rangeY = scale / aspect;
 
+    const minX = centerX - rangeX / 2;
+    const minY = centerY - rangeY / 2;
+
+
+    for (let py = 0; py < height; py++) {
+
+        if (id !== renderID) return;
 
         const cy =
-            minY +
-            py / height * rangeY;
+            minY + py / height * rangeY;
 
-
-        for (
-            let px = 0;
-            px < width;
-            px += step
-        ) {
+        for (let px = 0; px < width; px++) {
 
             const cx =
-                minX +
-                px / width * rangeX;
-
+                minX + px / width * rangeX;
 
             let x = 0;
             let y = 0;
 
             let iteration = 0;
 
-
             while (
-                x * x +
-                y * y <= 4 &&
+                x * x + y * y <= 4 &&
                 iteration < maxIteration
             ) {
 
-                const xx =
-                    x * x -
-                    y * y +
-                    cx;
+                const xx = x * x - y * y + cx;
 
-                y =
-                    2 * x * y +
-                    cy;
-
+                y = 2 * x * y + cy;
                 x = xx;
 
                 iteration++;
             }
 
 
-            /*
-                色
-            */
-
-            let r = 0;
-            let g = 0;
-            let b = 0;
+            const index =
+                (py * width + px) * 4;
 
 
-            if (
-                iteration <
-                maxIteration
-            ) {
+            if (iteration === maxIteration) {
+
+                data[index] = 0;
+                data[index + 1] = 0;
+                data[index + 2] = 0;
+
+            } else {
 
                 /*
-                    Smooth coloring
+                    滑らかな色付け
                 */
 
                 const logZn =
                     Math.log(
                         Math.log(
-                            x * x +
-                            y * y
+                            x * x + y * y
                         )
                     ) / Math.log(2);
 
-
                 const smooth =
-                    iteration +
-                    1 -
-                    logZn;
-
+                    iteration + 1 - logZn;
 
                 const t =
-                    smooth /
-                    maxIteration;
-
+                    smooth / maxIteration;
 
                 const v =
                     Math.floor(
-                        255 *
-                        Math.pow(
-                            Math.max(0, t),
-                            0.35
-                        )
+                        255 * Math.pow(t, 0.35)
                     );
 
-
-                r = v;
-                g = v;
-                b = v;
+                data[index] = v;
+                data[index + 1] = v;
+                data[index + 2] = v;
             }
 
-
-            /*
-                step分だけ塗る
-            */
-
-            for (
-                let yy = 0;
-                yy < step &&
-                py + yy < height;
-                yy++
-            ) {
-
-                for (
-                    let xx = 0;
-                    xx < step &&
-                    px + xx < width;
-                    xx++
-                ) {
-
-                    const index =
-                        (
-                            (py + yy) *
-                            width +
-                            (px + xx)
-                        ) * 4;
-
-
-                    data[index] =
-                        r;
-
-                    data[index + 1] =
-                        g;
-
-                    data[index + 2] =
-                        b;
-
-                    data[index + 3] =
-                        255;
-                }
-            }
+            data[index + 3] = 255;
         }
     }
 
+    ctx.putImageData(image, 0, 0);
 
-    /*
-        最新の描画だけ表示
-    */
-
-    if (
-        version === renderVersion
-    ) {
-
-        ctx.putImageData(
-            image,
-            0,
-            0
-        );
-
-        rendering = false;
-
-        updateInfo();
-    }
+    updateInfo();
 }
 
 
-/* =========================
-   Iterations
-========================= */
-
-function getIterations() {
-
-    return Math.max(
-        80,
-        Math.floor(
-            80 +
-            Math.log2(zoom) * 20
-        )
-    );
-}
-
-
-/* =========================
-   Info
-========================= */
+// ========================
+// Information
+// ========================
 
 function updateInfo() {
 
-    if (zoom < 1000) {
-
-        zoomText.textContent =
-            zoom.toFixed(1) + "×";
-
-    } else {
-
-        zoomText.textContent =
-            zoom.toExponential(2) + "×";
-    }
-
+    zoomText.textContent =
+        zoom < 1000
+            ? zoom.toFixed(1) + "×"
+            : zoom.toExponential(2) + "×";
 
     iterationText.textContent =
         getIterations();
 }
 
 
-/* =========================
-   Zoom
-========================= */
+// ========================
+// Zoom
+// ========================
 
-function zoomAt(
-    screenX,
-    screenY,
-    factor
-) {
-
-    const scale =
-        4 / zoom;
-
-    const aspect =
-        width / height;
-
-    const rangeX =
-        scale;
-
-    const rangeY =
-        scale / aspect;
-
+function zoomAt(screenX, screenY, factor) {
 
     /*
-        ズーム前の
-        複素平面上の座標
+        ズーム前に、
+        画面上の座標が
+        複素平面のどこなのか求める
     */
+
+    const scale = 4 / zoom;
+
+    const aspect = width / height;
+
+    const rangeX = scale;
+    const rangeY = scale / aspect;
 
     const worldX =
         centerX +
-        (
-            screenX / width -
-            0.5
-        ) * rangeX;
-
+        (screenX / width - 0.5) * rangeX;
 
     const worldY =
         centerY +
-        (
-            screenY / height -
-            0.5
-        ) * rangeY;
+        (screenY / height - 0.5) * rangeY;
 
 
     zoom *= factor;
@@ -474,459 +303,231 @@ function zoomAt(
 
     /*
         ズーム後も
-        worldX / worldY を
-        同じ画面位置に置く
+        worldX / worldY が
+        同じ画面位置に残るようにする
     */
 
-    const newScale =
-        4 / zoom;
+    const newScale = 4 / zoom;
 
-    const newRangeX =
-        newScale;
-
-    const newRangeY =
-        newScale / aspect;
-
+    const newRangeX = newScale;
+    const newRangeY = newScale / aspect;
 
     centerX =
         worldX -
-        (
-            screenX / width -
-            0.5
-        ) * newRangeX;
-
+        (screenX / width - 0.5) * newRangeX;
 
     centerY =
         worldY -
-        (
-            screenY / height -
-            0.5
-        ) * newRangeY;
+        (screenY / height - 0.5) * newRangeY;
 
 
-    /*
-        まず粗く描く
-    */
-
-    draw(4);
-
-
-    /*
-        操作が止まったら
-        高精細描画
-    */
-
-    scheduleHighQuality();
+    draw();
 }
 
 
-/* =========================
-   高精細描画
-========================= */
+// ========================
+// Mouse
+// ========================
 
-function scheduleHighQuality() {
+canvas.addEventListener("mousedown", e => {
 
-    clearTimeout(
-        highQualityTimer
+    dragging = true;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+});
+
+
+window.addEventListener("mouseup", () => {
+
+    dragging = false;
+});
+
+
+window.addEventListener("mousemove", e => {
+
+    if (!dragging) return;
+
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+
+    const scale = 4 / zoom;
+
+    const aspect = width / height;
+
+    centerX -=
+        dx / width * scale;
+
+    centerY -=
+        dy / height * scale / aspect;
+
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    draw();
+});
+
+
+canvas.addEventListener("wheel", e => {
+
+    e.preventDefault();
+
+    const factor =
+        e.deltaY < 0
+            ? 1.5
+            : 1 / 1.5;
+
+    zoomAt(
+        e.clientX,
+        e.clientY,
+        factor
     );
 
-
-    highQualityTimer =
-        setTimeout(() => {
-
-            draw(1);
-
-        }, 120);
-}
+}, { passive: false });
 
 
-/* =========================
-   Mouse
-========================= */
+// ========================
+// Touch
+// ========================
 
-let dragging = false;
+let touches = [];
+let previousDistance = null;
 
-let lastX = 0;
-let lastY = 0;
+canvas.addEventListener("touchstart", e => {
 
+    e.preventDefault();
 
-canvas.addEventListener(
-    "mousedown",
-    e => {
+    touches = [...e.touches];
 
-        dragging = true;
+    if (touches.length === 1) {
 
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-        clearTimeout(
-            highQualityTimer
-        );
+        lastX = touches[0].clientX;
+        lastY = touches[0].clientY;
     }
-);
 
+    if (touches.length === 2) {
 
-window.addEventListener(
-    "mouseup",
-    () => {
-
-        if (!dragging) return;
-
-        dragging = false;
-
-        /*
-            指を離した瞬間に
-            高精細化
-        */
-
-        scheduleHighQuality();
+        previousDistance =
+            getTouchDistance(touches);
     }
-);
+
+}, { passive: false });
 
 
-window.addEventListener(
-    "mousemove",
-    e => {
+canvas.addEventListener("touchmove", e => {
 
-        if (!dragging) return;
+    e.preventDefault();
 
+    const current =
+        [...e.touches];
+
+    if (current.length === 1) {
 
         const dx =
-            e.clientX - lastX;
+            current[0].clientX - lastX;
 
         const dy =
-            e.clientY - lastY;
+            current[0].clientY - lastY;
 
-
-        const scale =
-            4 / zoom;
-
-        const aspect =
-            width / height;
-
+        const scale = 4 / zoom;
+        const aspect = width / height;
 
         centerX -=
             dx / width * scale;
 
-
         centerY -=
-            dy /
-            height *
-            scale /
-            aspect;
+            dy / height * scale / aspect;
 
+        lastX = current[0].clientX;
+        lastY = current[0].clientY;
 
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-
-        /*
-            移動中は粗く
-        */
-
-        draw(4);
-
-
-        /*
-            120ms操作がなければ
-            高精細化
-        */
-
-        scheduleHighQuality();
+        draw();
     }
-);
 
 
-/* =========================
-   Wheel
-========================= */
+    if (current.length === 2) {
 
-canvas.addEventListener(
-    "wheel",
-    e => {
+        const distance =
+            getTouchDistance(current);
 
-        e.preventDefault();
+        if (previousDistance !== null) {
 
+            const factor =
+                distance / previousDistance;
 
-        const factor =
-            e.deltaY < 0
-                ? 1.5
-                : 1 / 1.5;
+            const centerTouchX =
+                (current[0].clientX +
+                 current[1].clientX) / 2;
 
+            const centerTouchY =
+                (current[0].clientY +
+                 current[1].clientY) / 2;
 
-        zoomAt(
-            e.clientX,
-            e.clientY,
-            factor
-        );
+            zoomAt(
+                centerTouchX,
+                centerTouchY,
+                factor
+            );
+        }
 
-    },
-    {
-        passive: false
+        previousDistance = distance;
     }
-);
+
+    touches = current;
+
+}, { passive: false });
 
 
-/* =========================
-   Touch
-========================= */
+canvas.addEventListener("touchend", e => {
 
-let previousDistance = null;
+    touches = [...e.touches];
 
-
-/*
-    1本指
-        → 移動
-
-    2本指
-        → ピンチズーム
-*/
-
-
-canvas.addEventListener(
-    "touchstart",
-    e => {
-
-        e.preventDefault();
-
-
-        if (
-            e.touches.length === 1
-        ) {
-
-            lastX =
-                e.touches[0].clientX;
-
-            lastY =
-                e.touches[0].clientY;
-        }
-
-
-        if (
-            e.touches.length === 2
-        ) {
-
-            previousDistance =
-                getTouchDistance(
-                    e.touches
-                );
-        }
-
-        clearTimeout(
-            highQualityTimer
-        );
-
-    },
-    {
-        passive: false
+    if (touches.length < 2) {
+        previousDistance = null;
     }
-);
 
+    if (touches.length === 1) {
 
-canvas.addEventListener(
-    "touchmove",
-    e => {
-
-        e.preventDefault();
-
-
-        /*
-            1本指移動
-        */
-
-        if (
-            e.touches.length === 1
-        ) {
-
-            const x =
-                e.touches[0].clientX;
-
-            const y =
-                e.touches[0].clientY;
-
-
-            const dx =
-                x - lastX;
-
-            const dy =
-                y - lastY;
-
-
-            const scale =
-                4 / zoom;
-
-            const aspect =
-                width / height;
-
-
-            centerX -=
-                dx / width * scale;
-
-
-            centerY -=
-                dy /
-                height *
-                scale /
-                aspect;
-
-
-            lastX = x;
-            lastY = y;
-
-
-            draw(4);
-
-            scheduleHighQuality();
-        }
-
-
-        /*
-            2本指ズーム
-        */
-
-        if (
-            e.touches.length === 2
-        ) {
-
-            const distance =
-                getTouchDistance(
-                    e.touches
-                );
-
-
-            if (
-                previousDistance !== null
-            ) {
-
-                const factor =
-                    distance /
-                    previousDistance;
-
-
-                const x =
-                    (
-                        e.touches[0].clientX +
-                        e.touches[1].clientX
-                    ) / 2;
-
-
-                const y =
-                    (
-                        e.touches[0].clientY +
-                        e.touches[1].clientY
-                    ) / 2;
-
-
-                zoomAt(
-                    x,
-                    y,
-                    factor
-                );
-            }
-
-
-            previousDistance =
-                distance;
-        }
-
-    },
-    {
-        passive: false
+        lastX = touches[0].clientX;
+        lastY = touches[0].clientY;
     }
-);
+
+});
 
 
-canvas.addEventListener(
-    "touchend",
-    e => {
-
-        if (
-            e.touches.length < 2
-        ) {
-
-            previousDistance =
-                null;
-        }
-
-
-        if (
-            e.touches.length === 1
-        ) {
-
-            lastX =
-                e.touches[0].clientX;
-
-            lastY =
-                e.touches[0].clientY;
-        }
-
-
-        scheduleHighQuality();
-    }
-);
-
-
-function getTouchDistance(touches) {
+function getTouchDistance(t) {
 
     const dx =
-        touches[0].clientX -
-        touches[1].clientX;
+        t[0].clientX -
+        t[1].clientX;
 
     const dy =
-        touches[0].clientY -
-        touches[1].clientY;
+        t[0].clientY -
+        t[1].clientY;
 
-
-    return Math.sqrt(
-        dx * dx +
-        dy * dy
-    );
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 
-/* =========================
-   Reset
-========================= */
+// ========================
+// Reset
+// ========================
 
-document
-    .getElementById("reset")
-    .addEventListener(
-        "click",
-        () => {
+document.getElementById("reset")
+    .addEventListener("click", () => {
 
-            centerX = -0.75;
-            centerY = 0;
-            zoom = 1;
+        centerX = -0.75;
+        centerY = 0;
+        zoom = 1;
 
-            draw(1);
-        }
-    );
+        draw();
+    });
 
 
-/* =========================
-   Resize
-========================= */
-
-function resize() {
-
-    width =
-        canvas.width =
-        window.innerWidth;
-
-    height =
-        canvas.height =
-        window.innerHeight;
-
-
-    draw(1);
-}
-
-
-window.addEventListener(
-    "resize",
-    resize
-);
-
+// ========================
+// Start
+// ========================
 
 resize();
 
