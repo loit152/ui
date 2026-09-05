@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
+
 <meta charset="UTF-8">
 
 <meta name="viewport"
@@ -12,11 +14,13 @@
 <title>Mandelbrot Explorer</title>
 
 <style>
+
 * {
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     margin: 0;
     width: 100%;
     height: 100%;
@@ -26,8 +30,10 @@ html, body {
 
 canvas {
     display: block;
+
     width: 100%;
     height: 100%;
+
     cursor: grab;
 }
 
@@ -35,12 +41,20 @@ canvas:active {
     cursor: grabbing;
 }
 
+
+/* =========================
+   Information
+========================= */
+
 #info {
+
     position: fixed;
+
     top: 14px;
     left: 14px;
 
-    color: rgba(255,255,255,.75);
+    color:
+        rgba(255,255,255,.75);
 
     font-family:
         -apple-system,
@@ -49,20 +63,85 @@ canvas:active {
         sans-serif;
 
     font-size: 12px;
+
     line-height: 1.6;
 
-    user-select: none;
     pointer-events: none;
 
-    text-shadow: 0 1px 4px #000;
+    user-select: none;
+
+    text-shadow:
+        0 1px 4px #000;
 }
 
-#settings {
+
+/* =========================
+   Progress
+========================= */
+
+#progressContainer {
+
     position: fixed;
+
+    left: 50%;
+    bottom: 18px;
+
+    transform:
+        translateX(-50%);
+
+    width: min(
+        320px,
+        calc(100vw - 40px)
+    );
+
+    height: 3px;
+
+    background:
+        rgba(255,255,255,.12);
+
+    border-radius: 3px;
+
+    overflow: hidden;
+
+    opacity: 0;
+
+    transition:
+        opacity .2s;
+}
+
+#progress {
+
+    width: 0%;
+
+    height: 100%;
+
+    background:
+        rgba(255,255,255,.8);
+
+    transition:
+        width .05s linear;
+}
+
+
+/* =========================
+   Settings
+========================= */
+
+#settings {
+
+    position: fixed;
+
     left: 14px;
     bottom: 14px;
 
-    color: rgba(255,255,255,.75);
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color:
+        rgba(255,255,255,.75);
 
     font-family:
         -apple-system,
@@ -71,21 +150,23 @@ canvas:active {
         sans-serif;
 
     font-size: 12px;
-
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 #iterationsInput {
-    width: 65px;
+
+    width: 70px;
 
     padding: 6px 7px;
 
     color: white;
-    background: rgba(0,0,0,.45);
 
-    border: 1px solid rgba(255,255,255,.18);
+    background:
+        rgba(0,0,0,.45);
+
+    border:
+        1px solid
+        rgba(255,255,255,.18);
+
     border-radius: 6px;
 
     outline: none;
@@ -94,20 +175,36 @@ canvas:active {
 }
 
 #iterationsInput:focus {
-    border-color: rgba(255,255,255,.45);
+
+    border-color:
+        rgba(255,255,255,.45);
 }
 
+
+/* =========================
+   Reset
+========================= */
+
 #reset {
+
     position: fixed;
+
     right: 14px;
     bottom: 14px;
 
-    padding: 8px 12px;
+    padding:
+        8px 12px;
 
-    color: rgba(255,255,255,.75);
-    background: rgba(0,0,0,.35);
+    color:
+        rgba(255,255,255,.75);
 
-    border: 1px solid rgba(255,255,255,.15);
+    background:
+        rgba(0,0,0,.35);
+
+    border:
+        1px solid
+        rgba(255,255,255,.15);
+
     border-radius: 7px;
 
     font-size: 12px;
@@ -116,22 +213,40 @@ canvas:active {
 }
 
 #reset:active {
-    background: rgba(255,255,255,.15);
+
+    background:
+        rgba(255,255,255,.15);
 }
+
 </style>
+
 </head>
+
 
 <body>
 
 <canvas id="canvas"></canvas>
 
+
 <div id="info">
-    <div>Zoom <span id="zoom">1×</span></div>
-    <div>Iterations <span id="iterations">500</span></div>
+
+    <div>
+        Zoom
+        <span id="zoom">1×</span>
+    </div>
+
+    <div>
+        Iterations
+        <span id="iterations">500</span>
+    </div>
+
 </div>
 
+
 <div id="settings">
+
     <span>Max</span>
+
     <input
         id="iterationsInput"
         type="number"
@@ -140,12 +255,28 @@ canvas:active {
         max="100000"
         step="1"
     >
+
 </div>
 
-<button id="reset">Reset</button>
+
+<div id="progressContainer">
+
+    <div id="progress"></div>
+
+</div>
+
+
+<button id="reset">
+    Reset
+</button>
 
 
 <script>
+
+
+/* =========================================================
+   Canvas
+========================================================= */
 
 const canvas =
     document.getElementById("canvas");
@@ -154,6 +285,14 @@ const ctx =
     canvas.getContext("2d");
 
 
+let width;
+let height;
+
+
+/* =========================================================
+   UI
+========================================================= */
+
 const zoomText =
     document.getElementById("zoom");
 
@@ -161,16 +300,24 @@ const iterationText =
     document.getElementById("iterations");
 
 const iterationsInput =
-    document.getElementById("iterationsInput");
+    document.getElementById(
+        "iterationsInput"
+    );
+
+const progressContainer =
+    document.getElementById(
+        "progressContainer"
+    );
+
+const progressBar =
+    document.getElementById(
+        "progress"
+    );
 
 
-let width;
-let height;
-
-
-/* =========================
+/* =========================================================
    Mandelbrot state
-========================= */
+========================================================= */
 
 let centerX = -0.75;
 let centerY = 0;
@@ -179,63 +326,140 @@ let zoom = 1;
 
 
 /*
-    ユーザーが指定した
-    通常時の最大反復回数
+    ユーザー指定値
 */
+
 let maxIterations = 500;
 
 
-/*
-    描画世代
+/* =========================================================
+   Rendering control
+========================================================= */
 
-    古い計算を途中で破棄するために使う
+
+/*
+    描画世代。
+
+    新しい描画が始まったら番号を変える。
+
+    古い描画は途中で停止する。
 */
+
 let renderVersion = 0;
 
 
 /*
-    高精細描画タイマー
+    高画質化を開始するタイマー
 */
-let highQualityTimer = null;
+
+let qualityTimer = null;
 
 
-/* =========================
+/* =========================================================
+   Quality levels
+========================================================= */
+
+
+/*
+    移動中
+
+    step = 4
+    iterations = 25%
+*/
+
+const MOVING_STEP = 4;
+
+const MOVING_ITERATION_RATE = 0.25;
+
+
+/*
+    クッション
+
+    操作停止直後に一度、
+
+        step = 2
+        iterations = 50%
+
+    を描画する。
+
+    これが「クッション」。
+*/
+
+const MEDIUM_STEP = 2;
+
+const MEDIUM_ITERATION_RATE = 0.50;
+
+
+/*
+    最終状態
+
+        step = 1
+        iterations = Max
+*/
+
+
+/* =========================================================
    Iterations
-========================= */
+========================================================= */
 
-function getCurrentIterations(moving) {
-
-    if (!moving) {
-        return maxIterations;
-    }
-
-    /*
-        移動中は通常の25%
-
-        例:
-        500 → 125
-        1000 → 250
-        10000 → 2500
-
-        最低1回
-    */
+function getIterations(rate = 1) {
 
     return Math.max(
         1,
         Math.floor(
-            maxIterations * 0.25
+            maxIterations * rate
         )
     );
 }
 
 
-/* =========================
+/* =========================================================
+   Progress
+========================================================= */
+
+function showProgress(value) {
+
+    progressContainer.style.opacity = 1;
+
+    progressBar.style.width =
+        Math.min(
+            100,
+            Math.max(0, value)
+        ) + "%";
+}
+
+
+function hideProgress() {
+
+    progressContainer.style.opacity = 0;
+
+    progressBar.style.width = "0%";
+}
+
+
+/* =========================================================
    Draw
-========================= */
+========================================================= */
+
+
+/*
+    draw()
+
+    step:
+        1 = 全ピクセル
+        2 = 2×2
+        4 = 4×4
+
+    iterationRate:
+        1    = Max
+        0.5  = Maxの50%
+        0.25 = Maxの25%
+*/
 
 function draw(
     step = 1,
-    moving = false
+    iterationRate = 1,
+    progressive = false
 ) {
 
     const version =
@@ -243,7 +467,9 @@ function draw(
 
 
     const iterations =
-        getCurrentIterations(moving);
+        getIterations(
+            iterationRate
+        );
 
 
     const image =
@@ -274,15 +500,35 @@ function draw(
 
 
     const minX =
-        centerX - rangeX / 2;
+        centerX -
+        rangeX / 2;
 
     const minY =
-        centerY - rangeY / 2;
+        centerY -
+        rangeY / 2;
 
 
     /*
-        step = 4なら
-        4×4のブロック単位で計算
+        総行数
+
+        step=4なら
+        height / 4 行
+    */
+
+    const totalRows =
+        Math.ceil(
+            height / step
+        );
+
+
+    let completedRows = 0;
+
+
+    /*
+        行ごとに計算する。
+
+        これによって途中結果を
+        画面に表示できる。
     */
 
     for (
@@ -292,20 +538,22 @@ function draw(
     ) {
 
         /*
-            新しい操作が発生したら
-            古い計算を捨てる
+            新しい操作が来たら
+            即座に中止。
         */
 
         if (
             version !== renderVersion
         ) {
-            return;
+
+            return false;
         }
 
 
         const cy =
             minY +
-            py / height * rangeY;
+            py / height *
+            rangeY;
 
 
         for (
@@ -316,7 +564,8 @@ function draw(
 
             const cx =
                 minX +
-                px / width * rangeX;
+                px / width *
+                rangeX;
 
 
             let x = 0;
@@ -336,9 +585,11 @@ function draw(
                     y * y +
                     cx;
 
+
                 y =
                     2 * x * y +
                     cy;
+
 
                 x = xx;
 
@@ -346,14 +597,14 @@ function draw(
             }
 
 
+            /*
+                色
+            */
+
             let r = 0;
             let g = 0;
             let b = 0;
 
-
-            /*
-                集合内部
-            */
 
             if (
                 iteration <
@@ -388,7 +639,10 @@ function draw(
                     Math.floor(
                         255 *
                         Math.pow(
-                            Math.max(0, t),
+                            Math.max(
+                                0,
+                                t
+                            ),
                             0.35
                         )
                     );
@@ -440,79 +694,189 @@ function draw(
                 }
             }
         }
+
+
+        completedRows++;
+
+
+        /*
+            progressive = true の場合、
+
+            1行終わるたびに
+            途中結果を表示。
+
+            ただし毎行 putImageData()
+            すると重いので、
+            8行ごとに更新する。
+        */
+
+        if (
+            progressive &&
+            (
+                completedRows % 8 === 0 ||
+                completedRows === totalRows
+            )
+        ) {
+
+            ctx.putImageData(
+                image,
+                0,
+                0
+            );
+
+
+            showProgress(
+                completedRows /
+                totalRows *
+                100
+            );
+        }
     }
 
 
     /*
-        最新の描画だけ表示
+        最終結果
     */
 
     if (
-        version === renderVersion
+        version !== renderVersion
     ) {
 
-        ctx.putImageData(
-            image,
-            0,
-            0
-        );
-
-        updateInfo();
-    }
-}
-
-
-/* =========================
-   Info
-========================= */
-
-function updateInfo() {
-
-    if (zoom < 1000) {
-
-        zoomText.textContent =
-            zoom.toFixed(1) + "×";
-
-    } else {
-
-        zoomText.textContent =
-            zoom.toExponential(2) + "×";
+        return false;
     }
 
 
-    iterationText.textContent =
-        maxIterations;
+    ctx.putImageData(
+        image,
+        0,
+        0
+    );
+
+
+    if (progressive) {
+
+        showProgress(100);
+
+        /*
+            少しだけ100%を見せる
+        */
+
+        setTimeout(() => {
+
+            if (
+                version === renderVersion
+            ) {
+
+                hideProgress();
+            }
+
+        }, 150);
+    }
+
+
+    updateInfo();
+
+    return true;
 }
 
 
-/* =========================
-   High quality rendering
-========================= */
+/* =========================================================
+   Progressive high quality rendering
+========================================================= */
+
+
+/*
+    ここが今回の重要部分。
+
+    操作停止
+        ↓
+    中画質
+        ↓
+    高画質
+*/
+
 
 function scheduleHighQuality() {
 
     clearTimeout(
-        highQualityTimer
+        qualityTimer
     );
 
 
-    highQualityTimer =
+    qualityTimer =
         setTimeout(() => {
 
+
             /*
-                step = 1
-                通常の反復回数
+                --------------------------------
+                STEP 1
+                クッション
+                --------------------------------
+
+                まず
+
+                    50% iterations
+                    step = 2
+
+                を出す。
             */
 
-            draw(1, false);
+            const mediumVersion =
+                renderVersion;
 
-        }, 120);
+
+            draw(
+                MEDIUM_STEP,
+                MEDIUM_ITERATION_RATE,
+                true
+            );
+
+
+            /*
+                --------------------------------
+                STEP 2
+                高画質
+                --------------------------------
+            */
+
+            if (
+                mediumVersion ===
+                renderVersion
+            ) {
+
+                /*
+                    少しだけ間を置く。
+
+                    中間画像を見せる
+                    「クッション」。
+                */
+
+                setTimeout(() => {
+
+                    if (
+                        mediumVersion !==
+                        renderVersion
+                    ) {
+                        return;
+                    }
+
+
+                    draw(
+                        1,
+                        1,
+                        true
+                    );
+
+                }, 80);
+            }
+
+        }, 100);
 }
 
 
-/* =========================
+/* =========================================================
    Zoom
-========================= */
+========================================================= */
 
 function zoomAt(
     screenX,
@@ -535,7 +899,7 @@ function zoomAt(
 
 
     /*
-        ズーム前の座標
+        ズーム前の複素座標
     */
 
     const worldX =
@@ -588,21 +952,36 @@ function zoomAt(
 
 
     /*
-        移動中と同じ扱い
-
-        step = 4
-        iterations = 25%
+        古い高画質化をキャンセル
     */
 
-    draw(4, true);
+    clearTimeout(
+        qualityTimer
+    );
+
+
+    /*
+        まず移動中品質
+    */
+
+    draw(
+        MOVING_STEP,
+        MOVING_ITERATION_RATE,
+        false
+    );
+
+
+    /*
+        停止後に高画質化
+    */
 
     scheduleHighQuality();
 }
 
 
-/* =========================
+/* =========================================================
    Mouse
-========================= */
+========================================================= */
 
 let dragging = false;
 
@@ -616,12 +995,19 @@ canvas.addEventListener(
 
         dragging = true;
 
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastX =
+            e.clientX;
+
+        lastY =
+            e.clientY;
+
 
         clearTimeout(
-            highQualityTimer
+            qualityTimer
         );
+
+
+        hideProgress();
     }
 );
 
@@ -630,9 +1016,13 @@ window.addEventListener(
     "mouseup",
     () => {
 
-        if (!dragging) return;
+        if (!dragging) {
+            return;
+        }
+
 
         dragging = false;
+
 
         scheduleHighQuality();
     }
@@ -643,14 +1033,18 @@ window.addEventListener(
     "mousemove",
     e => {
 
-        if (!dragging) return;
+        if (!dragging) {
+            return;
+        }
 
 
         const dx =
-            e.clientX - lastX;
+            e.clientX -
+            lastX;
 
         const dy =
-            e.clientY - lastY;
+            e.clientY -
+            lastY;
 
 
         const scale =
@@ -661,7 +1055,9 @@ window.addEventListener(
 
 
         centerX -=
-            dx / width * scale;
+            dx /
+            width *
+            scale;
 
 
         centerY -=
@@ -671,27 +1067,35 @@ window.addEventListener(
             aspect;
 
 
-        lastX = e.clientX;
-        lastY = e.clientY;
+        lastX =
+            e.clientX;
+
+        lastY =
+            e.clientY;
 
 
         /*
             移動中
 
             ・粗い描画
-            ・反復回数25%
+            ・低反復
         */
 
-        draw(4, true);
+        draw(
+            MOVING_STEP,
+            MOVING_ITERATION_RATE,
+            false
+        );
+
 
         scheduleHighQuality();
     }
 );
 
 
-/* =========================
+/* =========================================================
    Wheel
-========================= */
+========================================================= */
 
 canvas.addEventListener(
     "wheel",
@@ -719,9 +1123,9 @@ canvas.addEventListener(
 );
 
 
-/* =========================
+/* =========================================================
    Touch
-========================= */
+========================================================= */
 
 let previousDistance = null;
 
@@ -731,6 +1135,14 @@ canvas.addEventListener(
     e => {
 
         e.preventDefault();
+
+
+        clearTimeout(
+            qualityTimer
+        );
+
+
+        hideProgress();
 
 
         if (
@@ -754,11 +1166,6 @@ canvas.addEventListener(
                     e.touches
                 );
         }
-
-
-        clearTimeout(
-            highQualityTimer
-        );
 
     },
     {
@@ -804,7 +1211,9 @@ canvas.addEventListener(
 
 
             centerX -=
-                dx / width * scale;
+                dx /
+                width *
+                scale;
 
 
             centerY -=
@@ -818,7 +1227,12 @@ canvas.addEventListener(
             lastY = y;
 
 
-            draw(4, true);
+            draw(
+                MOVING_STEP,
+                MOVING_ITERATION_RATE,
+                false
+            );
+
 
             scheduleHighQuality();
         }
@@ -910,7 +1324,9 @@ canvas.addEventListener(
 );
 
 
-function getTouchDistance(touches) {
+function getTouchDistance(
+    touches
+) {
 
     const dx =
         touches[0].clientX -
@@ -928,9 +1344,9 @@ function getTouchDistance(touches) {
 }
 
 
-/* =========================
+/* =========================================================
    Iteration setting
-========================= */
+========================================================= */
 
 iterationsInput.addEventListener(
     "change",
@@ -946,6 +1362,7 @@ iterationsInput.addEventListener(
         if (
             !Number.isFinite(value)
         ) {
+
             value = 500;
         }
 
@@ -960,7 +1377,9 @@ iterationsInput.addEventListener(
             );
 
 
-        maxIterations = value;
+        maxIterations =
+            value;
+
 
         iterationsInput.value =
             value;
@@ -968,17 +1387,21 @@ iterationsInput.addEventListener(
 
         /*
             設定変更時は
-            すぐ高精細描画
+            即高画質化
         */
 
-        draw(1, false);
+        draw(
+            1,
+            1,
+            true
+        );
     }
 );
 
 
-/* =========================
+/* =========================================================
    Reset
-========================= */
+========================================================= */
 
 document
     .getElementById("reset")
@@ -986,18 +1409,27 @@ document
         "click",
         () => {
 
+            clearTimeout(
+                qualityTimer
+            );
+
             centerX = -0.75;
             centerY = 0;
             zoom = 1;
 
-            draw(1, false);
+
+            draw(
+                1,
+                1,
+                true
+            );
         }
     );
 
 
-/* =========================
+/* =========================================================
    Resize
-========================= */
+========================================================= */
 
 function resize() {
 
@@ -1010,7 +1442,11 @@ function resize() {
         window.innerHeight;
 
 
-    draw(1, false);
+    draw(
+        1,
+        1,
+        false
+    );
 }
 
 
@@ -1019,6 +1455,35 @@ window.addEventListener(
     resize
 );
 
+
+/* =========================================================
+   Info
+========================================================= */
+
+function updateInfo() {
+
+    if (
+        zoom < 1000
+    ) {
+
+        zoomText.textContent =
+            zoom.toFixed(1) + "×";
+
+    } else {
+
+        zoomText.textContent =
+            zoom.toExponential(2) + "×";
+    }
+
+
+    iterationText.textContent =
+        maxIterations;
+}
+
+
+/* =========================================================
+   Start
+========================================================= */
 
 resize();
 
