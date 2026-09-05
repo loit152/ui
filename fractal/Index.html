@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
 
 <title>Mandelbrot Explorer</title>
 
@@ -27,12 +30,15 @@ canvas {
     touch-action: none;
 }
 
+/* ---------- Info ---------- */
+
 #info {
     position: fixed;
     top: 14px;
     left: 16px;
 
     color: rgba(255,255,255,.75);
+
     font-family: monospace;
     font-size: 13px;
     line-height: 1.6;
@@ -41,27 +47,29 @@ canvas {
     user-select: none;
 }
 
+/* ---------- Controls ---------- */
+
 #controls {
     position: fixed;
     right: 16px;
     bottom: 16px;
 
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
 
     font-family: monospace;
-    font-size: 12px;
 }
 
 #iterations {
     width: 80px;
+
     padding: 5px 7px;
 
     border: 1px solid rgba(255,255,255,.25);
     border-radius: 4px;
 
-    background: rgba(0,0,0,.6);
+    background: rgba(0,0,0,.65);
     color: white;
 
     outline: none;
@@ -73,7 +81,7 @@ canvas {
     border: 1px solid rgba(255,255,255,.25);
     border-radius: 4px;
 
-    background: rgba(0,0,0,.6);
+    background: rgba(0,0,0,.65);
     color: rgba(255,255,255,.8);
 
     cursor: pointer;
@@ -83,13 +91,11 @@ canvas {
     background: rgba(255,255,255,.1);
 }
 
-/*
-    計算全体の進捗
+/* ---------- Progress ---------- */
 
-    画面下端に極細のラインとして表示。
-*/
 #progress {
     position: fixed;
+
     left: 0;
     bottom: 0;
 
@@ -99,7 +105,8 @@ canvas {
     pointer-events: none;
 
     opacity: 0;
-    transition: opacity .25s ease;
+
+    transition: opacity .2s ease;
 }
 
 #progress.active {
@@ -117,6 +124,7 @@ canvas {
 </style>
 </head>
 
+
 <body>
 
 <canvas id="canvas"></canvas>
@@ -127,6 +135,7 @@ canvas {
 </div>
 
 <div id="controls">
+
     <input
         id="iterations"
         type="number"
@@ -136,7 +145,10 @@ canvas {
         inputmode="numeric"
     >
 
-    <button id="reset">Reset</button>
+    <button id="reset">
+        Reset
+    </button>
+
 </div>
 
 <div id="progress">
@@ -147,19 +159,22 @@ canvas {
 <script>
 "use strict";
 
+
 /* =========================================================
-   Canvas / WebGL
+   WebGL
 ========================================================= */
 
-const canvas = document.getElementById("canvas");
+const canvas =
+    document.getElementById("canvas");
 
-const gl = canvas.getContext("webgl2", {
-    antialias: false,
-    powerPreference: "high-performance"
-});
+const gl =
+    canvas.getContext("webgl2", {
+        antialias: false,
+        powerPreference: "high-performance"
+    });
 
 if (!gl) {
-    alert("WebGL2 is not supported on this device.");
+    alert("このブラウザはWebGL2に対応していません。");
     throw new Error("WebGL2 unavailable");
 }
 
@@ -168,14 +183,23 @@ if (!gl) {
    UI
 ========================================================= */
 
-const zoomText = document.getElementById("zoom");
-const iterationText = document.getElementById("iterationText");
-const iterationsInput = document.getElementById("iterations");
+const zoomText =
+    document.getElementById("zoom");
 
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
+const iterationText =
+    document.getElementById("iterationText");
 
-const resetButton = document.getElementById("reset");
+const iterationsInput =
+    document.getElementById("iterations");
+
+const progress =
+    document.getElementById("progress");
+
+const progressBar =
+    document.getElementById("progressBar");
+
+const resetButton =
+    document.getElementById("reset");
 
 
 /* =========================================================
@@ -183,28 +207,17 @@ const resetButton = document.getElementById("reset");
 ========================================================= */
 
 let centerX = -0.75;
-let centerY = 0.0;
+let centerY = 0;
 
-let zoom = 1.0;
+let zoom = 1;
 
 let maxIterations = 500;
 
 
 /*
-    WebGLの描画倍率。
+    レンダリング世代。
 
-    1.0 = 全解像度
-    0.5 = 半分の解像度
-    0.25 = 1/4解像度
-*/
-let renderScale = 1.0;
-
-
-/*
-    現在の描画世代。
-
-    新しい操作が始まったら番号を更新して、
-    古いタイマーなどを無効化する。
+    古い描画を無効化するために使用。
 */
 let renderVersion = 0;
 
@@ -212,32 +225,16 @@ let qualityTimer = null;
 
 
 /* =========================================================
-   Quality settings
+   Quality
 ========================================================= */
 
-/*
-    操作中
-*/
-const MOVING_SCALE = 0.35;
 const MOVING_ITERATION_RATE = 0.25;
-
-
-/*
-    操作停止直後
-*/
-const MEDIUM_SCALE = 0.60;
 const MEDIUM_ITERATION_RATE = 0.50;
-
-
-/*
-    最終
-*/
-const FINAL_SCALE = 1.0;
 const FINAL_ITERATION_RATE = 1.0;
 
 
 /* =========================================================
-   Shader
+   Vertex Shader
 ========================================================= */
 
 const vertexShaderSource = `#version 300 es
@@ -245,10 +242,16 @@ const vertexShaderSource = `#version 300 es
 in vec2 a_position;
 
 void main() {
-    gl_Position = vec4(a_position, 0.0, 1.0);
+
+    gl_Position =
+        vec4(a_position, 0.0, 1.0);
 }
 `;
 
+
+/* =========================================================
+   Fragment Shader
+========================================================= */
 
 const fragmentShaderSource = `#version 300 es
 
@@ -257,92 +260,133 @@ precision highp float;
 out vec4 outColor;
 
 uniform vec2 u_resolution;
-
 uniform vec2 u_center;
-
 uniform float u_zoom;
-
 uniform int u_iterations;
 
 
 /*
-    Smooth coloring
+    CPU版で使っていた
+    滑らかな色付けを再現。
+
+    tによって色相が連続的に変化する。
 */
-vec3 palette(float t) {
+vec3 colorize(float t) {
 
     /*
-        黒 → 青 → 紫 → オレンジ系
+        以前のCPU版に近い
+        smooth coloring
     */
 
-    vec3 a = vec3(0.0, 0.0, 0.0);
-    vec3 b = vec3(0.35, 0.25, 0.5);
-    vec3 c = vec3(0.8, 0.7, 0.5);
-    vec3 d = vec3(0.1, 0.2, 0.3);
+    float r =
+        0.5 +
+        0.5 * cos(
+            6.2831853 * (t + 0.00)
+        );
 
-    return a + b * cos(
-        6.28318 * (c * t + d)
-    );
+    float g =
+        0.5 +
+        0.5 * cos(
+            6.2831853 * (t + 0.33)
+        );
+
+    float b =
+        0.5 +
+        0.5 * cos(
+            6.2831853 * (t + 0.67)
+        );
+
+    return vec3(r, g, b);
 }
 
 
 void main() {
 
     /*
-        画面の中心を原点にする。
-
-        aspect ratioも考慮。
+        アスペクト比を維持しながら
+        複素平面へ変換。
     */
 
-    vec2 p = gl_FragCoord.xy;
+    vec2 pixel =
+        gl_FragCoord.xy;
 
-    vec2 uv =
-        (p - 0.5 * u_resolution)
-        / min(u_resolution.x, u_resolution.y);
+    float scale =
+        min(
+            u_resolution.x,
+            u_resolution.y
+        );
+
+
+    vec2 offset =
+        (pixel -
+         0.5 * u_resolution)
+        / scale;
 
 
     /*
-        zoomが大きいほど見る範囲を狭くする。
+        Mandelbrotのc
     */
 
-    vec2 c = u_center + uv / u_zoom;
+    vec2 c =
+        u_center +
+        offset / u_zoom;
 
 
-    /*
-        Mandelbrot
-    */
+    vec2 z =
+        vec2(0.0);
 
-    vec2 z = vec2(0.0);
 
-    int i;
+    int i = 0;
 
     float smoothIteration = 0.0;
 
-    for (i = 0; i < u_iterations; i++) {
+
+    /*
+        z = z² + c
+    */
+
+    for (int n = 0; n < 100000; n++) {
+
+        if (n >= u_iterations) {
+            break;
+        }
 
         float x = z.x;
         float y = z.y;
+
 
         z = vec2(
             x * x - y * y + c.x,
             2.0 * x * y + c.y
         );
 
-        float magnitudeSquared = dot(z, z);
+
+        float magnitudeSquared =
+            dot(z, z);
+
 
         if (magnitudeSquared > 256.0) {
 
             /*
-                Continuous / smooth coloring
+                Smooth iteration count
+
+                境界を滑らかにする。
             */
 
             float logZn =
                 log(magnitudeSquared) * 0.5;
 
             float nu =
-                log(logZn / log(2.0)) / log(2.0);
+                log(
+                    logZn / log(2.0)
+                ) / log(2.0);
+
 
             smoothIteration =
-                float(i) + 1.0 - nu;
+                float(n) + 1.0 - nu;
+
+
+            i = n + 1;
 
             break;
         }
@@ -350,79 +394,142 @@ void main() {
 
 
     /*
-        Set内部
+        Mandelbrot集合内部
     */
 
-    if (i == u_iterations) {
-        outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    if (i == 0) {
+
+        outColor =
+            vec4(
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            );
+
         return;
     }
 
 
     /*
-        Coloring
+        正規化
     */
 
     float t =
-        smoothIteration / float(u_iterations);
+        smoothIteration /
+        float(u_iterations);
 
-    t = pow(t, 0.35);
 
-    vec3 color = palette(t);
+    /*
+        CPU版同様、
+        奥行きを出すために非線形変換。
+    */
 
-    outColor = vec4(color, 1.0);
+    t =
+        pow(
+            clamp(t, 0.0, 1.0),
+            0.35
+        );
+
+
+    vec3 color =
+        colorize(t);
+
+
+    outColor =
+        vec4(
+            color,
+            1.0
+        );
 }
 `;
 
 
 /* =========================================================
-   Shader utilities
+   Shader compilation
 ========================================================= */
 
 function createShader(type, source) {
 
-    const shader = gl.createShader(type);
+    const shader =
+        gl.createShader(type);
 
-    gl.shaderSource(shader, source);
+    gl.shaderSource(
+        shader,
+        source
+    );
+
     gl.compileShader(shader);
 
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 
-        const log = gl.getShaderInfoLog(shader);
+    if (!gl.getShaderParameter(
+        shader,
+        gl.COMPILE_STATUS
+    )) {
+
+        const error =
+            gl.getShaderInfoLog(shader);
 
         gl.deleteShader(shader);
 
-        throw new Error(log);
+        throw new Error(error);
     }
+
 
     return shader;
 }
 
 
-function createProgram(vertexSource, fragmentSource) {
+function createProgram(
+    vertexSource,
+    fragmentSource
+) {
 
     const vertexShader =
-        createShader(gl.VERTEX_SHADER, vertexSource);
+        createShader(
+            gl.VERTEX_SHADER,
+            vertexSource
+        );
 
     const fragmentShader =
-        createShader(gl.FRAGMENT_SHADER, fragmentSource);
+        createShader(
+            gl.FRAGMENT_SHADER,
+            fragmentSource
+        );
 
-    const program = gl.createProgram();
 
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
+    const program =
+        gl.createProgram();
+
+
+    gl.attachShader(
+        program,
+        vertexShader
+    );
+
+    gl.attachShader(
+        program,
+        fragmentShader
+    );
+
 
     gl.linkProgram(program);
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
 
-        const log = gl.getProgramInfoLog(program);
+    if (!gl.getProgramParameter(
+        program,
+        gl.LINK_STATUS
+    )) {
 
-        throw new Error(log);
+        throw new Error(
+            gl.getProgramInfoLog(program)
+        );
     }
+
 
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
+
 
     return program;
 }
@@ -434,29 +541,31 @@ const program =
         fragmentShaderSource
     );
 
+
 gl.useProgram(program);
 
 
 /* =========================================================
-   Full-screen triangle
+   Fullscreen triangle
 ========================================================= */
 
-/*
-    画面全体を覆う三角形。
+const vertices =
+    new Float32Array([
+        -1, -1,
+         3, -1,
+        -1,  3
+    ]);
 
-    これを1枚描くだけで、
-    Fragment Shaderが画面全ピクセルを処理する。
-*/
 
-const vertices = new Float32Array([
-    -1, -1,
-     3, -1,
-    -1,  3
-]);
+const buffer =
+    gl.createBuffer();
 
-const buffer = gl.createBuffer();
 
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    buffer
+);
+
 
 gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -464,10 +573,18 @@ gl.bufferData(
     gl.STATIC_DRAW
 );
 
-const positionLocation =
-    gl.getAttribLocation(program, "a_position");
 
-gl.enableVertexAttribArray(positionLocation);
+const positionLocation =
+    gl.getAttribLocation(
+        program,
+        "a_position"
+    );
+
+
+gl.enableVertexAttribArray(
+    positionLocation
+);
+
 
 gl.vertexAttribPointer(
     positionLocation,
@@ -480,20 +597,32 @@ gl.vertexAttribPointer(
 
 
 /* =========================================================
-   Uniforms
+   Uniform locations
 ========================================================= */
 
 const resolutionLocation =
-    gl.getUniformLocation(program, "u_resolution");
+    gl.getUniformLocation(
+        program,
+        "u_resolution"
+    );
 
 const centerLocation =
-    gl.getUniformLocation(program, "u_center");
+    gl.getUniformLocation(
+        program,
+        "u_center"
+    );
 
 const zoomLocation =
-    gl.getUniformLocation(program, "u_zoom");
+    gl.getUniformLocation(
+        program,
+        "u_zoom"
+    );
 
 const iterationsLocation =
-    gl.getUniformLocation(program, "u_iterations");
+    gl.getUniformLocation(
+        program,
+        "u_iterations"
+    );
 
 
 /* =========================================================
@@ -503,20 +632,29 @@ const iterationsLocation =
 function resizeCanvas() {
 
     /*
-        devicePixelRatioをそのまま使うと
-        iPadなどで非常に重くなる可能性がある。
+        Canvasそのものの解像度。
 
-        最大2倍まで。
+        これはレンダリング品質によって
+        変更しない。
     */
 
     const dpr =
-        Math.min(window.devicePixelRatio || 1, 2);
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
 
     const width =
-        Math.floor(canvas.clientWidth * dpr);
+        Math.floor(
+            canvas.clientWidth * dpr
+        );
 
     const height =
-        Math.floor(canvas.clientHeight * dpr);
+        Math.floor(
+            canvas.clientHeight * dpr
+        );
+
 
     if (
         canvas.width !== width ||
@@ -526,6 +664,7 @@ function resizeCanvas() {
         canvas.width = width;
         canvas.height = height;
     }
+
 
     gl.viewport(
         0,
@@ -542,54 +681,66 @@ function resizeCanvas() {
 
 function setProgress(value) {
 
-    value = Math.max(
-        0,
-        Math.min(1, value)
-    );
+    value =
+        Math.max(
+            0,
+            Math.min(1, value)
+        );
+
 
     progressBar.style.width =
         `${value * 100}%`;
 
-    progress.classList.add("active");
+
+    progress.classList.add(
+        "active"
+    );
 }
 
 
 function finishProgress() {
 
-    progressBar.style.width = "100%";
+    progressBar.style.width =
+        "100%";
+
 
     setTimeout(() => {
 
-        progress.classList.remove("active");
+        progress.classList.remove(
+            "active"
+        );
 
     }, 250);
 }
 
 
 /*
-    計算量の概算。
+    推定計算量。
 
-    GPU内部の正確な実行時間は取得できないので、
+    WebGLではGPU内部の進捗を取得できないので、
 
-        ピクセル数 × iterations
+        画素数 × iterations
 
-    を計算量として扱う。
+    を基準にする。
 */
-function estimatedWork(scale, iterationRate) {
+function estimatedWork(
+    iterationRate
+) {
 
     const pixels =
         canvas.width *
-        canvas.height *
-        scale *
-        scale;
+        canvas.height;
+
 
     const iterations =
         Math.max(
             1,
             Math.floor(
-                maxIterations * iterationRate
+                maxIterations *
+                iterationRate
             )
         );
+
 
     return pixels * iterations;
 }
@@ -599,46 +750,35 @@ function estimatedWork(scale, iterationRate) {
    Render
 ========================================================= */
 
-function render(scale, iterationRate, progressStart, progressEnd) {
+function render(
+    iterationRate,
+    progressValue
+) {
 
     resizeCanvas();
 
-    renderScale = scale;
 
     const iterations =
         Math.max(
             1,
             Math.floor(
-                maxIterations * iterationRate
+                maxIterations *
+                iterationRate
             )
         );
 
 
     /*
-        低解像度レンダリング
+        常にcanvas全体を描画。
 
-        viewportを小さくすることで、
-        Fragment Shaderの呼び出し数自体を減らす。
+        ここでは解像度を落とさない。
     */
-
-    const renderWidth =
-        Math.max(
-            1,
-            Math.floor(canvas.width * scale)
-        );
-
-    const renderHeight =
-        Math.max(
-            1,
-            Math.floor(canvas.height * scale)
-        );
-
 
     gl.viewport(
         0,
         0,
-        renderWidth,
-        renderHeight
+        canvas.width,
+        canvas.height
     );
 
 
@@ -647,8 +787,8 @@ function render(scale, iterationRate, progressStart, progressEnd) {
 
     gl.uniform2f(
         resolutionLocation,
-        renderWidth,
-        renderHeight
+        canvas.width,
+        canvas.height
     );
 
 
@@ -671,6 +811,10 @@ function render(scale, iterationRate, progressStart, progressEnd) {
     );
 
 
+    /*
+        GPUへ描画命令。
+    */
+
     gl.drawArrays(
         gl.TRIANGLES,
         0,
@@ -679,173 +823,174 @@ function render(scale, iterationRate, progressStart, progressEnd) {
 
 
     /*
-        元のcanvasサイズへ戻す。
+        その段階が完了。
     */
 
-    gl.viewport(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-
-    /*
-        この段階の計算が完了したので
-        全体進捗を更新。
-    */
-
-    setProgress(progressEnd);
+    setProgress(progressValue);
 }
 
 
 /* =========================================================
-   Full render pipeline
+   Moving render
 ========================================================= */
 
 function renderMoving() {
 
     renderVersion++;
 
-    clearTimeout(qualityTimer);
+    clearTimeout(
+        qualityTimer
+    );
 
-    resizeCanvas();
+
+    /*
+        新しい計算なので
+        進捗もリセット。
+    */
 
     setProgress(0);
 
+
     render(
-        MOVING_SCALE,
         MOVING_ITERATION_RATE,
-        0,
-        0.20
+        0.15
     );
 }
 
 
+/* =========================================================
+   High quality pipeline
+========================================================= */
+
 function scheduleHighQuality() {
 
-    const version = renderVersion;
-
-    clearTimeout(qualityTimer);
-
-    qualityTimer = setTimeout(() => {
-
-        if (version !== renderVersion) {
-            return;
-        }
+    const version =
+        renderVersion;
 
 
-        /*
-            実際の計算量から、
-            各段階の全体に対する割合を算出。
-        */
-
-        const movingWork =
-            estimatedWork(
-                MOVING_SCALE,
-                MOVING_ITERATION_RATE
-            );
-
-        const mediumWork =
-            estimatedWork(
-                MEDIUM_SCALE,
-                MEDIUM_ITERATION_RATE
-            );
-
-        const finalWork =
-            estimatedWork(
-                FINAL_SCALE,
-                FINAL_ITERATION_RATE
-            );
+    clearTimeout(
+        qualityTimer
+    );
 
 
-        const totalWork =
-            movingWork +
-            mediumWork +
-            finalWork;
-
-
-        const movingEnd =
-            movingWork / totalWork;
-
-
-        const mediumEnd =
-            (movingWork + mediumWork)
-            / totalWork;
-
-
-        /*
-            中間品質
-        */
-
-        render(
-            MEDIUM_SCALE,
-            MEDIUM_ITERATION_RATE,
-            movingEnd,
-            mediumEnd
-        );
-
-
-        if (version !== renderVersion) {
-            return;
-        }
-
-
-        /*
-            ブラウザに中間画像を表示する時間を
-            少し与える。
-        */
-
+    qualityTimer =
         setTimeout(() => {
 
-            if (version !== renderVersion) {
+            if (
+                version !== renderVersion
+            ) {
                 return;
             }
 
 
             /*
-                最終品質
+                計算量
+            */
+
+            const movingWork =
+                estimatedWork(
+                    MOVING_ITERATION_RATE
+                );
+
+            const mediumWork =
+                estimatedWork(
+                    MEDIUM_ITERATION_RATE
+                );
+
+            const finalWork =
+                estimatedWork(
+                    FINAL_ITERATION_RATE
+                );
+
+
+            const totalWork =
+                movingWork +
+                mediumWork +
+                finalWork;
+
+
+            const mediumProgress =
+                (
+                    movingWork +
+                    mediumWork
+                ) / totalWork;
+
+
+            /*
+                中間品質
             */
 
             render(
-                FINAL_SCALE,
-                FINAL_ITERATION_RATE,
-                mediumEnd,
-                1.0
+                MEDIUM_ITERATION_RATE,
+                mediumProgress
             );
 
 
-            if (version === renderVersion) {
-
-                finishProgress();
+            if (
+                version !== renderVersion
+            ) {
+                return;
             }
 
-        }, 50);
 
-    }, 100);
+            /*
+                中間画像を一度画面に
+                表示する時間を与える。
+            */
+
+            setTimeout(() => {
+
+                if (
+                    version !== renderVersion
+                ) {
+                    return;
+                }
+
+
+                /*
+                    最終品質
+                */
+
+                render(
+                    FINAL_ITERATION_RATE,
+                    1
+                );
+
+
+                if (
+                    version === renderVersion
+                ) {
+
+                    finishProgress();
+                }
+
+            }, 50);
+
+        }, 100);
 }
 
 
 /* =========================================================
-   Complete render
+   Immediate final render
 ========================================================= */
 
-function renderFinalImmediately() {
+function renderFinal() {
 
     renderVersion++;
 
-    clearTimeout(qualityTimer);
+    clearTimeout(
+        qualityTimer
+    );
 
-    resizeCanvas();
 
     setProgress(0);
 
+
     render(
-        FINAL_SCALE,
         FINAL_ITERATION_RATE,
-        0,
         1
     );
+
 
     finishProgress();
 }
@@ -855,71 +1000,80 @@ function renderFinalImmediately() {
    Zoom
 ========================================================= */
 
-function zoomAt(screenX, screenY, factor) {
-
-    resizeCanvas();
-
-
-    /*
-        現在の画面座標を
-        複素平面上の座標へ変換。
-    */
+function zoomAt(
+    screenX,
+    screenY,
+    factor
+) {
 
     const rect =
         canvas.getBoundingClientRect();
 
+
     const x =
-        screenX - rect.left;
+        screenX -
+        rect.left;
 
     const y =
-        screenY - rect.top;
+        screenY -
+        rect.top;
 
+
+    /*
+        CSSピクセル基準。
+
+        複素平面の中心を計算。
+    */
 
     const scale =
         Math.min(
-            canvas.width,
-            canvas.height
+            rect.width,
+            rect.height
         );
 
 
     const worldX =
         centerX +
-        (x - rect.width / 2)
-        / scale
-        / zoom;
+        (
+            x -
+            rect.width / 2
+        ) / scale / zoom;
 
 
     const worldY =
         centerY +
-        (rect.height / 2 - y)
-        / scale
-        / zoom;
+        (
+            rect.height / 2 -
+            y
+        ) / scale / zoom;
 
 
     /*
-        zoom
+        Zoom
     */
 
     zoom *= factor;
 
 
     /*
-        マウスポインタ位置を
-        同じ複素平面座標に固定。
+        カーソル下の点を
+        同じ位置に保持。
     */
 
     centerX =
         worldX -
-        (x - rect.width / 2)
-        / scale
-        / zoom;
+        (
+            x -
+            rect.width / 2
+        ) / scale / zoom;
 
 
     centerY =
         worldY -
-        (rect.height / 2 - y)
-        / scale
-        / zoom;
+        (
+            rect.height / 2 -
+            y
+        ) / scale / zoom;
 
 
     updateInfo();
@@ -940,188 +1094,46 @@ let lastMouseX = 0;
 let lastMouseY = 0;
 
 
-canvas.addEventListener("mousedown", e => {
+canvas.addEventListener(
+    "mousedown",
+    e => {
 
-    dragging = true;
+        dragging = true;
 
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+        lastMouseX =
+            e.clientX;
 
-    renderVersion++;
-
-    clearTimeout(qualityTimer);
-
-    setProgress(0);
-});
+        lastMouseY =
+            e.clientY;
 
 
-window.addEventListener("mousemove", e => {
+        renderVersion++;
 
-    if (!dragging) {
-        return;
-    }
-
-
-    const dx =
-        e.clientX - lastMouseX;
-
-    const dy =
-        e.clientY - lastMouseY;
-
-
-    const scale =
-        Math.min(
-            canvas.clientWidth,
-            canvas.clientHeight
+        clearTimeout(
+            qualityTimer
         );
 
-
-    centerX -=
-        dx / scale / zoom;
-
-    centerY +=
-        dy / scale / zoom;
-
-
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-
-
-    updateInfo();
-
-    renderMoving();
-});
-
-
-window.addEventListener("mouseup", () => {
-
-    if (!dragging) {
-        return;
+        setProgress(0);
     }
-
-    dragging = false;
-
-    scheduleHighQuality();
-});
+);
 
 
-canvas.addEventListener("wheel", e => {
+window.addEventListener(
+    "mousemove",
+    e => {
 
-    e.preventDefault();
-
-    const factor =
-        Math.exp(
-            -e.deltaY * 0.0015
-        );
-
-    zoomAt(
-        e.clientX,
-        e.clientY,
-        factor
-    );
-
-}, { passive: false });
-
-
-/* =========================================================
-   Touch / iPad
-========================================================= */
-
-let touches = new Map();
-
-let pinchStartDistance = 0;
-let pinchStartZoom = 1;
-
-let pinchCenterX = 0;
-let pinchCenterY = 0;
-
-
-function distance(a, b) {
-
-    const dx = a.clientX - b.clientX;
-    const dy = a.clientY - b.clientY;
-
-    return Math.hypot(dx, dy);
-}
-
-
-function midpoint(a, b) {
-
-    return {
-        x: (a.clientX + b.clientX) / 2,
-        y: (a.clientY + b.clientY) / 2
-    };
-}
-
-
-canvas.addEventListener("touchstart", e => {
-
-    e.preventDefault();
-
-    for (const touch of e.changedTouches) {
-        touches.set(touch.identifier, touch);
-    }
-
-
-    renderVersion++;
-
-    clearTimeout(qualityTimer);
-
-    setProgress(0);
-
-
-    if (touches.size === 2) {
-
-        const [a, b] =
-            [...touches.values()];
-
-        pinchStartDistance =
-            distance(a, b);
-
-        pinchStartZoom =
-            zoom;
-
-        const mid =
-            midpoint(a, b);
-
-        pinchCenterX = mid.x;
-        pinchCenterY = mid.y;
-    }
-
-}, { passive: false });
-
-
-canvas.addEventListener("touchmove", e => {
-
-    e.preventDefault();
-
-    for (const touch of e.changedTouches) {
-        touches.set(touch.identifier, touch);
-    }
-
-
-    if (touches.size === 1) {
-
-        const touch =
-            [...touches.values()][0];
-
-        if (!touch._lastX) {
-
-            touch._lastX =
-                touch.clientX;
-
-            touch._lastY =
-                touch.clientY;
-
+        if (!dragging) {
             return;
         }
 
 
         const dx =
-            touch.clientX - touch._lastX;
+            e.clientX -
+            lastMouseX;
 
         const dy =
-            touch.clientY - touch._lastY;
+            e.clientY -
+            lastMouseY;
 
 
         const scale =
@@ -1138,127 +1150,371 @@ canvas.addEventListener("touchmove", e => {
             dy / scale / zoom;
 
 
-        touch._lastX =
-            touch.clientX;
+        lastMouseX =
+            e.clientX;
 
-        touch._lastY =
-            touch.clientY;
+        lastMouseY =
+            e.clientY;
 
 
         updateInfo();
 
         renderMoving();
-
     }
-    else if (touches.size === 2) {
-
-        const [a, b] =
-            [...touches.values()];
+);
 
 
-        const currentDistance =
-            distance(a, b);
+window.addEventListener(
+    "mouseup",
+    () => {
+
+        if (!dragging) {
+            return;
+        }
+
+        dragging = false;
+
+        scheduleHighQuality();
+    }
+);
 
 
-        if (pinchStartDistance > 0) {
+/* =========================================================
+   Wheel zoom
+========================================================= */
 
-            const factor =
-                currentDistance /
-                pinchStartDistance;
+canvas.addEventListener(
+    "wheel",
+    e => {
+
+        e.preventDefault();
 
 
-            zoom =
-                pinchStartZoom * factor;
+        const factor =
+            Math.exp(
+                -e.deltaY * 0.0015
+            );
+
+
+        zoomAt(
+            e.clientX,
+            e.clientY,
+            factor
+        );
+
+    },
+    { passive: false }
+);
+
+
+/* =========================================================
+   Touch
+========================================================= */
+
+let touches =
+    new Map();
+
+
+let pinchStartDistance = 0;
+let pinchStartZoom = 1;
+
+let pinchCenterX = 0;
+let pinchCenterY = 0;
+
+
+function touchDistance(a, b) {
+
+    return Math.hypot(
+        a.clientX - b.clientX,
+        a.clientY - b.clientY
+    );
+}
+
+
+function touchMidpoint(a, b) {
+
+    return {
+        x:
+            (a.clientX + b.clientX) / 2,
+
+        y:
+            (a.clientY + b.clientY) / 2
+    };
+}
+
+
+canvas.addEventListener(
+    "touchstart",
+    e => {
+
+        e.preventDefault();
+
+
+        for (
+            const touch
+            of e.changedTouches
+        ) {
+
+            touches.set(
+                touch.identifier,
+                {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    lastX: touch.clientX,
+                    lastY: touch.clientY
+                }
+            );
+        }
+
+
+        renderVersion++;
+
+        clearTimeout(
+            qualityTimer
+        );
+
+        setProgress(0);
+
+
+        if (touches.size === 2) {
+
+            const [a, b] =
+                [...touches.values()];
+
+
+            pinchStartDistance =
+                touchDistance(a, b);
+
+
+            pinchStartZoom =
+                zoom;
+
+
+            const mid =
+                touchMidpoint(a, b);
+
+
+            pinchCenterX =
+                mid.x;
+
+            pinchCenterY =
+                mid.y;
+        }
+
+    },
+    { passive: false }
+);
+
+
+canvas.addEventListener(
+    "touchmove",
+    e => {
+
+        e.preventDefault();
+
+
+        for (
+            const touch
+            of e.changedTouches
+        ) {
+
+            const old =
+                touches.get(
+                    touch.identifier
+                );
+
+
+            if (old) {
+
+                old.clientX =
+                    touch.clientX;
+
+                old.clientY =
+                    touch.clientY;
+            }
+        }
+
+
+        if (touches.size === 1) {
+
+            const touch =
+                [...touches.values()][0];
+
+
+            const dx =
+                touch.clientX -
+                touch.lastX;
+
+            const dy =
+                touch.clientY -
+                touch.lastY;
+
+
+            const scale =
+                Math.min(
+                    canvas.clientWidth,
+                    canvas.clientHeight
+                );
+
+
+            centerX -=
+                dx / scale / zoom;
+
+            centerY +=
+                dy / scale / zoom;
+
+
+            touch.lastX =
+                touch.clientX;
+
+            touch.lastY =
+                touch.clientY;
 
 
             updateInfo();
 
             renderMoving();
         }
-    }
-
-}, { passive: false });
 
 
-canvas.addEventListener("touchend", e => {
+        else if (touches.size === 2) {
 
-    e.preventDefault();
-
-    for (const touch of e.changedTouches) {
-        touches.delete(touch.identifier);
-    }
+            const [a, b] =
+                [...touches.values()];
 
 
-    if (touches.size === 0) {
+            const currentDistance =
+                touchDistance(a, b);
+
+
+            if (
+                pinchStartDistance > 0
+            ) {
+
+                zoom =
+                    pinchStartZoom *
+                    (
+                        currentDistance /
+                        pinchStartDistance
+                    );
+
+
+                updateInfo();
+
+                renderMoving();
+            }
+        }
+
+    },
+    { passive: false }
+);
+
+
+canvas.addEventListener(
+    "touchend",
+    e => {
+
+        e.preventDefault();
+
+
+        for (
+            const touch
+            of e.changedTouches
+        ) {
+
+            touches.delete(
+                touch.identifier
+            );
+        }
+
+
+        if (touches.size === 0) {
+
+            scheduleHighQuality();
+        }
+
+    },
+    { passive: false }
+);
+
+
+canvas.addEventListener(
+    "touchcancel",
+    () => {
+
+        touches.clear();
 
         scheduleHighQuality();
+
     }
-
-}, { passive: false });
-
-
-canvas.addEventListener("touchcancel", e => {
-
-    touches.clear();
-
-    scheduleHighQuality();
-
-}, { passive: false });
+);
 
 
 /* =========================================================
    Iterations
 ========================================================= */
 
-iterationsInput.addEventListener("change", () => {
+iterationsInput.addEventListener(
+    "change",
+    () => {
 
-    let value =
-        parseInt(
-            iterationsInput.value,
-            10
-        );
+        let value =
+            parseInt(
+                iterationsInput.value,
+                10
+            );
 
 
-    if (!Number.isFinite(value)) {
-        value = 500;
+        if (!Number.isFinite(value)) {
+            value = 500;
+        }
+
+
+        value =
+            Math.max(
+                1,
+                Math.min(
+                    100000,
+                    value
+                )
+            );
+
+
+        maxIterations =
+            value;
+
+
+        iterationsInput.value =
+            value;
+
+
+        iterationText.textContent =
+            value;
+
+
+        renderFinal();
     }
-
-
-    value =
-        Math.max(
-            1,
-            Math.min(
-                100000,
-                value
-            )
-        );
-
-
-    maxIterations = value;
-
-    iterationsInput.value = value;
-
-    iterationText.textContent = value;
-
-
-    renderFinalImmediately();
-});
+);
 
 
 /* =========================================================
    Reset
 ========================================================= */
 
-resetButton.addEventListener("click", () => {
+resetButton.addEventListener(
+    "click",
+    () => {
 
-    centerX = -0.75;
-    centerY = 0.0;
-    zoom = 1.0;
+        centerX = -0.75;
+        centerY = 0;
+        zoom = 1;
 
-    updateInfo();
 
-    renderFinalImmediately();
-});
+        updateInfo();
+
+        renderFinal();
+    }
+);
 
 
 /* =========================================================
@@ -1270,17 +1526,18 @@ function updateInfo() {
     if (zoom >= 1000000) {
 
         zoomText.textContent =
-            zoom.toExponential(2) + "×";
+            zoom.toExponential(2) +
+            "×";
 
-    }
-    else {
+    } else {
 
         zoomText.textContent =
             zoom.toFixed(
                 zoom < 100
                     ? 2
                     : 0
-            ) + "×";
+            ) +
+            "×";
     }
 
 
@@ -1293,12 +1550,15 @@ function updateInfo() {
    Resize
 ========================================================= */
 
-window.addEventListener("resize", () => {
+window.addEventListener(
+    "resize",
+    () => {
 
-    resizeCanvas();
+        resizeCanvas();
 
-    renderFinalImmediately();
-});
+        renderFinal();
+    }
+);
 
 
 /* =========================================================
@@ -1309,7 +1569,7 @@ resizeCanvas();
 
 updateInfo();
 
-renderFinalImmediately();
+renderFinal();
 
 </script>
 
