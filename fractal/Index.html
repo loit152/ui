@@ -3,12 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no">
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 
-<title>High Precision Mandelbrot Explorer</title>
+<title>Mandelbrot Explorer</title>
 
 <style>
 * {
@@ -59,7 +56,6 @@ canvas {
 
 #iterations {
     width: 80px;
-
     padding: 5px 7px;
 
     border: 1px solid rgba(255,255,255,.25);
@@ -103,17 +99,11 @@ canvas {
     transition: opacity .2s ease;
 }
 
-#progress.active {
-    opacity: 1;
-}
-
 #progressBar {
     width: 0%;
     height: 100%;
 
     background: rgba(255,255,255,.8);
-
-    transition: width .08s linear;
 }
 </style>
 </head>
@@ -125,7 +115,6 @@ canvas {
 <div id="info">
     <div>Zoom: <span id="zoom">1×</span></div>
     <div>Iterations: <span id="iterationText">500</span></div>
-    <div>Precision: <span>double-single</span></div>
 </div>
 
 <div id="controls">
@@ -139,9 +128,7 @@ canvas {
         inputmode="numeric"
     >
 
-    <button id="reset">
-        Reset
-    </button>
+    <button id="reset">Reset</button>
 
 </div>
 
@@ -201,74 +188,57 @@ const resetButton =
 ========================================================= */
 
 /*
-    重要:
+    中心座標。
 
-    centerX / centerY を Number だけで保持しない。
+    hi + lo の double-double 表現。
 
-    JavaScript Number も IEEE-754 double なので、
-    最終的には約15〜16桁で限界になる。
-
-    そこで座標を decimal BigInt で保持する。
+    JavaScript Numberだけの場合よりも、
+    深いズームで中心位置を保持しやすい。
 */
 
-const CENTER_SCALE_DIGITS = 40;
+let centerXHi = -0.75;
+let centerXLo = 0;
 
-const CENTER_SCALE =
-    10n ** BigInt(CENTER_SCALE_DIGITS);
+let centerYHi = 0;
+let centerYLo = 0;
 
 
 /*
-    初期値 -0.75
-*/
-
-let centerXInt =
-    -75n *
-    10n ** BigInt(CENTER_SCALE_DIGITS - 2);
-
-let centerYInt = 0n;
-
-
-/*
-    Zoomは指数で管理する。
+    ズームは
 
         zoom = 2 ^ zoomPower
 
-    とする。
+    として管理。
 
-    Numberの乗算を繰り返さないため、
-    極端なズームでも比較的安定する。
+    これにより Number の上限による
+    zoom *= factor の問題を避ける。
 */
 
 let zoomPower = 0;
 
 
 /*
-    実際のzoom値を返す。
-
-    Math.pow自体はGPU座標計算には使わない。
-    表示・パン量の計算用。
+    画面移動中の軽量反復回数。
 */
-
-function getZoom() {
-
-    return Math.pow(2, zoomPower);
-}
-
 
 let maxIterations = 500;
 
+
+/*
+    描画世代。
+*/
+
 let renderVersion = 0;
 
-let qualityTimer = null;
+let qualityTimer = 0;
 
 
 /* =========================================================
-   Quality
+   Rendering quality
 ========================================================= */
 
-const MOVING_ITERATION_RATE = 0.25;
-const MEDIUM_ITERATION_RATE = 0.50;
-const FINAL_ITERATION_RATE = 1.0;
+const MOVING_RATE = 0.16;
+const FINAL_RATE = 1.0;
 
 
 /* =========================================================
@@ -280,9 +250,7 @@ const vertexShaderSource = `#version 300 es
 in vec2 a_position;
 
 void main() {
-
-    gl_Position =
-        vec4(a_position, 0.0, 1.0);
+    gl_Position = vec4(a_position, 0.0, 1.0);
 }
 `;
 
@@ -294,289 +262,156 @@ void main() {
 const fragmentShaderSource = `#version 300 es
 
 precision highp float;
-precision highp int;
 
 out vec4 outColor;
 
-
-/*
-    ========================================================
-    Double-Single arithmetic
-    ========================================================
-
-    1つの数値を
-
-        value = hi + lo
-
-    の2つのfloatで表現する。
-
-    WebGL2のfloatは32bitだが、
-    この方式によって実質的に約48bit前後の
-    有効精度を得られる。
-
-    深いMandelbrot zoomでは非常に重要。
-*/
-
-
-struct DS {
-    float hi;
-    float lo;
-};
-
-
-/* ---------- DS constructors ---------- */
-
-DS ds(float x) {
-
-    DS r;
-
-    r.hi = x;
-    r.lo = 0.0;
-
-    return r;
-}
-
-
-/* ---------- DS normalize ---------- */
-
-DS dsNormalize(
-    float hi,
-    float lo
-) {
-
-    float s =
-        hi + lo;
-
-    float e =
-        lo - (s - hi);
-
-    DS r;
-
-    r.hi = s;
-    r.lo = e;
-
-    return r;
-}
-
-
-/* ---------- DS addition ---------- */
-
-DS dsAdd(
-    DS a,
-    DS b
-) {
-
-    float s =
-        a.hi + b.hi;
-
-    float v =
-        s - a.hi;
-
-    float e =
-        (a.hi - (s - v)) +
-        (b.hi - v) +
-        a.lo +
-        b.lo;
-
-    return dsNormalize(
-        s,
-        e
-    );
-}
-
-
-/* ---------- DS subtraction ---------- */
-
-DS dsSub(
-    DS a,
-    DS b
-) {
-
-    float s =
-        a.hi - b.hi;
-
-    float v =
-        s - a.hi;
-
-    float e =
-        (a.hi - (s - v)) -
-        (b.hi + v) +
-        a.lo -
-        b.lo;
-
-    return dsNormalize(
-        s,
-        e
-    );
-}
-
-
-/* ---------- DS multiplication ---------- */
-
-DS dsMul(
-    DS a,
-    DS b
-) {
-
-    /*
-        Dekker-style split
-
-        2^12 + 1
-        はfloat32の仮数分割用。
-    */
-
-    const float SPLIT =
-        4097.0;
-
-
-    float c11 =
-        a.hi * b.hi;
-
-
-    float ca =
-        SPLIT * a.hi;
-
-    float ah =
-        ca - (ca - a.hi);
-
-    float al =
-        a.hi - ah;
-
-
-    float cb =
-        SPLIT * b.hi;
-
-    float bh =
-        cb - (cb - b.hi);
-
-    float bl =
-        b.hi - bh;
-
-
-    float c12 =
-        ah * bh - c11;
-
-    c12 +=
-        ah * bl;
-
-    c12 +=
-        al * bh;
-
-    c12 +=
-        al * bl;
-
-
-    c12 +=
-        a.hi * b.lo;
-
-    c12 +=
-        a.lo * b.hi;
-
-
-    return dsNormalize(
-        c11,
-        c12
-    );
-}
-
-
-/* ---------- DS × float ---------- */
-
-DS dsMulFloat(
-    DS a,
-    float b
-) {
-
-    float p =
-        a.hi * b;
-
-    float e =
-        a.lo * b;
-
-
-    return dsNormalize(
-        p,
-        e
-    );
-}
-
-
-/* ---------- DS absolute ---------- */
-
-float dsAbs(
-    DS a
-) {
-
-    return abs(
-        a.hi + a.lo
-    );
-}
-
-
-/* ========================================================
-   Uniforms
-======================================================== */
-
 uniform vec2 u_resolution;
 
-uniform vec2 u_centerHi;
-uniform vec2 u_centerLo;
 
-uniform float u_zoomHi;
-uniform float u_zoomLo;
+/*
+    double-double center
+
+    value = hi + lo
+*/
+
+uniform vec2 u_centerX;
+uniform vec2 u_centerY;
+
+
+/*
+    zoom = 2 ^ u_zoomPower
+
+    scale = 2 ^ (-u_zoomPower)
+*/
+
+uniform float u_zoomPower;
 
 uniform int u_iterations;
 
 
-/* ========================================================
-   Color
-======================================================== */
+/* =========================================================
+   Double-double arithmetic
+========================================================= */
 
-vec3 colorize(
-    float t
-) {
+vec2 twoSum(float a, float b)
+{
+    float s = a + b;
+    float v = s - a;
 
-    float r =
-        0.5 +
-        0.5 *
-        cos(
-            6.2831853 *
-            (t + 0.00)
-        );
+    float e =
+        (a - (s - v)) +
+        (b - v);
 
-    float g =
-        0.5 +
-        0.5 *
-        cos(
-            6.2831853 *
-            (t + 0.33)
-        );
+    return vec2(s, e);
+}
 
-    float b =
-        0.5 +
-        0.5 *
-        cos(
-            6.2831853 *
-            (t + 0.66)
-        );
 
-    return vec3(
-        r,
-        g,
-        b
+vec2 quickTwoSum(float a, float b)
+{
+    float s = a + b;
+    float e = b - (s - a);
+
+    return vec2(s, e);
+}
+
+
+vec2 ddAdd(vec2 a, vec2 b)
+{
+    vec2 s = twoSum(a.x, b.x);
+
+    float e =
+        s.y +
+        a.y +
+        b.y;
+
+    return quickTwoSum(s.x, e);
+}
+
+
+vec2 ddSub(vec2 a, vec2 b)
+{
+    return ddAdd(
+        a,
+        vec2(-b.x, -b.y)
     );
 }
 
 
-/* ========================================================
+vec2 ddMul(vec2 a, vec2 b)
+{
+    float p =
+        a.x * b.x;
+
+    float e =
+        fma(a.x, b.x, -p);
+
+    e +=
+        a.x * b.y +
+        a.y * b.x;
+
+    return quickTwoSum(p, e);
+}
+
+
+/* =========================================================
+   Complex double-double multiplication
+========================================================= */
+
+void complexMul(
+    vec2 ar,
+    vec2 ai,
+    vec2 br,
+    vec2 bi,
+    out vec2 rr,
+    out vec2 ri
+)
+{
+    vec2 ac = ddMul(ar, br);
+    vec2 bd = ddMul(ai, bi);
+
+    vec2 ad = ddMul(ar, bi);
+    vec2 bc = ddMul(ai, br);
+
+    rr = ddSub(ac, bd);
+    ri = ddAdd(ad, bc);
+}
+
+
+/* =========================================================
+   Color
+========================================================= */
+
+vec3 colorize(float t)
+{
+    /*
+        軽量な cosine palette。
+    */
+
+    vec3 phase =
+        vec3(
+            0.00,
+            0.15,
+            0.30
+        );
+
+    return
+        0.5 +
+        0.5 *
+        cos(
+            6.2831853 *
+            (t + phase)
+        );
+}
+
+
+/* =========================================================
    Main
-======================================================== */
+========================================================= */
 
-void main() {
-
+void main()
+{
     vec2 pixel =
         gl_FragCoord.xy;
-
 
     float scale =
         min(
@@ -586,16 +421,16 @@ void main() {
 
 
     /*
-        pixel offset
+        ピクセル位置。
 
-        ここは画面内の相対値なので
-        float32でも十分な精度がある。
+        ここでは巨大な zoom 値を直接作らず、
 
-        問題なのは巨大な中心座標との加算なので、
-        そこだけDSにする。
+            offset × 2^(-zoomPower)
+
+        とする。
     */
 
-    vec2 pixelOffset =
+    vec2 offset =
         (
             pixel -
             0.5 * u_resolution
@@ -603,265 +438,125 @@ void main() {
 
 
     /*
-        zoomをDSとして作成
+        GPUのexp2は非常に高速。
+
+        ただし float の指数範囲を超える
+        深度ではゼロになる。
+
+        通常のWebGL2で実用的な範囲では
+        十分な精度を維持する。
     */
 
-    DS zoomDS =
-        dsNormalize(
-            u_zoomHi,
-            u_zoomLo
+    float scaleZoom =
+        exp2(-u_zoomPower);
+
+
+    vec2 delta =
+        offset * scaleZoom;
+
+
+    /*
+        c = center + delta
+
+        double-double
+    */
+
+    vec2 cx =
+        ddAdd(
+            u_centerX,
+            vec2(delta.x, 0.0)
+        );
+
+    vec2 cy =
+        ddAdd(
+            u_centerY,
+            vec2(delta.y, 0.0)
         );
 
 
     /*
-        1 / zoom
+        z
 
-        深いズームでは非常に小さい値になる。
+        Mandelbrot計算では z 自体は
+        普通のfloatで計算する。
 
-        ここでは pixelOffset はfloat、
-        zoomの逆数はDSとして計算する。
+        これによりdouble-doubleを
+        毎回使用するより高速。
     */
 
-    float zoomValue =
-        zoomDS.hi +
-        zoomDS.lo;
+    float zx = 0.0;
+    float zy = 0.0;
+
+    float smoothIteration = 0.0;
+
+    bool escaped = false;
 
 
     /*
-        画面座標をfloatのまま
-        centerへ足さない。
+        固定上限を100000にしておく。
 
-        pixelOffset / zoom を
-        DS化してから加算する。
+        実際のiteration数は
+        u_iterationsで制御。
     */
 
-    float invZoom =
-        1.0 / zoomValue;
-
-
-    DS dx =
-        ds(
-            pixelOffset.x *
-            invZoom
-        );
-
-    DS dy =
-        ds(
-            pixelOffset.y *
-            invZoom
-        );
-
-
-    /*
-        center
-    */
-
-    DS cx =
-        dsNormalize(
-            u_centerHi.x,
-            u_centerLo.x
-        );
-
-    DS cy =
-        dsNormalize(
-            u_centerHi.y,
-            u_centerLo.y
-        );
-
-
-    /*
-        c = center + offset / zoom
-    */
-
-    cx =
-        dsAdd(
-            cx,
-            dx
-        );
-
-    cy =
-        dsAdd(
-            cy,
-            dy
-        );
-
-
-    /*
-        Mandelbrot z
-
-        zもDS。
-    */
-
-    DS zx =
-        ds(0.0);
-
-    DS zy =
-        ds(0.0);
-
-
-    int escaped =
-        0;
-
-    float smoothIteration =
-        0.0;
-
-
-    for (
-        int n = 0;
-        n < 100000;
-        n++
-    ) {
-
-        if (
-            n >= u_iterations
-        ) {
+    for (int i = 0; i < 100000; ++i)
+    {
+        if (i >= u_iterations)
             break;
-        }
+
+
+        float xx =
+            zx * zx;
+
+        float yy =
+            zy * zy;
+
+        float xy =
+            zx * zy;
 
 
         /*
-            x²
+            escape判定を早めに行う。
         */
 
-        DS xx =
-            dsMul(
-                zx,
-                zx
-            );
-
-
-        /*
-            y²
-        */
-
-        DS yy =
-            dsMul(
-                zy,
-                zy
-            );
-
-
-        /*
-            2xy
-        */
-
-        DS xy =
-            dsMul(
-                zx,
-                zy
-            );
-
-        xy =
-            dsMulFloat(
-                xy,
-                2.0
-            );
-
-
-        /*
-            new z
-
-            x' = x² - y² + cx
-            y' = 2xy + cy
-        */
-
-        DS newX =
-            dsAdd(
-                dsSub(
-                    xx,
-                    yy
-                ),
-                cx
-            );
-
-
-        DS newY =
-            dsAdd(
-                xy,
-                cy
-            );
-
-
-        zx =
-            newX;
-
-        zy =
-            newY;
-
-
-        /*
-            |z|²
-        */
-
-        DS xx2 =
-            dsMul(
-                zx,
-                zx
-            );
-
-        DS yy2 =
-            dsMul(
-                zy,
-                zy
-            );
-
-
-        DS magnitude =
-            dsAdd(
-                xx2,
-                yy2
-            );
-
-
-        float magnitudeSquared =
-            magnitude.hi +
-            magnitude.lo;
-
-
-        if (
-            magnitudeSquared > 256.0
-        ) {
-
-            /*
-                Smooth coloring
-            */
-
+        if (xx + yy > 64.0)
+        {
             float logZn =
-                log(
-                    magnitudeSquared
-                ) * 0.5;
-
+                0.5 *
+                log(xx + yy);
 
             float nu =
                 log(
                     logZn /
-                    log(2.0)
+                    0.6931471805599453
                 ) /
-                log(2.0);
-
+                0.6931471805599453;
 
             smoothIteration =
-                float(n) +
+                float(i) +
                 1.0 -
                 nu;
 
-
-            escaped =
-                1;
+            escaped = true;
 
             break;
         }
+
+
+        zx =
+            xx - yy + cx.x;
+
+        zy =
+            xy + xy + cy.x * 0.0 + cy.y;
     }
 
 
     /*
-        Interior
+        内部
     */
 
-    if (
-        escaped == 0
-    ) {
-
+    if (!escaped)
+    {
         outColor =
             vec4(
                 0.0,
@@ -879,20 +574,25 @@ void main() {
         float(u_iterations);
 
 
+    /*
+        iteration数が少ないときも
+        コントラストを確保。
+    */
+
     t =
         pow(
-            clamp(
-                t,
-                0.0,
-                1.0
-            ),
+            clamp(t, 0.0, 1.0),
             0.35
         );
 
 
+    vec3 color =
+        colorize(t);
+
+
     outColor =
         vec4(
-            colorize(t),
+            color,
             1.0
         );
 }
@@ -900,114 +600,72 @@ void main() {
 
 
 /* =========================================================
-   Shader compilation
+   Shader
 ========================================================= */
 
-function createShader(
-    type,
-    source
-) {
-
+function createShader(type, source)
+{
     const shader =
         gl.createShader(type);
-
 
     gl.shaderSource(
         shader,
         source
     );
 
-    gl.compileShader(
-        shader
-    );
+    gl.compileShader(shader);
 
-
-    if (
-        !gl.getShaderParameter(
-            shader,
-            gl.COMPILE_STATUS
-        )
-    ) {
-
+    if (!gl.getShaderParameter(
+        shader,
+        gl.COMPILE_STATUS
+    )) {
         const error =
-            gl.getShaderInfoLog(
-                shader
-            );
+            gl.getShaderInfoLog(shader);
 
         gl.deleteShader(shader);
 
         throw new Error(error);
     }
 
-
     return shader;
 }
 
 
-function createProgram(
-    vertexSource,
-    fragmentSource
-) {
-
-    const vertexShader =
+function createProgram(vsSource, fsSource)
+{
+    const vs =
         createShader(
             gl.VERTEX_SHADER,
-            vertexSource
+            vsSource
         );
 
-
-    const fragmentShader =
+    const fs =
         createShader(
             gl.FRAGMENT_SHADER,
-            fragmentSource
+            fsSource
         );
 
-
-    const program =
+    const p =
         gl.createProgram();
 
+    gl.attachShader(p, vs);
+    gl.attachShader(p, fs);
 
-    gl.attachShader(
-        program,
-        vertexShader
-    );
+    gl.linkProgram(p);
 
-    gl.attachShader(
-        program,
-        fragmentShader
-    );
-
-
-    gl.linkProgram(
-        program
-    );
-
-
-    if (
-        !gl.getProgramParameter(
-            program,
-            gl.LINK_STATUS
-        )
-    ) {
-
+    if (!gl.getProgramParameter(
+        p,
+        gl.LINK_STATUS
+    )) {
         throw new Error(
-            gl.getProgramInfoLog(
-                program
-            )
+            gl.getProgramInfoLog(p)
         );
     }
 
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
 
-    gl.deleteShader(
-        vertexShader
-    );
-
-    gl.deleteShader(
-        fragmentShader
-    );
-
-
-    return program;
+    return p;
 }
 
 
@@ -1017,10 +675,7 @@ const program =
         fragmentShaderSource
     );
 
-
-gl.useProgram(
-    program
-);
+gl.useProgram(program);
 
 
 /* =========================================================
@@ -1034,16 +689,13 @@ const vertices =
         -1,  3
     ]);
 
-
 const buffer =
     gl.createBuffer();
-
 
 gl.bindBuffer(
     gl.ARRAY_BUFFER,
     buffer
 );
-
 
 gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -1051,18 +703,15 @@ gl.bufferData(
     gl.STATIC_DRAW
 );
 
-
 const positionLocation =
     gl.getAttribLocation(
         program,
         "a_position"
     );
 
-
 gl.enableVertexAttribArray(
     positionLocation
 );
-
 
 gl.vertexAttribPointer(
     positionLocation,
@@ -1075,7 +724,7 @@ gl.vertexAttribPointer(
 
 
 /* =========================================================
-   Uniform locations
+   Uniforms
 ========================================================= */
 
 const resolutionLocation =
@@ -1084,34 +733,23 @@ const resolutionLocation =
         "u_resolution"
     );
 
-
-const centerHiLocation =
+const centerXLocation =
     gl.getUniformLocation(
         program,
-        "u_centerHi"
+        "u_centerX"
     );
 
-
-const centerLoLocation =
+const centerYLocation =
     gl.getUniformLocation(
         program,
-        "u_centerLo"
+        "u_centerY"
     );
 
-
-const zoomHiLocation =
+const zoomPowerLocation =
     gl.getUniformLocation(
         program,
-        "u_zoomHi"
+        "u_zoomPower"
     );
-
-
-const zoomLoLocation =
-    gl.getUniformLocation(
-        program,
-        "u_zoomLo"
-    );
-
 
 const iterationsLocation =
     gl.getUniformLocation(
@@ -1121,140 +759,34 @@ const iterationsLocation =
 
 
 /* =========================================================
-   BigInt -> double-single
-========================================================= */
-
-/*
-    BigIntで持っている座標を
-
-        hi + lo
-
-    の2つのfloatへ変換する。
-
-    BigInt全体をNumberに変換すると
-    その時点で精度を失うため、
-    上位・下位へ分割する。
-*/
-
-function bigintToDS(
-    value
-) {
-
-    const scale =
-        CENTER_SCALE;
-
-
-    const integerPart =
-        value / scale;
-
-
-    const remainder =
-        value % scale;
-
-
-    const integerNumber =
-        Number(integerPart);
-
-
-    const fractionNumber =
-        Number(remainder) /
-        Number(scale);
-
-
-    /*
-        integerNumberをfloat32へ
-        落とした際の誤差を
-        low側へ回収する。
-    */
-
-    const hi =
-        Math.fround(
-            integerNumber
-        );
-
-
-    const integerError =
-        integerNumber -
-        hi;
-
-
-    const lo =
-        Math.fround(
-            integerError +
-            fractionNumber
-        );
-
-
-    return {
-        hi,
-        lo
-    };
-}
-
-
-/*
-    Numberのzoomを
-    double-singleへ分解。
-*/
-
-function numberToDS(
-    value
-) {
-
-    const hi =
-        Math.fround(value);
-
-    const lo =
-        Math.fround(
-            value - hi
-        );
-
-    return {
-        hi,
-        lo
-    };
-}
-
-
-/* =========================================================
    Resize
 ========================================================= */
 
-function resizeCanvas() {
-
+function resizeCanvas()
+{
     const dpr =
         Math.min(
             window.devicePixelRatio || 1,
             2
         );
 
-
     const width =
         Math.floor(
-            canvas.clientWidth *
-            dpr
+            canvas.clientWidth * dpr
         );
-
 
     const height =
         Math.floor(
-            canvas.clientHeight *
-            dpr
+            canvas.clientHeight * dpr
         );
-
 
     if (
         canvas.width !== width ||
         canvas.height !== height
     ) {
-
-        canvas.width =
-            width;
-
-        canvas.height =
-            height;
+        canvas.width = width;
+        canvas.height = height;
     }
-
 
     gl.viewport(
         0,
@@ -1266,60 +798,12 @@ function resizeCanvas() {
 
 
 /* =========================================================
-   Progress
-========================================================= */
-
-function setProgress(
-    value
-) {
-
-    value =
-        Math.max(
-            0,
-            Math.min(
-                1,
-                value
-            )
-        );
-
-
-    progressBar.style.width =
-        `${value * 100}%`;
-
-
-    progress.classList.add(
-        "active"
-    );
-}
-
-
-function finishProgress() {
-
-    progressBar.style.width =
-        "100%";
-
-
-    setTimeout(() => {
-
-        progress.classList.remove(
-            "active"
-        );
-
-    }, 250);
-}
-
-
-/* =========================================================
    Render
 ========================================================= */
 
-function render(
-    iterationRate,
-    progressValue
-) {
-
+function render(iterationRate)
+{
     resizeCanvas();
-
 
     const iterations =
         Math.max(
@@ -1330,29 +814,7 @@ function render(
             )
         );
 
-
-    const centerX =
-        bigintToDS(
-            centerXInt
-        );
-
-
-    const centerY =
-        bigintToDS(
-            centerYInt
-        );
-
-
-    const zoom =
-        numberToDS(
-            getZoom()
-        );
-
-
-    gl.useProgram(
-        program
-    );
-
+    gl.useProgram(program);
 
     gl.uniform2f(
         resolutionLocation,
@@ -1360,308 +822,172 @@ function render(
         canvas.height
     );
 
-
     gl.uniform2f(
-        centerHiLocation,
-        centerX.hi,
-        centerY.hi
+        centerXLocation,
+        centerXHi,
+        centerXLo
     );
 
-
     gl.uniform2f(
-        centerLoLocation,
-        centerX.lo,
-        centerY.lo
+        centerYLocation,
+        centerYHi,
+        centerYLo
     );
-
-
-    gl.uniform2f(
-        zoomHiLocation,
-        zoom.hi,
-        zoom.lo
-    );
-
 
     /*
-        zoomLoLocationは
-        vec2ではなくshader上ではfloatなので、
-        実際には以下のuniform設定は不要。
+        clampしない。
 
-        zoomはuniform vec2ではなく
-        float 2本として送る。
+        深いズームでもzoomPowerを維持。
     */
 
     gl.uniform1f(
-        zoomHiLocation,
-        zoom.hi
+        zoomPowerLocation,
+        zoomPower
     );
-
-    gl.uniform1f(
-        zoomLoLocation,
-        zoom.lo
-    );
-
 
     gl.uniform1i(
         iterationsLocation,
         iterations
     );
 
-
     gl.drawArrays(
         gl.TRIANGLES,
         0,
         3
     );
-
-
-    setProgress(
-        progressValue
-    );
 }
 
 
 /* =========================================================
-   Moving render
+   Quality
 ========================================================= */
 
-function renderMoving() {
-
+function renderMoving()
+{
     renderVersion++;
 
     clearTimeout(
         qualityTimer
     );
 
-
-    setProgress(0);
-
-
     render(
-        MOVING_ITERATION_RATE,
-        0.15
+        MOVING_RATE
     );
 }
 
 
-/* =========================================================
-   High quality
-========================================================= */
-
-function scheduleHighQuality() {
-
+function scheduleFinal()
+{
     const version =
         renderVersion;
 
-
     clearTimeout(
         qualityTimer
     );
 
-
     qualityTimer =
-        setTimeout(() => {
-
+        setTimeout(() =>
+        {
             if (
                 version !== renderVersion
             ) {
                 return;
             }
 
+            render(FINAL_RATE);
 
-            render(
-                MEDIUM_ITERATION_RATE,
-                0.5
-            );
-
-
-            if (
-                version !== renderVersion
-            ) {
-                return;
-            }
-
-
-            setTimeout(() => {
-
-                if (
-                    version !== renderVersion
-                ) {
-                    return;
-                }
-
-
-                render(
-                    FINAL_ITERATION_RATE,
-                    1
-                );
-
-
-                if (
-                    version === renderVersion
-                ) {
-
-                    finishProgress();
-                }
-
-            }, 50);
-
-        }, 100);
+        }, 120);
 }
 
 
-/* =========================================================
-   Final
-========================================================= */
-
-function renderFinal() {
-
+function renderFinal()
+{
     renderVersion++;
 
     clearTimeout(
         qualityTimer
     );
 
-
-    setProgress(0);
-
-
-    render(
-        FINAL_ITERATION_RATE,
-        1
-    );
-
-
-    finishProgress();
+    render(FINAL_RATE);
 }
 
 
 /* =========================================================
-   High precision coordinate movement
+   Double-double helpers
 ========================================================= */
 
-/*
-    Numberの小さなdeltaをBigIntへ変換する。
+function normalizeDD(hi, lo)
+{
+    const s =
+        hi + lo;
 
-    deltaは
+    const e =
+        lo - (s - hi);
 
-        dx / scale / zoom
-
-    なので、ズームが深くなるほど非常に小さくなる。
-
-    BigIntの40桁固定小数点へ変換する。
-*/
-
-function numberToFixedBigInt(
-    value
-) {
-
-    if (
-        !Number.isFinite(value) ||
-        value === 0
-    ) {
-        return 0n;
-    }
+    return [s, e];
+}
 
 
-    const sign =
-        value < 0
-            ? -1n
-            : 1n;
+function addDD(
+    aHi,
+    aLo,
+    bHi,
+    bLo
+)
+{
+    const s =
+        aHi + bHi;
 
+    const v =
+        s - aHi;
 
-    value =
-        Math.abs(value);
+    const e =
+        (
+            aHi - (s - v)
+        ) +
+        (
+            bHi - v
+        ) +
+        aLo +
+        bLo;
 
-
-    /*
-        40桁固定小数へ。
-    */
-
-    const scaled =
-        value *
-        10 ** CENTER_SCALE_DIGITS;
-
-
-    /*
-        Number自体の精度限界を超える部分は
-       ここでは表現できない。
-
-        ただし通常のパン操作のdeltaは
-        十分小さくても相対精度を保てる。
-    */
-
-    return (
-        sign *
-        BigInt(
-            Math.round(
-                scaled
-            )
-        )
+    return normalizeDD(
+        s,
+        e
     );
 }
 
 
-/*
-    画面ピクセルから複素平面deltaを計算。
+/* =========================================================
+   Coordinate movement
+========================================================= */
 
-    zoom = 2^zoomPower
-
-    として扱うことで、
-    zoom自体を直接掛け続けることによる
-   丸めを避ける。
-*/
-
-function screenDeltaToComplex(
-    pixels
-) {
-
-    const scale =
-        Math.min(
-            canvas.clientWidth,
-            canvas.clientHeight
+function moveCenter(
+    dx,
+    dy
+)
+{
+    const x =
+        addDD(
+            centerXHi,
+            centerXLo,
+            dx,
+            0
         );
 
-
-    /*
-        2^-zoomPower
-
-        zoomPowerが大きい場合、
-        Numberでは小さすぎて0になる可能性がある。
-
-        その場合はBigInt固定小数へ直接変換する。
-    */
-
-    const exponent =
-        -zoomPower;
-
-
-    if (exponent < -1020) {
-
-        /*
-            JavaScript Numberでは
-            これ以上小さい値を扱えない。
-
-            この領域では実質的に
-            1px未満のパンになるため無視。
-        */
-
-        return 0n;
-    }
-
-
-    const scaleFactor =
-        Math.pow(
-            2,
-            exponent
+    const y =
+        addDD(
+            centerYHi,
+            centerYLo,
+            dy,
+            0
         );
 
+    centerXHi = x[0];
+    centerXLo = x[1];
 
-    return numberToFixedBigInt(
-        pixels *
-        scaleFactor /
-        scale
-    );
+    centerYHi = y[0];
+    centerYLo = y[1];
 }
 
 
@@ -1669,25 +995,31 @@ function screenDeltaToComplex(
    Zoom
 ========================================================= */
 
+/*
+    zoomPower += amount
+
+    1 = 2倍
+    2 = 4倍
+    10 = 1024倍
+    100 = 約1.27e30倍
+*/
+
 function zoomAt(
     screenX,
     screenY,
     powerDelta
-) {
-
+)
+{
     const rect =
         canvas.getBoundingClientRect();
-
 
     const x =
         screenX -
         rect.left;
 
-
     const y =
         screenY -
         rect.top;
-
 
     const scale =
         Math.min(
@@ -1697,88 +1029,136 @@ function zoomAt(
 
 
     /*
-        ズーム前のカーソル位置。
+        カーソル位置の
+        現在の複素座標との差。
 
-        delta = pixel / zoom
+        深度に応じたscaleは
+        JS側でexp2を使用。
     */
 
-    const oldZoomFactor =
+    const localScale =
         Math.pow(
             2,
             -zoomPower
         );
 
 
-    const beforeX =
+    const dx =
         (
             x -
-            rect.width / 2
+            rect.width * 0.5
         ) /
         scale *
-        oldZoomFactor;
+        localScale;
 
-
-    const beforeY =
+    const dy =
         (
-            rect.height / 2 -
+            rect.height * 0.5 -
             y
         ) /
         scale *
-        oldZoomFactor;
+        localScale;
 
 
     /*
-        ズーム
+        ズーム前のカーソル位置を
+        center + delta として取得。
     */
 
-    zoomPower +=
-        powerDelta;
+    const worldXHi =
+        centerXHi + dx;
+
+    const worldXLo =
+        centerXLo +
+        (
+            dx -
+            (
+                worldXHi -
+                centerXHi
+            )
+        );
+
+
+    const worldYHi =
+        centerYHi + dy;
+
+    const worldYLo =
+        centerYLo +
+        (
+            dy -
+            (
+                worldYHi -
+                centerYHi
+            )
+        );
 
 
     /*
-        ズーム後の同じ画面位置
+        zoom
     */
 
-    const newZoomFactor =
+    zoomPower += powerDelta;
+
+
+    /*
+        ズーム後に同じ画面位置へ
+        カーソル位置を戻す。
+
+        deltaAfter =
+            deltaBefore / 2^powerDelta
+    */
+
+    const afterScale =
         Math.pow(
             2,
             -zoomPower
         );
 
 
-    const afterX =
+    const afterDX =
         (
             x -
-            rect.width / 2
+            rect.width * 0.5
         ) /
         scale *
-        newZoomFactor;
+        afterScale;
 
-
-    const afterY =
+    const afterDY =
         (
-            rect.height / 2 -
+            rect.height * 0.5 -
             y
         ) /
         scale *
-        newZoomFactor;
+        afterScale;
 
 
-    /*
-        center += before - after
-    */
+    centerXHi =
+        worldXHi -
+        afterDX;
 
-    centerXInt +=
-        numberToFixedBigInt(
-            beforeX -
-            afterX
+    centerXLo =
+        worldXLo -
+        (
+            afterDX -
+            (
+                worldXHi -
+                centerXHi
+            )
         );
 
 
-    centerYInt +=
-        numberToFixedBigInt(
-            beforeY -
-            afterY
+    centerYHi =
+        worldYHi -
+        afterDY;
+
+    centerYLo =
+        worldYLo -
+        (
+            afterDY -
+            (
+                worldYHi -
+                centerYHi
+            )
         );
 
 
@@ -1786,12 +1166,12 @@ function zoomAt(
 
     renderMoving();
 
-    scheduleHighQuality();
+    scheduleFinal();
 }
 
 
 /* =========================================================
-   Mouse
+   Mouse drag
 ========================================================= */
 
 let dragging = false;
@@ -1802,8 +1182,8 @@ let lastMouseY = 0;
 
 canvas.addEventListener(
     "mousedown",
-    e => {
-
+    e =>
+    {
         dragging = true;
 
         lastMouseX =
@@ -1812,55 +1192,49 @@ canvas.addEventListener(
         lastMouseY =
             e.clientY;
 
-
         renderVersion++;
 
         clearTimeout(
             qualityTimer
         );
-
-        setProgress(0);
     }
 );
 
 
 window.addEventListener(
     "mousemove",
-    e => {
-
-        if (!dragging) {
+    e =>
+    {
+        if (!dragging)
             return;
-        }
-
 
         const dx =
             e.clientX -
             lastMouseX;
-
 
         const dy =
             e.clientY -
             lastMouseY;
 
 
-        /*
-            右へドラッグ
-                => Mandelbrotは左へ
-
-            下へドラッグ
-                => Mandelbrotは上へ
-        */
-
-        centerXInt -=
-            screenDeltaToComplex(
-                dx
+        const scale =
+            Math.min(
+                canvas.clientWidth,
+                canvas.clientHeight
             );
 
 
-        centerYInt +=
-            screenDeltaToComplex(
-                dy
+        const worldScale =
+            Math.pow(
+                2,
+                -zoomPower
             );
+
+
+        moveCenter(
+            -dx / scale * worldScale,
+             dy / scale * worldScale
+        );
 
 
         lastMouseX =
@@ -1879,16 +1253,14 @@ window.addEventListener(
 
 window.addEventListener(
     "mouseup",
-    () => {
-
-        if (!dragging) {
+    () =>
+    {
+        if (!dragging)
             return;
-        }
-
 
         dragging = false;
 
-        scheduleHighQuality();
+        scheduleFinal();
     }
 );
 
@@ -1899,34 +1271,25 @@ window.addEventListener(
 
 canvas.addEventListener(
     "wheel",
-    e => {
-
+    e =>
+    {
         e.preventDefault();
 
-
         /*
-            以前の
+            1 wheel notch ≒ 2^(0.35)
 
-                exp(-deltaY * 0.0015)
-
-            の代わりに
-            2の指数で管理する。
-
-            1 wheel = 約1.5倍程度。
+            通常の倍率計算より
+            滑らか。
         */
 
-        const powerDelta =
-            -e.deltaY *
-            0.0015 /
-            Math.LN2;
-
+        const power =
+            -e.deltaY * 0.003;
 
         zoomAt(
             e.clientX,
             e.clientY,
-            powerDelta
+            power
         );
-
     },
     {
         passive: false
@@ -1938,56 +1301,53 @@ canvas.addEventListener(
    Touch
 ========================================================= */
 
-let touches =
+const touches =
     new Map();
-
 
 let pinchStartDistance = 0;
 
-let pinchStartZoomPower = 0;
+let pinchStartPower = 0;
+
+let pinchCenter = null;
 
 
-function touchDistance(
-    a,
-    b
-) {
-
+function distance(a, b)
+{
     return Math.hypot(
-        a.clientX -
-        b.clientX,
-
-        a.clientY -
-        b.clientY
+        a.clientX - b.clientX,
+        a.clientY - b.clientY
     );
+}
+
+
+function midpoint(a, b)
+{
+    return {
+        x:
+            (a.clientX + b.clientX) * 0.5,
+
+        y:
+            (a.clientY + b.clientY) * 0.5
+    };
 }
 
 
 canvas.addEventListener(
     "touchstart",
-    e => {
-
+    e =>
+    {
         e.preventDefault();
 
-
         for (
-            const touch
-            of e.changedTouches
+            const t of e.changedTouches
         ) {
-
             touches.set(
-                touch.identifier,
+                t.identifier,
                 {
-                    clientX:
-                        touch.clientX,
-
-                    clientY:
-                        touch.clientY,
-
-                    lastX:
-                        touch.clientX,
-
-                    lastY:
-                        touch.clientY
+                    clientX: t.clientX,
+                    clientY: t.clientY,
+                    lastX: t.clientX,
+                    lastY: t.clientY
                 }
             );
         }
@@ -2000,28 +1360,20 @@ canvas.addEventListener(
         );
 
 
-        if (
-            touches.size === 2
-        ) {
-
-            const [
-                a,
-                b
-            ] =
+        if (touches.size === 2)
+        {
+            const [a, b] =
                 [...touches.values()];
 
-
             pinchStartDistance =
-                touchDistance(
-                    a,
-                    b
-                );
+                distance(a, b);
 
-
-            pinchStartZoomPower =
+            pinchStartPower =
                 zoomPower;
-        }
 
+            pinchCenter =
+                midpoint(a, b);
+        }
     },
     {
         passive: false
@@ -2031,61 +1383,58 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "touchmove",
-    e => {
-
+    e =>
+    {
         e.preventDefault();
 
 
         for (
-            const touch
-            of e.changedTouches
+            const t of e.changedTouches
         ) {
-
             const old =
                 touches.get(
-                    touch.identifier
+                    t.identifier
                 );
 
-
-            if (old) {
-
-                old.clientX =
-                    touch.clientX;
-
-                old.clientY =
-                    touch.clientY;
+            if (old)
+            {
+                old.clientX = t.clientX;
+                old.clientY = t.clientY;
             }
         }
 
 
-        if (
-            touches.size === 1
-        ) {
-
+        if (touches.size === 1)
+        {
             const touch =
                 [...touches.values()][0];
-
 
             const dx =
                 touch.clientX -
                 touch.lastX;
-
 
             const dy =
                 touch.clientY -
                 touch.lastY;
 
 
-            centerXInt -=
-                screenDeltaToComplex(
-                    dx
+            const scale =
+                Math.min(
+                    canvas.clientWidth,
+                    canvas.clientHeight
+                );
+
+            const worldScale =
+                Math.pow(
+                    2,
+                    -zoomPower
                 );
 
 
-            centerYInt +=
-                screenDeltaToComplex(
-                    dy
-                );
+            moveCenter(
+                -dx / scale * worldScale,
+                 dy / scale * worldScale
+            );
 
 
             touch.lastX =
@@ -2102,50 +1451,41 @@ canvas.addEventListener(
 
 
         else if (
-            touches.size === 2
-        ) {
-
-            const [
-                a,
-                b
-            ] =
+            touches.size === 2 &&
+            pinchStartDistance > 0
+        )
+        {
+            const [a, b] =
                 [...touches.values()];
 
 
-            const distance =
-                touchDistance(
-                    a,
-                    b
-                );
+            const currentDistance =
+                distance(a, b);
 
 
-            if (
-                pinchStartDistance > 0
-            ) {
+            /*
+                ピンチ距離を
+                2の指数へ変換。
+            */
 
-                /*
-                    ピンチ比率から
-                    log2 zoomを計算
-                */
-
-                const ratio =
-                    distance /
-                    pinchStartDistance;
+            const ratio =
+                currentDistance /
+                pinchStartDistance;
 
 
-                zoomPower =
-                    pinchStartZoomPower +
-                    Math.log2(
-                        ratio
-                    );
+            const powerDelta =
+                Math.log2(ratio);
 
 
-                updateInfo();
+            zoomPower =
+                pinchStartPower +
+                powerDelta;
 
-                renderMoving();
-            }
+
+            updateInfo();
+
+            renderMoving();
         }
-
     },
     {
         passive: false
@@ -2155,27 +1495,22 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "touchend",
-    e => {
-
+    e =>
+    {
         e.preventDefault();
 
-
         for (
-            const touch
-            of e.changedTouches
+            const t of e.changedTouches
         ) {
-
             touches.delete(
-                touch.identifier
+                t.identifier
             );
         }
 
 
-        if (
-            touches.size === 0
-        ) {
-
-            scheduleHighQuality();
+        if (touches.size === 0)
+        {
+            scheduleFinal();
         }
     },
     {
@@ -2186,11 +1521,11 @@ canvas.addEventListener(
 
 canvas.addEventListener(
     "touchcancel",
-    () => {
-
+    () =>
+    {
         touches.clear();
 
-        scheduleHighQuality();
+        scheduleFinal();
     }
 );
 
@@ -2201,8 +1536,8 @@ canvas.addEventListener(
 
 iterationsInput.addEventListener(
     "change",
-    () => {
-
+    () =>
+    {
         let value =
             parseInt(
                 iterationsInput.value,
@@ -2210,11 +1545,8 @@ iterationsInput.addEventListener(
             );
 
 
-        if (
-            !Number.isFinite(value)
-        ) {
+        if (!Number.isFinite(value))
             value = 500;
-        }
 
 
         value =
@@ -2230,10 +1562,8 @@ iterationsInput.addEventListener(
         maxIterations =
             value;
 
-
         iterationsInput.value =
             value;
-
 
         iterationText.textContent =
             value;
@@ -2250,22 +1580,15 @@ iterationsInput.addEventListener(
 
 resetButton.addEventListener(
     "click",
-    () => {
+    () =>
+    {
+        centerXHi = -0.75;
+        centerXLo = 0;
 
-        centerXInt =
-            -75n *
-            10n **
-            BigInt(
-                CENTER_SCALE_DIGITS - 2
-            );
+        centerYHi = 0;
+        centerYLo = 0;
 
-
-        centerYInt =
-            0n;
-
-
-        zoomPower =
-            0;
+        zoomPower = 0;
 
 
         updateInfo();
@@ -2276,32 +1599,42 @@ resetButton.addEventListener(
 
 
 /* =========================================================
-   UI
+   Info
 ========================================================= */
 
-function updateInfo() {
+function updateInfo()
+{
+    /*
+        zoom = 2^zoomPower
 
-    const zoom =
-        getZoom();
-
+        巨大な値を直接計算しない。
+    */
 
     if (
-        !Number.isFinite(zoom) ||
-        zoom >= 1000000
+        zoomPower > 1000
     ) {
-
         zoomText.textContent =
-            `2^${zoomPower.toFixed(2)}`;
+            "2^" +
+            Math.floor(zoomPower);
+
+    }
+    else if (
+        zoomPower > 20
+    ) {
+        zoomText.textContent =
+            "2^" +
+            zoomPower.toFixed(2);
 
     }
     else {
+        const zoom =
+            Math.pow(
+                2,
+                zoomPower
+            );
 
         zoomText.textContent =
-            zoom.toFixed(
-                zoom < 100
-                    ? 2
-                    : 0
-            ) +
+            zoom.toPrecision(4) +
             "×";
     }
 
@@ -2317,8 +1650,8 @@ function updateInfo() {
 
 window.addEventListener(
     "resize",
-    () => {
-
+    () =>
+    {
         resizeCanvas();
 
         renderFinal();
