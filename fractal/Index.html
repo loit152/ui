@@ -1,44 +1,806 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mandelbrot Explorer</title>
 
-    <meta
-        name="viewport"
-        content="
-            width=device-width,
-            initial-scale=1.0,
-            maximum-scale=1.0,
-            user-scalable=no
-        "
-    >
+<style>
+    * {
+        box-sizing: border-box;
+    }
 
-    <title>Mandelbrot Viewer</title>
+    html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+    }
 
-    <link rel="stylesheet" href="style.css">
+    #canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+    }
 
-    <!-- 高精度10進数 -->
-    <script src="https://cdn.jsdelivr.net/npm/decimal.js@10.6.0/decimal.min.js"></script>
+    #canvas.dragging {
+        cursor: grabbing;
+    }
 
+    #info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+
+        padding: 8px 10px;
+
+        background: rgba(0, 0, 0, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+
+        font-size: 12px;
+        line-height: 1.5;
+
+        pointer-events: none;
+        user-select: none;
+    }
+
+    #progressContainer {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+
+        height: 6px;
+
+        background: rgba(255, 255, 255, 0.15);
+
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    #progress {
+        width: 0%;
+        height: 100%;
+        background: #fff;
+    }
+</style>
 </head>
 
 <body>
-1
-    <canvas id="canvas"></canvas>
 
-    <div id="console">
+<canvas id="canvas"></canvas>
 
-        <div id="status">● HD</div>
+<div id="info">
+    <div>Mode: <span id="mode">READY</span></div>
+    <div>Zoom: <span id="zoom">1</span></div>
+    <div>Center X: <span id="centerX">-0.75</span></div>
+    <div>Center Y: <span id="centerY">0</span></div>
+    <div>Precision: <span id="precision">50</span> digits</div>
+    <div>Progress: <span id="progressText">0%</span></div>
+</div>
 
-        <div id="coordinates"></div>
+<div id="progressContainer">
+    <div id="progress"></div>
+</div>
 
-        <div id="zoom"></div>
+<script src="https://cdn.jsdelivr.net/npm/decimal.js@10.4.3/decimal.min.js"></script>
 
-    </div>
+<script>
+"use strict";
 
-    <script src="script.js"></script>
+/*
+    ==========================================
+    Mandelbrot Explorer
+    ==========================================
+
+    ・ドラッグ中
+        → 一定間隔のドットで高速描画
+
+    ・ドラッグ終了
+        → 高画質描画
+
+    ・座標
+        → Decimal.js による任意精度計算
+
+    ・ズーム
+        → ホイール
+*/
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const modeElement = document.getElementById("mode");
+const zoomElement = document.getElementById("zoom");
+const centerXElement = document.getElementById("centerX");
+const centerYElement = document.getElementById("centerY");
+const precisionElement = document.getElementById("precision");
+const progressElement = document.getElementById("progress");
+const progressTextElement = document.getElementById("progressText");
+
+
+// ==========================================
+// Decimal.js 設定
+// ==========================================
+
+Decimal.set({
+    precision: 80,
+    rounding: Decimal.ROUND_HALF_EVEN
+});
+
+
+// ==========================================
+// Mandelbrot の状態
+// ==========================================
+
+let centerX = new Decimal("-0.75");
+let centerY = new Decimal("0");
+
+let zoom = new Decimal("1");
+
+
+// ==========================================
+// 描画設定
+// ==========================================
+
+const MAX_ITERATION_BASE = 100;
+
+let width;
+let height;
+
+let rendering = false;
+let renderId = 0;
+
+
+// ==========================================
+// ドラッグ
+// ==========================================
+
+let dragging = false;
+
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+
+// ==========================================
+// リサイズ
+// ==========================================
+
+function resize() {
+
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+
+    drawPreview();
+}
+
+window.addEventListener("resize", resize);
+
+
+// ==========================================
+// ズームに応じた精度
+// ==========================================
+
+function updatePrecision() {
+
+    /*
+        ズームが深くなるほど必要な桁数を増やす。
+
+        log10(zoom) ≒ 必要な追加桁数
+    */
+
+    const zoomLog = Math.max(
+        0,
+        Math.log10(
+            Math.max(
+                1,
+                Number(zoom.toPrecision(15))
+            )
+        )
+    );
+
+    const precision = Math.max(
+        50,
+        Math.ceil(zoomLog + 40)
+    );
+
+    Decimal.set({
+        precision: precision
+    });
+
+    precisionElement.textContent = precision;
+}
+
+
+// ==========================================
+// 最大反復回数
+// ==========================================
+
+function getMaxIteration() {
+
+    const zoomNumber = Number(
+        zoom.toPrecision(15)
+    );
+
+    return Math.floor(
+        MAX_ITERATION_BASE +
+        Math.max(0, Math.log2(zoomNumber)) * 20
+    );
+}
+
+
+// ==========================================
+// 座標変換
+// ==========================================
+
+function screenToComplex(px, py) {
+
+    /*
+        画面中心を基準にする。
+
+        複素平面の横幅
+            = 4 / zoom
+
+        画面の縦横比を維持。
+    */
+
+    const aspect = new Decimal(width)
+        .div(height);
+
+    const planeHeight = new Decimal(4)
+        .div(zoom);
+
+    const planeWidth = planeHeight
+        .mul(aspect);
+
+    const dx = new Decimal(px - width / 2)
+        .div(width)
+        .mul(planeWidth);
+
+    const dy = new Decimal(py - height / 2)
+        .div(height)
+        .mul(planeHeight);
+
+    return {
+        x: centerX.add(dx),
+        y: centerY.add(dy)
+    };
+}
+
+
+// ==========================================
+// Mandelbrot 判定
+// ==========================================
+
+function mandelbrot(cx, cy, maxIteration) {
+
+    let x = new Decimal(0);
+    let y = new Decimal(0);
+
+    let iteration = 0;
+
+    const four = new Decimal(4);
+
+    while (iteration < maxIteration) {
+
+        const x2 = x.mul(x);
+        const y2 = y.mul(y);
+
+        if (x2.add(y2).gt(four)) {
+            break;
+        }
+
+        const newX = x2
+            .sub(y2)
+            .add(cx);
+
+        const newY = x
+            .mul(y)
+            .mul(2)
+            .add(cy);
+
+        x = newX;
+        y = newY;
+
+        iteration++;
+    }
+
+    return iteration;
+}
+
+
+// ==========================================
+// 色
+// ==========================================
+
+function getColor(iteration, maxIteration) {
+
+    if (iteration >= maxIteration) {
+        return 0;
+    }
+
+    return 255;
+}
+
+
+// ==========================================
+// プレビュー描画
+// ==========================================
+
+function drawPreview() {
+
+    if (!width || !height) return;
+
+    rendering = false;
+    renderId++;
+
+    const image = ctx.createImageData(width, height);
+    const data = image.data;
+
+    /*
+        一定間隔のドット。
+
+        ここでは 8px 間隔。
+        ドラッグ中の負荷を大幅に下げる。
+    */
+
+    const step = 8;
+
+    const maxIteration = 50;
+
+    modeElement.textContent = "PREVIEW";
+
+    for (let py = 0; py < height; py += step) {
+
+        for (let px = 0; px < width; px += step) {
+
+            const point = screenToComplex(px, py);
+
+            const iteration = mandelbrot(
+                point.x,
+                point.y,
+                maxIteration
+            );
+
+            const value = getColor(
+                iteration,
+                maxIteration
+            );
+
+            /*
+                1つの計算結果を
+                step × step の領域に描く。
+            */
+
+            for (
+                let yy = py;
+                yy < Math.min(py + step, height);
+                yy++
+            ) {
+
+                for (
+                    let xx = px;
+                    xx < Math.min(px + step, width);
+                    xx++
+                ) {
+
+                    const index =
+                        (yy * width + xx) * 4;
+
+                    data[index] = value;
+                    data[index + 1] = value;
+                    data[index + 2] = value;
+                    data[index + 3] = 255;
+                }
+            }
+        }
+    }
+
+    ctx.putImageData(image, 0, 0);
+
+    updateInfo();
+}
+
+
+// ==========================================
+// 高画質描画
+// ==========================================
+
+async function renderHighQuality() {
+
+    const myRenderId = ++renderId;
+
+    rendering = true;
+
+    modeElement.textContent = "RENDERING";
+
+    const image = ctx.createImageData(
+        width,
+        height
+    );
+
+    const data = image.data;
+
+    const maxIteration =
+        getMaxIteration();
+
+    updatePrecision();
+
+    /*
+        行単位で描画して、
+        UIを固めないようにする。
+    */
+
+    for (let py = 0; py < height; py++) {
+
+        if (myRenderId !== renderId) {
+            return;
+        }
+
+        for (let px = 0; px < width; px++) {
+
+            const point =
+                screenToComplex(px, py);
+
+            const iteration =
+                mandelbrot(
+                    point.x,
+                    point.y,
+                    maxIteration
+                );
+
+            const value =
+                getColor(
+                    iteration,
+                    maxIteration
+                );
+
+            const index =
+                (py * width + px) * 4;
+
+            data[index] = value;
+            data[index + 1] = value;
+            data[index + 2] = value;
+            data[index + 3] = 255;
+        }
+
+        /*
+            約1フレームごとに画面へ反映。
+        */
+
+        if (py % 4 === 0) {
+
+            ctx.putImageData(
+                image,
+                0,
+                0
+            );
+
+            const progress =
+                Math.floor(
+                    py / height * 100
+                );
+
+            progressElement.style.width =
+                progress + "%";
+
+            progressTextElement.textContent =
+                progress + "%";
+
+            updateInfo();
+
+            await new Promise(
+                requestAnimationFrame
+            );
+        }
+    }
+
+    ctx.putImageData(
+        image,
+        0,
+        0
+    );
+
+    progressElement.style.width = "100%";
+    progressTextElement.textContent = "100%";
+
+    modeElement.textContent = "READY";
+
+    rendering = false;
+
+    updateInfo();
+}
+
+
+// ==========================================
+// 情報表示
+// ==========================================
+
+function updateInfo() {
+
+    zoomElement.textContent =
+        formatDecimal(zoom);
+
+    centerXElement.textContent =
+        formatDecimal(centerX);
+
+    centerYElement.textContent =
+        formatDecimal(centerY);
+}
+
+
+function formatDecimal(value) {
+
+    /*
+        Decimal の指数表記を利用しつつ、
+        深いズームでも情報を失わない。
+    */
+
+    return value
+        .toSignificantDigits(30)
+        .toString();
+}
+
+
+// ==========================================
+// ドラッグ開始
+// ==========================================
+
+canvas.addEventListener(
+    "pointerdown",
+    event => {
+
+        dragging = true;
+
+        canvas.classList.add("dragging");
+
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+
+        canvas.setPointerCapture(
+            event.pointerId
+        );
+
+        /*
+            ドラッグ開始時点で
+            高画質描画をキャンセル。
+        */
+
+        renderId++;
+
+        drawPreview();
+    }
+);
+
+
+// ==========================================
+// ドラッグ
+// ==========================================
+
+canvas.addEventListener(
+    "pointermove",
+    event => {
+
+        if (!dragging) return;
+
+        const dx =
+            event.clientX - lastMouseX;
+
+        const dy =
+            event.clientY - lastMouseY;
+
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+
+        /*
+            ピクセル → 複素平面
+        */
+
+        const aspect =
+            new Decimal(width)
+            .div(height);
+
+        const planeHeight =
+            new Decimal(4)
+            .div(zoom);
+
+        const planeWidth =
+            planeHeight.mul(aspect);
+
+        const moveX =
+            new Decimal(dx)
+            .div(width)
+            .mul(planeWidth);
+
+        const moveY =
+            new Decimal(dy)
+            .div(height)
+            .mul(planeHeight);
+
+        /*
+            画面を右に動かしたら
+            複素平面は左へ移動。
+        */
+
+        centerX = centerX.sub(moveX);
+        centerY = centerY.sub(moveY);
+
+        drawPreview();
+
+        updateInfo();
+    }
+);
+
+
+// ==========================================
+// ドラッグ終了
+// ==========================================
+
+canvas.addEventListener(
+    "pointerup",
+    event => {
+
+        if (!dragging) return;
+
+        dragging = false;
+
+        canvas.classList.remove(
+            "dragging"
+        );
+
+        canvas.releasePointerCapture(
+            event.pointerId
+        );
+
+        /*
+            ドラッグ終了後、
+            高画質化。
+        */
+
+        renderHighQuality();
+    }
+);
+
+
+// ==========================================
+// ホイールズーム
+// ==========================================
+
+canvas.addEventListener(
+    "wheel",
+    event => {
+
+        event.preventDefault();
+
+        const mouseX =
+            event.clientX;
+
+        const mouseY =
+            event.clientY;
+
+        /*
+            ズーム前のマウス位置の座標
+        */
+
+        const before =
+            screenToComplex(
+                mouseX,
+                mouseY
+            );
+
+        /*
+            ズーム倍率
+        */
+
+        const factor =
+            event.deltaY < 0
+                ? new Decimal("2")
+                : new Decimal("0.5");
+
+        zoom = zoom.mul(factor);
+
+        /*
+            ズーム後、
+            同じ場所にマウスが存在するよう
+            中心座標を補正する。
+        */
+
+        const after =
+            screenToComplex(
+                mouseX,
+                mouseY
+            );
+
+        centerX =
+            centerX.add(
+                before.x.sub(after.x)
+            );
+
+        centerY =
+            centerY.add(
+                before.y.sub(after.y)
+            );
+
+        updatePrecision();
+
+        /*
+            まず低負荷プレビュー。
+        */
+
+        drawPreview();
+
+        /*
+            その後、高画質化。
+        */
+
+        renderHighQuality();
+    },
+    {
+        passive: false
+    }
+);
+
+
+// ==========================================
+// ダブルクリックでズーム
+// ==========================================
+
+canvas.addEventListener(
+    "dblclick",
+    event => {
+
+        const before =
+            screenToComplex(
+                event.clientX,
+                event.clientY
+            );
+
+        zoom =
+            zoom.mul(2);
+
+        const after =
+            screenToComplex(
+                event.clientX,
+                event.clientY
+            );
+
+        centerX =
+            centerX.add(
+                before.x.sub(after.x)
+            );
+
+        centerY =
+            centerY.add(
+                before.y.sub(after.y)
+            );
+
+        updatePrecision();
+
+        drawPreview();
+
+        renderHighQuality();
+    }
+);
+
+
+// ==========================================
+// 初期化
+// ==========================================
+
+resize();
+
+updatePrecision();
+
+updateInfo();
+
+renderHighQuality();
+
+</script>
 
 </body>
-
 </html>
