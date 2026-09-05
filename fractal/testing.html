@@ -1,0 +1,2785 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
+
+<title>Mandelbrot Explorer</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+#info {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+
+    color: rgba(255,255,255,.75);
+
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.6;
+
+    pointer-events: none;
+    user-select: none;
+}
+
+#controls {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    font-family: monospace;
+}
+
+#iterations {
+    width: 80px;
+
+    padding: 5px 7px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.25);
+
+    border-radius: 4px;
+
+    background:
+        rgba(0,0,0,.65);
+
+    color: white;
+
+    outline: none;
+}
+
+#reset {
+    padding: 6px 10px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.25);
+
+    border-radius: 4px;
+
+    background:
+        rgba(0,0,0,.65);
+
+    color:
+        rgba(255,255,255,.8);
+
+    cursor: pointer;
+}
+
+#reset:hover {
+    background:
+        rgba(255,255,255,.1);
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="info">
+    <div>
+        Zoom:
+        <span id="zoom">1×</span>
+    </div>
+
+    <div>
+        Iterations:
+        <span id="iterationText">500</span>
+    </div>
+</div>
+
+<div id="controls">
+
+    <input
+        id="iterations"
+        type="number"
+        min="1"
+        max="100000"
+        value="500"
+        inputmode="numeric"
+    >
+
+    <button id="reset">
+        Reset
+    </button>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   Canvas / WebGL
+========================================================= */
+
+const canvas =
+    document.getElementById("canvas");
+
+const gl =
+    canvas.getContext("webgl2", {
+        antialias: false,
+        powerPreference: "high-performance"
+    });
+
+if (!gl) {
+    alert(
+        "このブラウザはWebGL2に対応していません。"
+    );
+
+    throw new Error(
+        "WebGL2 unavailable"
+    );
+}
+
+/* =========================================================
+   UI
+========================================================= */
+
+const zoomText =
+    document.getElementById("zoom");
+
+const iterationText =
+    document.getElementById(
+        "iterationText"
+    );
+
+const iterationsInput =
+    document.getElementById(
+        "iterations"
+    );
+
+const resetButton =
+    document.getElementById("reset");
+
+/* =========================================================
+   State
+========================================================= */
+
+/*
+    center = hi + lo
+
+    JavaScript Number自体はdoubleですが、
+    加算・減算の誤差を抑えるため、
+    2成分で保持します。
+*/
+
+let centerXHi = -0.75;
+let centerXLo = 0.0;
+
+let centerYHi = 0.0;
+let centerYLo = 0.0;
+
+
+/*
+    zoom = mantissa × 10^exponent
+
+        1
+        6.273
+        4.281e100
+
+    のように保持する。
+
+    巨大なzoomをNumber一個に戻さない。
+*/
+
+let zoomMantissa = 1.0;
+let zoomExponent = 0;
+
+
+/*
+    最大iteration
+*/
+
+let maxIterations = 500;
+
+
+/*
+    描画世代。
+
+    古いsetTimeoutによる描画が
+    新しい操作後に実行されないようにする。
+*/
+
+let renderVersion = 0;
+
+let qualityTimer = null;
+
+
+/* =========================================================
+   Double-double
+========================================================= */
+
+/*
+    TwoSum
+
+        s = a + b
+        e = 誤差
+
+    を求める。
+
+    JavaScript Numberでの高精度加算用。
+*/
+
+function twoSum(a, b)
+{
+    const s = a + b;
+
+    const v = s - a;
+
+    const e =
+        (a - (s - v)) +
+        (b - v);
+
+    return {
+        hi: s,
+        lo: e
+    };
+}
+
+
+/*
+    ddNormalize
+
+        hi + lo
+
+    を正規化。
+*/
+
+function ddNormalize(hi, lo)
+{
+    const s = hi + lo;
+
+    const e =
+        lo -
+        (s - hi);
+
+    return {
+        hi: s,
+        lo: e
+    };
+}
+
+
+/*
+    double-double addition
+*/
+
+function ddAdd(
+    aHi,
+    aLo,
+    bHi,
+    bLo
+)
+{
+    const s =
+        aHi + bHi;
+
+    const v =
+        s - aHi;
+
+    const e =
+        (aHi - (s - v)) +
+        (bHi - v) +
+        aLo +
+        bLo;
+
+    return ddNormalize(
+        s,
+        e
+    );
+}
+
+
+/*
+    double-double subtraction
+*/
+
+function ddSub(
+    aHi,
+    aLo,
+    bHi,
+    bLo
+)
+{
+    return ddAdd(
+        aHi,
+        aLo,
+        -bHi,
+        -bLo
+    );
+}
+
+
+/* =========================================================
+   Zoom
+========================================================= */
+
+function normalizeZoom()
+{
+    if (
+        !Number.isFinite(
+            zoomMantissa
+        ) ||
+        zoomMantissa <= 0
+    )
+    {
+        zoomMantissa = 1.0;
+        zoomExponent = 0;
+        return;
+    }
+
+    while (
+        zoomMantissa >= 10
+    )
+    {
+        zoomMantissa /= 10;
+        zoomExponent++;
+    }
+
+    while (
+        zoomMantissa < 1
+    )
+    {
+        zoomMantissa *= 10;
+        zoomExponent--;
+    }
+}
+
+
+function multiplyZoom(factor)
+{
+    zoomMantissa *= factor;
+
+    normalizeZoom();
+}
+
+
+function zoomLog10()
+{
+    return (
+        Math.log10(
+            zoomMantissa
+        ) +
+        zoomExponent
+    );
+}
+
+
+function zoomString()
+{
+    const log =
+        zoomLog10();
+
+    if (log >= 6)
+    {
+        return (
+            zoomMantissa.toPrecision(7) +
+            "e" +
+            zoomExponent +
+            "×"
+        );
+    }
+
+    const value =
+        zoomMantissa *
+        Math.pow(
+            10,
+            zoomExponent
+        );
+
+    return (
+        value.toPrecision(8) +
+        "×"
+    );
+}
+
+
+/* =========================================================
+   Pixel scale
+========================================================= */
+
+/*
+    pixelScale
+
+        1 / zoom
+
+    を
+
+        mantissa × 10^exponent
+
+    で返す。
+
+    ここでは巨大な/極小のNumberを作らない。
+*/
+
+function pixelScaleParts()
+{
+    let m =
+        1.0 /
+        zoomMantissa;
+
+    let e =
+        -zoomExponent;
+
+    while (m >= 10)
+    {
+        m /= 10;
+        e++;
+    }
+
+    while (m < 1)
+    {
+        m *= 10;
+        e--;
+    }
+
+    return {
+        mantissa: m,
+        exponent: e
+    };
+}
+
+
+/*
+    通常のNumberとして安全に使える範囲だけ
+    scaleを生成する。
+
+    超深度ではnullを返す。
+
+    これによりInfinity / 0による
+    座標破壊を防止する。
+*/
+
+function safeScaleValue(parts)
+{
+    if (
+        parts.exponent < -300 ||
+        parts.exponent > 300
+    )
+    {
+        return null;
+    }
+
+    const value =
+        parts.mantissa *
+        Math.pow(
+            10,
+            parts.exponent
+        );
+
+    if (
+        !Number.isFinite(value) ||
+        value === 0
+    )
+    {
+        return null;
+    }
+
+    return value;
+}
+
+
+/* =========================================================
+   Vertex Shader
+========================================================= */
+
+const vertexShaderSource = `#version 300 es
+
+in vec2 a_position;
+
+void main()
+{
+    gl_Position =
+        vec4(
+            a_position,
+            0.0,
+            1.0
+        );
+}
+
+`;
+
+
+/* =========================================================
+   Fragment Shader
+========================================================= */
+
+const fragmentShaderSource = `#version 300 es
+
+precision highp float;
+precision highp int;
+
+out vec4 outColor;
+
+
+/* =========================================================
+   Uniforms
+========================================================= */
+
+uniform vec2 u_resolution;
+
+
+/*
+    center = hi + lo
+
+    float-float形式。
+*/
+
+uniform vec2 u_centerHi;
+uniform vec2 u_centerLo;
+
+
+/*
+    pixelScale
+
+        mantissa × 10^exponent
+
+    で受け取る。
+*/
+
+uniform float u_scaleMantissa;
+uniform int u_scaleExponent;
+
+uniform int u_iterations;
+
+
+/* =========================================================
+   Float-float arithmetic
+========================================================= */
+
+/*
+    QuickTwoSum
+
+    |a| >= |b| を仮定。
+*/
+
+vec2 quickTwoSum(
+    float a,
+    float b
+)
+{
+    float s =
+        a + b;
+
+    float e =
+        b - (s - a);
+
+    return vec2(s, e);
+}
+
+
+/*
+    TwoSum
+
+    a+bを2floatで保持。
+*/
+
+vec2 twoSum(
+    float a,
+    float b
+)
+{
+    float s =
+        a + b;
+
+    float v =
+        s - a;
+
+    float e =
+        (a - (s - v)) +
+        (b - v);
+
+    return vec2(s, e);
+}
+
+
+/*
+    float-float addition
+*/
+
+vec2 ffAdd(
+    vec2 a,
+    vec2 b
+)
+{
+    float s =
+        a.x + b.x;
+
+    float v =
+        s - a.x;
+
+    float e =
+        (a.x - (s - v)) +
+        (b.x - v) +
+        a.y +
+        b.y;
+
+    return quickTwoSum(
+        s,
+        e
+    );
+}
+
+
+/*
+    float-float subtraction
+*/
+
+vec2 ffSub(
+    vec2 a,
+    vec2 b
+)
+{
+    return ffAdd(
+        a,
+        vec2(
+            -b.x,
+            -b.y
+        )
+    );
+}
+
+
+/*
+    float-float multiplication
+
+    Dekker型のsplitを利用。
+*/
+
+vec2 ffMul(
+    vec2 a,
+    vec2 b
+)
+{
+    const float split =
+        4097.0;
+
+    float cona =
+        a.x * split;
+
+    float a1 =
+        cona - (cona - a.x);
+
+    float a2 =
+        a.x - a1;
+
+    float conb =
+        b.x * split;
+
+    float b1 =
+        conb - (conb - b.x);
+
+    float b2 =
+        b.x - b1;
+
+    float p =
+        a.x * b.x;
+
+    float e =
+        (
+            ((a1 * b1 - p) +
+             a1 * b2) +
+            a2 * b1
+        ) +
+        a2 * b2;
+
+    e +=
+        a.x * b.y +
+        a.y * b.x;
+
+    return quickTwoSum(
+        p,
+        e
+    );
+}
+
+
+/*
+    float-float × scalar
+*/
+
+vec2 ffMulFloat(
+    vec2 a,
+    float b
+)
+{
+    return ffMul(
+        a,
+        vec2(
+            b,
+            0.0
+        )
+    );
+}
+
+
+/* =========================================================
+   Scale handling
+========================================================= */
+
+/*
+    10^exponentを直接生成しない。
+
+    ただしWebGLのfloatで扱える範囲では、
+    1回ずつ掛ける。
+
+    重要なのは、
+    JS側でscaleをNumberに戻していないこと。
+*/
+
+vec2 scaleOffset(
+    vec2 value,
+    int exponent
+)
+{
+    vec2 result =
+        value;
+
+    if (exponent > 0)
+    {
+        for (
+            int i = 0;
+            i < 100;
+            ++i
+        )
+        {
+            if (
+                i >= exponent
+            )
+            {
+                break;
+            }
+
+            result =
+                ffMulFloat(
+                    result,
+                    10.0
+                );
+        }
+    }
+    else
+    {
+        for (
+            int i = 0;
+            i < 100;
+            ++i
+        )
+        {
+            if (
+                i >= -exponent
+            )
+            {
+                break;
+            }
+
+            result =
+                ffMulFloat(
+                    result,
+                    0.1
+                );
+        }
+    }
+
+    return result;
+}
+
+
+/*
+    ピクセルoffset。
+
+    mantissaを掛けたあと、
+    10^exponentをfloat-floatで適用。
+*/
+
+vec2 scaledPixelOffset(
+    vec2 p
+)
+{
+    vec2 v =
+        vec2(
+            p.x *
+            u_scaleMantissa,
+
+            p.y *
+            u_scaleMantissa
+        );
+
+    vec2 x =
+        scaleOffset(
+            vec2(
+                v.x,
+                0.0
+            ),
+            u_scaleExponent
+        );
+
+    vec2 y =
+        scaleOffset(
+            vec2(
+                v.y,
+                0.0
+            ),
+            u_scaleExponent
+        );
+
+    return vec2(
+        x.x + x.y,
+        y.x + y.y
+    );
+}
+
+
+/* =========================================================
+   Color
+========================================================= */
+
+vec3 colorize(
+    float t
+)
+{
+    return
+        0.5 +
+        0.5 *
+        cos(
+            6.28318530718 *
+            (
+                t +
+                vec3(
+                    0.00,
+                    0.12,
+                    0.25
+                )
+            )
+        );
+}
+
+
+/* =========================================================
+   Mandelbrot
+========================================================= */
+
+void main()
+{
+    vec2 pixel =
+        gl_FragCoord.xy;
+
+
+    float screenScale =
+        min(
+            u_resolution.x,
+            u_resolution.y
+        );
+
+
+    /*
+        画面中心からの正規化座標。
+    */
+
+    vec2 p =
+        (
+            pixel -
+            0.5 *
+            u_resolution
+        )
+        /
+        screenScale;
+
+
+    /*
+        float-floatによるpixel offset。
+    */
+
+    vec2 offset =
+        scaledPixelOffset(p);
+
+
+    /*
+        center + offset
+
+        float-float加算。
+    */
+
+    vec2 cx =
+        ffAdd(
+            vec2(
+                u_centerHi.x,
+                u_centerLo.x
+            ),
+            vec2(
+                offset.x,
+                0.0
+            )
+        );
+
+    vec2 cy =
+        ffAdd(
+            vec2(
+                u_centerHi.y,
+                u_centerLo.y
+            ),
+            vec2(
+                -offset.y,
+                0.0
+            )
+        );
+
+
+    /*
+        Mandelbrot
+
+        z = z² + c
+
+        現在はz自体もfloat。
+
+        centerの精度は改善されるが、
+        超深度での完全な任意精度計算には
+        perturbation等が必要。
+    */
+
+    float zx = 0.0;
+    float zy = 0.0;
+
+    float smoothIteration =
+        0.0;
+
+    bool escaped =
+        false;
+
+
+    for (
+        int i = 0;
+        i < 100000;
+        ++i
+    )
+    {
+        if (
+            i >= u_iterations
+        )
+        {
+            break;
+        }
+
+
+        float xx =
+            zx * zx;
+
+        float yy =
+            zy * zy;
+
+        float r2 =
+            xx + yy;
+
+
+        /*
+            escape radius = 2
+
+            |z|² > 4
+        */
+
+        if (r2 > 4.0)
+        {
+            /*
+                Smooth coloring
+            */
+
+            float logZn =
+                0.5 *
+                log(r2);
+
+            float nu =
+                log(
+                    logZn /
+                    0.6931471805599453
+                )
+                /
+                0.6931471805599453;
+
+            smoothIteration =
+                float(i) +
+                1.0 -
+                nu;
+
+            escaped =
+                true;
+
+            break;
+        }
+
+
+        float xy =
+            zx * zy;
+
+
+        zx =
+            xx -
+            yy +
+            cx.x +
+            cx.y;
+
+
+        zy =
+            xy +
+            xy +
+            cy.x +
+            cy.y;
+    }
+
+
+    /*
+        Interior
+    */
+
+    if (!escaped)
+    {
+        outColor =
+            vec4(
+                0.0,
+                0.0,
+                0.0,
+                1.0
+            );
+
+        return;
+    }
+
+
+    /*
+        Normalized smooth iteration
+    */
+
+    float t =
+        smoothIteration /
+        float(u_iterations);
+
+
+    t =
+        pow(
+            clamp(
+                t,
+                0.0,
+                1.0
+            ),
+            0.35
+        );
+
+
+    outColor =
+        vec4(
+            colorize(t),
+            1.0
+        );
+}
+
+`;
+
+
+/* =========================================================
+   Shader compilation
+========================================================= */
+
+function createShader(
+    type,
+    source
+)
+{
+    const shader =
+        gl.createShader(type);
+
+    gl.shaderSource(
+        shader,
+        source
+    );
+
+    gl.compileShader(
+        shader
+    );
+
+    if (
+        !gl.getShaderParameter(
+            shader,
+            gl.COMPILE_STATUS
+        )
+    )
+    {
+        const error =
+            gl.getShaderInfoLog(
+                shader
+            );
+
+        gl.deleteShader(
+            shader
+        );
+
+        throw new Error(error);
+    }
+
+    return shader;
+}
+
+
+function createProgram(
+    vertexSource,
+    fragmentSource
+)
+{
+    const vertexShader =
+        createShader(
+            gl.VERTEX_SHADER,
+            vertexSource
+        );
+
+    const fragmentShader =
+        createShader(
+            gl.FRAGMENT_SHADER,
+            fragmentSource
+        );
+
+    const program =
+        gl.createProgram();
+
+    gl.attachShader(
+        program,
+        vertexShader
+    );
+
+    gl.attachShader(
+        program,
+        fragmentShader
+    );
+
+    gl.linkProgram(
+        program
+    );
+
+    if (
+        !gl.getProgramParameter(
+            program,
+            gl.LINK_STATUS
+        )
+    )
+    {
+        throw new Error(
+            gl.getProgramInfoLog(
+                program
+            )
+        );
+    }
+
+    gl.deleteShader(
+        vertexShader
+    );
+
+    gl.deleteShader(
+        fragmentShader
+    );
+
+    return program;
+}
+
+
+const program =
+    createProgram(
+        vertexShaderSource,
+        fragmentShaderSource
+    );
+
+gl.useProgram(program);
+
+
+/* =========================================================
+   Fullscreen triangle
+========================================================= */
+
+const vertices =
+    new Float32Array([
+        -1, -1,
+         3, -1,
+        -1,  3
+    ]);
+
+
+const buffer =
+    gl.createBuffer();
+
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    buffer
+);
+
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    vertices,
+    gl.STATIC_DRAW
+);
+
+
+const positionLocation =
+    gl.getAttribLocation(
+        program,
+        "a_position"
+    );
+
+gl.enableVertexAttribArray(
+    positionLocation
+);
+
+gl.vertexAttribPointer(
+    positionLocation,
+    2,
+    gl.FLOAT,
+    false,
+    0,
+    0
+);
+
+
+/* =========================================================
+   Uniform locations
+========================================================= */
+
+const resolutionLocation =
+    gl.getUniformLocation(
+        program,
+        "u_resolution"
+    );
+
+const centerHiLocation =
+    gl.getUniformLocation(
+        program,
+        "u_centerHi"
+    );
+
+const centerLoLocation =
+    gl.getUniformLocation(
+        program,
+        "u_centerLo"
+    );
+
+const scaleMantissaLocation =
+    gl.getUniformLocation(
+        program,
+        "u_scaleMantissa"
+    );
+
+const scaleExponentLocation =
+    gl.getUniformLocation(
+        program,
+        "u_scaleExponent"
+    );
+
+const iterationsLocation =
+    gl.getUniformLocation(
+        program,
+        "u_iterations"
+    );
+
+
+/* =========================================================
+   Resize
+========================================================= */
+
+function resizeCanvas()
+{
+    const dpr =
+        Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+    const width =
+        Math.max(
+            1,
+            Math.floor(
+                canvas.clientWidth *
+                dpr
+            )
+        );
+
+    const height =
+        Math.max(
+            1,
+            Math.floor(
+                canvas.clientHeight *
+                dpr
+            )
+        );
+
+
+    if (
+        canvas.width !== width ||
+        canvas.height !== height
+    )
+    {
+        canvas.width =
+            width;
+
+        canvas.height =
+            height;
+    }
+
+
+    gl.viewport(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+}
+
+
+/* =========================================================
+   Render
+========================================================= */
+
+function render(
+    iterationRate
+)
+{
+    resizeCanvas();
+
+
+    const iterations =
+        Math.max(
+            1,
+            Math.floor(
+                maxIterations *
+                iterationRate
+            )
+        );
+
+
+    const scale =
+        pixelScaleParts();
+
+
+    gl.useProgram(program);
+
+
+    gl.uniform2f(
+        resolutionLocation,
+        canvas.width,
+        canvas.height
+    );
+
+
+    gl.uniform2f(
+        centerHiLocation,
+        centerXHi,
+        centerYHi
+    );
+
+
+    gl.uniform2f(
+        centerLoLocation,
+        centerXLo,
+        centerYLo
+    );
+
+
+    gl.uniform1f(
+        scaleMantissaLocation,
+        scale.mantissa
+    );
+
+
+    gl.uniform1i(
+        scaleExponentLocation,
+        scale.exponent
+    );
+
+
+    gl.uniform1i(
+        iterationsLocation,
+        iterations
+    );
+
+
+    gl.drawArrays(
+        gl.TRIANGLES,
+        0,
+        3
+    );
+}
+
+
+/* =========================================================
+   Rendering quality
+========================================================= */
+
+function renderMoving()
+{
+    renderVersion++;
+
+    clearTimeout(
+        qualityTimer
+    );
+
+    /*
+        移動中は低iteration。
+    */
+
+    render(0.15);
+}
+
+
+function scheduleFinal()
+{
+    const version =
+        renderVersion;
+
+    clearTimeout(
+        qualityTimer
+    );
+
+    qualityTimer =
+        setTimeout(
+            () =>
+            {
+                if (
+                    version !==
+                    renderVersion
+                )
+                {
+                    return;
+                }
+
+                render(1.0);
+            },
+            120
+        );
+}
+
+
+function renderFinal()
+{
+    renderVersion++;
+
+    clearTimeout(
+        qualityTimer
+    );
+
+    render(1.0);
+}
+
+
+/* =========================================================
+   Center movement
+========================================================= */
+
+function addCenter(
+    dx,
+    dy
+)
+{
+    let r =
+        ddAdd(
+            centerXHi,
+            centerXLo,
+            dx,
+            0
+        );
+
+    centerXHi =
+        r.hi;
+
+    centerXLo =
+        r.lo;
+
+
+    r =
+        ddAdd(
+            centerYHi,
+            centerYLo,
+            dy,
+            0
+        );
+
+    centerYHi =
+        r.hi;
+
+    centerYLo =
+        r.lo;
+}
+
+
+/* =========================================================
+   Screen → world
+========================================================= */
+
+/*
+    画面座標から、
+    現在の中心を基準とした
+    world coordinateを求める。
+
+    scaleValueがNumberとして安全な場合は
+    double-double加算を利用。
+
+    超深度では操作側も別方式が必要になる。
+*/
+
+function screenToWorld(
+    screenX,
+    screenY
+)
+{
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    const x =
+        screenX -
+        rect.left;
+
+    const y =
+        screenY -
+        rect.top;
+
+
+    const screenScale =
+        Math.min(
+            rect.width,
+            rect.height
+        );
+
+
+    const parts =
+        pixelScaleParts();
+
+
+    const scaleValue =
+        safeScaleValue(
+            parts
+        );
+
+
+    if (
+        scaleValue === null
+    )
+    {
+        return null;
+    }
+
+
+    const ox =
+        (
+            x -
+            rect.width * 0.5
+        )
+        /
+        screenScale
+        *
+        scaleValue;
+
+
+    const oy =
+        (
+            rect.height * 0.5 -
+            y
+        )
+        /
+        screenScale
+        *
+        scaleValue;
+
+
+    return {
+        x:
+            ddAdd(
+                centerXHi,
+                centerXLo,
+                ox,
+                0
+            ),
+
+        y:
+            ddAdd(
+                centerYHi,
+                centerYLo,
+                oy,
+                0
+            )
+    };
+}
+
+
+/* =========================================================
+   Zoom at point
+========================================================= */
+
+function zoomAt(
+    screenX,
+    screenY,
+    factor
+)
+{
+    const world =
+        screenToWorld(
+            screenX,
+            screenY
+        );
+
+
+    /*
+        超深度でNumberがscaleを保持できない場合、
+        zoomだけ変更すると
+        マウス位置固定が破綻する。
+
+        そのため現在は位置を動かさず、
+        安全範囲でのみpoint zoomを行う。
+    */
+
+    multiplyZoom(
+        factor
+    );
+
+
+    if (world === null)
+    {
+        updateInfo();
+
+        renderMoving();
+        scheduleFinal();
+
+        return;
+    }
+
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    const x =
+        screenX -
+        rect.left;
+
+    const y =
+        screenY -
+        rect.top;
+
+
+    const screenScale =
+        Math.min(
+            rect.width,
+            rect.height
+        );
+
+
+    const parts =
+        pixelScaleParts();
+
+
+    const newScale =
+        safeScaleValue(
+            parts
+        );
+
+
+    if (
+        newScale === null
+    )
+    {
+        updateInfo();
+
+        renderMoving();
+        scheduleFinal();
+
+        return;
+    }
+
+
+    const nox =
+        (
+            x -
+            rect.width * 0.5
+        )
+        /
+        screenScale
+        *
+        newScale;
+
+
+    const noy =
+        (
+            rect.height * 0.5 -
+            y
+        )
+        /
+        screenScale
+        *
+        newScale;
+
+
+    let r =
+        ddSub(
+            world.x.hi,
+            world.x.lo,
+            nox,
+            0
+        );
+
+
+    centerXHi =
+        r.hi;
+
+    centerXLo =
+        r.lo;
+
+
+    r =
+        ddSub(
+            world.y.hi,
+            world.y.lo,
+            noy,
+            0
+        );
+
+
+    centerYHi =
+        r.hi;
+
+    centerYLo =
+        r.lo;
+
+
+    updateInfo();
+
+    renderMoving();
+
+    scheduleFinal();
+}
+
+
+/* =========================================================
+   Mouse
+========================================================= */
+
+let dragging =
+    false;
+
+let lastMouseX =
+    0;
+
+let lastMouseY =
+    0;
+
+
+canvas.addEventListener(
+    "mousedown",
+    e =>
+    {
+        dragging =
+            true;
+
+        lastMouseX =
+            e.clientX;
+
+        lastMouseY =
+            e.clientY;
+
+
+        renderVersion++;
+
+        clearTimeout(
+            qualityTimer
+        );
+    }
+);
+
+
+window.addEventListener(
+    "mousemove",
+    e =>
+    {
+        if (!dragging)
+        {
+            return;
+        }
+
+
+        const dx =
+            e.clientX -
+            lastMouseX;
+
+        const dy =
+            e.clientY -
+            lastMouseY;
+
+
+        const scale =
+            Math.min(
+                canvas.clientWidth,
+                canvas.clientHeight
+            );
+
+
+        const parts =
+            pixelScaleParts();
+
+
+        const worldScale =
+            safeScaleValue(
+                parts
+            );
+
+
+        /*
+            超深度でworldScaleがNumberに
+            入らない場合は移動を停止。
+        */
+
+        if (
+            worldScale === null
+        )
+        {
+            return;
+        }
+
+
+        /*
+            画像を掴んで動かす方式。
+
+            右へドラッグ
+                → 世界は左
+
+            下へドラッグ
+                → 世界は下
+        */
+
+        addCenter(
+            -dx /
+            scale *
+            worldScale,
+
+            dy /
+            scale *
+            worldScale
+        );
+
+
+        lastMouseX =
+            e.clientX;
+
+        lastMouseY =
+            e.clientY;
+
+
+        updateInfo();
+
+        renderMoving();
+    }
+);
+
+
+window.addEventListener(
+    "mouseup",
+    () =>
+    {
+        if (!dragging)
+        {
+            return;
+        }
+
+        dragging =
+            false;
+
+        scheduleFinal();
+    }
+);
+
+
+/* =========================================================
+   Wheel
+========================================================= */
+
+canvas.addEventListener(
+    "wheel",
+    e =>
+    {
+        e.preventDefault();
+
+
+        const factor =
+            Math.exp(
+                -e.deltaY *
+                0.0015
+            );
+
+
+        zoomAt(
+            e.clientX,
+            e.clientY,
+            factor
+        );
+    },
+    {
+        passive: false
+    }
+);
+
+
+/* =========================================================
+   Touch
+========================================================= */
+
+const touches =
+    new Map();
+
+
+let pinchStartDistance =
+    0;
+
+let pinchStartMantissa =
+    1;
+
+let pinchStartExponent =
+    0;
+
+
+/*
+    ピンチ開始時の
+    「画面上の中心」。
+*/
+
+let pinchStartCenter =
+    null;
+
+
+/*
+    ピンチ開始時に
+    その中心が指していたworld座標。
+*/
+
+let pinchWorldX =
+    null;
+
+let pinchWorldY =
+    null;
+
+
+/*
+    ピンチ中の直前の中心。
+
+    中心移動によるpanを計算するために使用。
+*/
+
+let pinchLastCenter =
+    null;
+
+
+/* =========================================================
+   Touch helpers
+========================================================= */
+
+function touchDistance(
+    a,
+    b
+)
+{
+    return Math.hypot(
+        a.clientX -
+        b.clientX,
+
+        a.clientY -
+        b.clientY
+    );
+}
+
+
+function touchMidpoint(
+    a,
+    b
+)
+{
+    return {
+        x:
+            (
+                a.clientX +
+                b.clientX
+            ) * 0.5,
+
+        y:
+            (
+                a.clientY +
+                b.clientY
+            ) * 0.5
+    };
+}
+
+
+/* =========================================================
+   Touch start
+========================================================= */
+
+canvas.addEventListener(
+    "touchstart",
+    e =>
+    {
+        e.preventDefault();
+
+
+        for (
+            const touch
+            of e.changedTouches
+        )
+        {
+            touches.set(
+                touch.identifier,
+                {
+                    clientX:
+                        touch.clientX,
+
+                    clientY:
+                        touch.clientY,
+
+                    lastX:
+                        touch.clientX,
+
+                    lastY:
+                        touch.clientY
+                }
+            );
+        }
+
+
+        renderVersion++;
+
+        clearTimeout(
+            qualityTimer
+        );
+
+
+        /*
+            1本指になった瞬間に
+            lastX / lastYを現在位置へ同期。
+
+            これが「ピンチ→ドラッグ」
+            のジャンプ対策。
+        */
+
+        if (
+            touches.size === 1
+        )
+        {
+            const touch =
+                [...touches.values()][0];
+
+            touch.lastX =
+                touch.clientX;
+
+            touch.lastY =
+                touch.clientY;
+        }
+
+
+        if (
+            touches.size === 2
+        )
+        {
+            const [
+                a,
+                b
+            ] =
+                [...touches.values()];
+
+
+            pinchStartDistance =
+                touchDistance(
+                    a,
+                    b
+                );
+
+
+            pinchStartMantissa =
+                zoomMantissa;
+
+            pinchStartExponent =
+                zoomExponent;
+
+
+            pinchStartCenter =
+                touchMidpoint(
+                    a,
+                    b
+                );
+
+
+            pinchLastCenter =
+                {
+                    x:
+                        pinchStartCenter.x,
+
+                    y:
+                        pinchStartCenter.y
+                };
+
+
+            const world =
+                screenToWorld(
+                    pinchStartCenter.x,
+                    pinchStartCenter.y
+                );
+
+
+            if (world)
+            {
+                pinchWorldX =
+                    world.x;
+
+                pinchWorldY =
+                    world.y;
+            }
+            else
+            {
+                pinchWorldX =
+                    null;
+
+                pinchWorldY =
+                    null;
+            }
+        }
+    },
+    {
+        passive: false
+    }
+);
+
+
+/* =========================================================
+   Touch move
+========================================================= */
+
+canvas.addEventListener(
+    "touchmove",
+    e =>
+    {
+        e.preventDefault();
+
+
+        /*
+            現在位置だけ更新。
+        */
+
+        for (
+            const touch
+            of e.changedTouches
+        )
+        {
+            const old =
+                touches.get(
+                    touch.identifier
+                );
+
+            if (old)
+            {
+                old.clientX =
+                    touch.clientX;
+
+                old.clientY =
+                    touch.clientY;
+            }
+        }
+
+
+        /* =================================================
+           1 finger
+        ================================================= */
+
+        if (
+            touches.size === 1
+        )
+        {
+            const touch =
+                [...touches.values()][0];
+
+
+            const dx =
+                touch.clientX -
+                touch.lastX;
+
+            const dy =
+                touch.clientY -
+                touch.lastY;
+
+
+            const scale =
+                Math.min(
+                    canvas.clientWidth,
+                    canvas.clientHeight
+                );
+
+
+            const parts =
+                pixelScaleParts();
+
+
+            const worldScale =
+                safeScaleValue(
+                    parts
+                );
+
+
+            if (
+                worldScale !== null
+            )
+            {
+                addCenter(
+                    -dx /
+                    scale *
+                    worldScale,
+
+                    dy /
+                    scale *
+                    worldScale
+                );
+            }
+
+
+            /*
+                必ず現在位置へ更新。
+            */
+
+            touch.lastX =
+                touch.clientX;
+
+            touch.lastY =
+                touch.clientY;
+
+
+            updateInfo();
+
+            renderMoving();
+
+            return;
+        }
+
+
+        /* =================================================
+           2 finger
+        ================================================= */
+
+        if (
+            touches.size === 2 &&
+            pinchStartDistance > 0
+        )
+        {
+            const [
+                a,
+                b
+            ] =
+                [...touches.values()];
+
+
+            const distance =
+                touchDistance(
+                    a,
+                    b
+                );
+
+
+            const currentCenter =
+                touchMidpoint(
+                    a,
+                    b
+                );
+
+
+            /*
+                ズーム倍率。
+
+                開始時の倍率を基準にするので、
+                誤差が累積しない。
+            */
+
+            const ratio =
+                distance /
+                pinchStartDistance;
+
+
+            zoomMantissa =
+                pinchStartMantissa *
+                ratio;
+
+            zoomExponent =
+                pinchStartExponent;
+
+
+            normalizeZoom();
+
+
+            /*
+                2本指中心の移動。
+
+                これにより、
+
+                    pinch + pan
+
+                を同時に可能にする。
+            */
+
+            if (
+                pinchLastCenter &&
+                pinchWorldX &&
+                pinchWorldY
+            )
+            {
+                const dx =
+                    currentCenter.x -
+                    pinchLastCenter.x;
+
+                const dy =
+                    currentCenter.y -
+                    pinchLastCenter.y;
+
+
+                const parts =
+                    pixelScaleParts();
+
+
+                const worldScale =
+                    safeScaleValue(
+                        parts
+                    );
+
+
+                if (
+                    worldScale !== null
+                )
+                {
+                    const scale =
+                        Math.min(
+                            canvas.clientWidth,
+                            canvas.clientHeight
+                        );
+
+
+                    /*
+                        指の中心を動かした分だけ
+                        画像を追従させる。
+
+                        画面座標系:
+                            x右
+                            y下
+
+                        world:
+                            x右
+                            y上
+                    */
+
+                    addCenter(
+                        -dx /
+                        scale *
+                        worldScale,
+
+                        dy /
+                        scale *
+                        worldScale
+                    );
+                }
+            }
+
+
+            /*
+                ピンチ中心固定ズーム。
+
+                現在の中心が変化しているため、
+                現在の中心を基準にworld pointを再計算。
+            */
+
+            if (
+                pinchWorldX &&
+                pinchWorldY &&
+                pinchStartCenter
+            )
+            {
+                const rect =
+                    canvas.getBoundingClientRect();
+
+
+                const mx =
+                    pinchStartCenter.x -
+                    rect.left;
+
+                const my =
+                    pinchStartCenter.y -
+                    rect.top;
+
+
+                const scale =
+                    Math.min(
+                        rect.width,
+                        rect.height
+                    );
+
+
+                const parts =
+                    pixelScaleParts();
+
+
+                const newScale =
+                    safeScaleValue(
+                        parts
+                    );
+
+
+                if (
+                    newScale !== null
+                )
+                {
+                    const ox =
+                        (
+                            mx -
+                            rect.width * 0.5
+                        )
+                        /
+                        scale *
+                        newScale;
+
+
+                    const oy =
+                        (
+                            rect.height * 0.5 -
+                            my
+                        )
+                        /
+                        scale *
+                        newScale;
+
+
+                    let nx =
+                        ddSub(
+                            pinchWorldX.hi,
+                            pinchWorldX.lo,
+                            ox,
+                            0
+                        );
+
+
+                    let ny =
+                        ddSub(
+                            pinchWorldY.hi,
+                            pinchWorldY.lo,
+                            oy,
+                            0
+                        );
+
+
+                    centerXHi =
+                        nx.hi;
+
+                    centerXLo =
+                        nx.lo;
+
+
+                    centerYHi =
+                        ny.hi;
+
+                    centerYLo =
+                        ny.lo;
+                }
+            }
+
+
+            pinchLastCenter =
+                {
+                    x:
+                        currentCenter.x,
+
+                    y:
+                        currentCenter.y
+                };
+
+
+            /*
+                2本指の現在位置を
+                それぞれ同期。
+
+                1本になった瞬間のジャンプを防ぐ。
+            */
+
+            a.lastX =
+                a.clientX;
+
+            a.lastY =
+                a.clientY;
+
+            b.lastX =
+                b.clientX;
+
+            b.lastY =
+                b.clientY;
+
+
+            updateInfo();
+
+            renderMoving();
+        }
+    },
+    {
+        passive: false
+    }
+);
+
+
+/* =========================================================
+   Touch end
+========================================================= */
+
+canvas.addEventListener(
+    "touchend",
+    e =>
+    {
+        e.preventDefault();
+
+
+        for (
+            const touch
+            of e.changedTouches
+        )
+        {
+            touches.delete(
+                touch.identifier
+            );
+        }
+
+
+        /*
+            2 → 1 finger
+
+            残った指の位置を現在位置へ
+            強制的に同期する。
+        */
+
+        if (
+            touches.size === 1
+        )
+        {
+            const touch =
+                [...touches.values()][0];
+
+            touch.lastX =
+                touch.clientX;
+
+            touch.lastY =
+                touch.clientY;
+        }
+
+
+        if (
+            touches.size === 0
+        )
+        {
+            pinchStartDistance =
+                0;
+
+            pinchStartCenter =
+                null;
+
+            pinchLastCenter =
+                null;
+
+            pinchWorldX =
+                null;
+
+            pinchWorldY =
+                null;
+
+
+            scheduleFinal();
+        }
+    },
+    {
+        passive: false
+    }
+);
+
+
+/* =========================================================
+   Touch cancel
+========================================================= */
+
+canvas.addEventListener(
+    "touchcancel",
+    () =>
+    {
+        touches.clear();
+
+        pinchStartDistance =
+            0;
+
+        pinchStartCenter =
+            null;
+
+        pinchLastCenter =
+            null;
+
+        pinchWorldX =
+            null;
+
+        pinchWorldY =
+            null;
+
+
+        scheduleFinal();
+    }
+);
+
+
+/* =========================================================
+   Iterations
+========================================================= */
+
+iterationsInput.addEventListener(
+    "change",
+    () =>
+    {
+        let value =
+            parseInt(
+                iterationsInput.value,
+                10
+            );
+
+
+        if (
+            !Number.isFinite(value)
+        )
+        {
+            value = 500;
+        }
+
+
+        value =
+            Math.max(
+                1,
+                Math.min(
+                    100000,
+                    value
+                )
+            );
+
+
+        maxIterations =
+            value;
+
+
+        iterationsInput.value =
+            value;
+
+
+        iterationText.textContent =
+            value;
+
+
+        renderFinal();
+    }
+);
+
+
+/* =========================================================
+   Reset
+========================================================= */
+
+resetButton.addEventListener(
+    "click",
+    () =>
+    {
+        centerXHi =
+            -0.75;
+
+        centerXLo =
+            0.0;
+
+        centerYHi =
+            0.0;
+
+        centerYLo =
+            0.0;
+
+
+        zoomMantissa =
+            1.0;
+
+        zoomExponent =
+            0;
+
+
+        updateInfo();
+
+        renderFinal();
+    }
+);
+
+
+/* =========================================================
+   Info
+========================================================= */
+
+function updateInfo()
+{
+    zoomText.textContent =
+        zoomString();
+
+    iterationText.textContent =
+        maxIterations;
+}
+
+
+/* =========================================================
+   Resize
+========================================================= */
+
+window.addEventListener(
+    "resize",
+    () =>
+    {
+        resizeCanvas();
+
+        renderFinal();
+    }
+);
+
+
+/* =========================================================
+   Start
+========================================================= */
+
+resizeCanvas();
+
+updateInfo();
+
+renderFinal();
+
+</script>
+
+</body>
+</html>
