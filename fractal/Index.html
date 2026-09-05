@@ -267,30 +267,23 @@ out vec4 outColor;
 
 uniform vec2 u_resolution;
 
-
 /*
-    double-double center
-
-    value = hi + lo
+    中心座標
+    hi + lo の double-double
 */
-
 uniform vec2 u_centerX;
 uniform vec2 u_centerY;
 
-
 /*
     zoom = 2 ^ u_zoomPower
-
-    scale = 2 ^ (-u_zoomPower)
 */
-
 uniform float u_zoomPower;
 
 uniform int u_iterations;
 
 
 /* =========================================================
-   Double-double arithmetic
+   Double-double
 ========================================================= */
 
 vec2 twoSum(float a, float b)
@@ -328,78 +321,25 @@ vec2 ddAdd(vec2 a, vec2 b)
 }
 
 
-vec2 ddSub(vec2 a, vec2 b)
-{
-    return ddAdd(
-        a,
-        vec2(-b.x, -b.y)
-    );
-}
-
-
-vec2 ddMul(vec2 a, vec2 b)
-{
-    float p =
-        a.x * b.x;
-
-    float e =
-        fma(a.x, b.x, -p);
-
-    e +=
-        a.x * b.y +
-        a.y * b.x;
-
-    return quickTwoSum(p, e);
-}
-
-
-/* =========================================================
-   Complex double-double multiplication
-========================================================= */
-
-void complexMul(
-    vec2 ar,
-    vec2 ai,
-    vec2 br,
-    vec2 bi,
-    out vec2 rr,
-    out vec2 ri
-)
-{
-    vec2 ac = ddMul(ar, br);
-    vec2 bd = ddMul(ai, bi);
-
-    vec2 ad = ddMul(ar, bi);
-    vec2 bc = ddMul(ai, br);
-
-    rr = ddSub(ac, bd);
-    ri = ddAdd(ad, bc);
-}
-
-
 /* =========================================================
    Color
 ========================================================= */
 
 vec3 colorize(float t)
 {
-    /*
-        軽量な cosine palette。
-    */
-
-    vec3 phase =
-        vec3(
-            0.00,
-            0.15,
-            0.30
-        );
-
     return
         0.5 +
         0.5 *
         cos(
-            6.2831853 *
-            (t + phase)
+            6.28318530718 *
+            (
+                t +
+                vec3(
+                    0.00,
+                    0.15,
+                    0.30
+                )
+            )
         );
 }
 
@@ -413,7 +353,8 @@ void main()
     vec2 pixel =
         gl_FragCoord.xy;
 
-    float scale =
+
+    float screenScale =
         min(
             u_resolution.x,
             u_resolution.y
@@ -421,44 +362,72 @@ void main()
 
 
     /*
-        ピクセル位置。
-
-        ここでは巨大な zoom 値を直接作らず、
-
-            offset × 2^(-zoomPower)
-
-        とする。
+        画面中心からの相対座標
     */
 
-    vec2 offset =
+    vec2 p =
         (
             pixel -
             0.5 * u_resolution
-        ) / scale;
+        )
+        / screenScale;
 
 
     /*
-        GPUのexp2は非常に高速。
+        zoomPowerを整数部分と小数部分に分離。
 
-        ただし float の指数範囲を超える
-        深度ではゼロになる。
+        これが重要。
 
-        通常のWebGL2で実用的な範囲では
-        十分な精度を維持する。
+        exp2(-1000) のような値を
+        直接作らない。
     */
 
-    float scaleZoom =
-        exp2(-u_zoomPower);
+    float zFloor =
+        floor(u_zoomPower);
+
+    float zFrac =
+        u_zoomPower - zFloor;
+
+
+    /*
+        小数部分だけGPU floatで計算。
+
+        0.5 ～ 1.0程度なので安全。
+    */
+
+    float localScale =
+        exp2(-zFrac);
+
+
+    /*
+        pに対して大きな指数を
+       直接掛けない。
+
+        ここでは実用的な深度まで
+        floatとして扱う。
+    */
+
+    float exponentScale =
+        exp2(
+            clamp(
+                -zFloor,
+                -120.0,
+                120.0
+            )
+        );
 
 
     vec2 delta =
-        offset * scaleZoom;
+        p *
+        localScale *
+        exponentScale;
 
 
     /*
-        c = center + delta
+        中心 + delta
 
-        double-double
+        通常の深度では
+        double-doubleを使用。
     */
 
     vec2 cx =
@@ -474,32 +443,19 @@ void main()
         );
 
 
-    /*
-        z
-
-        Mandelbrot計算では z 自体は
-        普通のfloatで計算する。
-
-        これによりdouble-doubleを
-        毎回使用するより高速。
-    */
-
     float zx = 0.0;
     float zy = 0.0;
 
-    float smoothIteration = 0.0;
-
     bool escaped = false;
+
+    float smoothIteration = 0.0;
 
 
     /*
-        固定上限を100000にしておく。
-
-        実際のiteration数は
-        u_iterationsで制御。
+        Mandelbrot
     */
 
-    for (int i = 0; i < 100000; ++i)
+    for (int i = 0; i < 100000; i++)
     {
         if (i >= u_iterations)
             break;
@@ -511,26 +467,31 @@ void main()
         float yy =
             zy * zy;
 
-        float xy =
-            zx * zy;
+
+        float r2 =
+            xx + yy;
 
 
         /*
-            escape判定を早めに行う。
+            早期脱出。
+
+            256ではなく64でも
+            smooth coloringには十分。
         */
 
-        if (xx + yy > 64.0)
+        if (r2 > 64.0)
         {
             float logZn =
-                0.5 *
-                log(xx + yy);
+                0.5 * log(r2);
 
             float nu =
                 log(
                     logZn /
                     0.6931471805599453
-                ) /
+                )
+                /
                 0.6931471805599453;
+
 
             smoothIteration =
                 float(i) +
@@ -543,16 +504,26 @@ void main()
         }
 
 
+        float xy =
+            zx * zy;
+
+
         zx =
-            xx - yy + cx.x;
+            xx -
+            yy +
+            cx.x;
+
 
         zy =
-            xy + xy + cy.x * 0.0 + cy.y;
+            xy +
+            xy +
+            cy.x * 0.0 +
+            cy.y;
     }
 
 
     /*
-        内部
+        Mandelbrot内部
     */
 
     if (!escaped)
@@ -574,11 +545,6 @@ void main()
         float(u_iterations);
 
 
-    /*
-        iteration数が少ないときも
-        コントラストを確保。
-    */
-
     t =
         pow(
             clamp(t, 0.0, 1.0),
@@ -586,18 +552,13 @@ void main()
         );
 
 
-    vec3 color =
-        colorize(t);
-
-
     outColor =
         vec4(
-            color,
+            colorize(t),
             1.0
         );
 }
 `;
-
 
 /* =========================================================
    Shader
