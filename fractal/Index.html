@@ -161,10 +161,15 @@ const gl =
 
 if (!gl) {
     showError(
-        "WebGL2 が利用できません。"
+        "WebGL2 が利用できません。\n\n" +
+        "このブラウザまたは環境では " +
+        "WebGL2 が無効になっています。"
+    );
+
+    throw new Error(
+        "WebGL2 context could not be created."
     );
 }
-
 
 /* =========================================================
    UI
