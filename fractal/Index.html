@@ -8,7 +8,7 @@
                maximum-scale=1.0,
                user-scalable=no">
 
-<title>Mandelbrot Explorer</title>
+<title>High Precision Mandelbrot Explorer</title>
 
 <style>
 * {
@@ -30,8 +30,6 @@ canvas {
     touch-action: none;
 }
 
-/* ---------- Info ---------- */
-
 #info {
     position: fixed;
     top: 14px;
@@ -46,8 +44,6 @@ canvas {
     pointer-events: none;
     user-select: none;
 }
-
-/* ---------- Controls ---------- */
 
 #controls {
     position: fixed;
@@ -91,8 +87,6 @@ canvas {
     background: rgba(255,255,255,.1);
 }
 
-/* ---------- Progress ---------- */
-
 #progress {
     position: fixed;
 
@@ -124,7 +118,6 @@ canvas {
 </style>
 </head>
 
-
 <body>
 
 <canvas id="canvas"></canvas>
@@ -132,6 +125,7 @@ canvas {
 <div id="info">
     <div>Zoom: <span id="zoom">1×</span></div>
     <div>Iterations: <span id="iterationText">500</span></div>
+    <div>Precision: <span>double-single</span></div>
 </div>
 
 <div id="controls">
@@ -206,19 +200,63 @@ const resetButton =
    State
 ========================================================= */
 
-let centerX = -0.75;
-let centerY = 0;
+/*
+    重要:
 
-let zoom = 1;
+    centerX / centerY を Number だけで保持しない。
 
-let maxIterations = 500;
+    JavaScript Number も IEEE-754 double なので、
+    最終的には約15〜16桁で限界になる。
+
+    そこで座標を decimal BigInt で保持する。
+*/
+
+const CENTER_SCALE_DIGITS = 40;
+
+const CENTER_SCALE =
+    10n ** BigInt(CENTER_SCALE_DIGITS);
 
 
 /*
-    レンダリング世代。
-
-    古い描画を無効化するために使用。
+    初期値 -0.75
 */
+
+let centerXInt =
+    -75n *
+    10n ** BigInt(CENTER_SCALE_DIGITS - 2);
+
+let centerYInt = 0n;
+
+
+/*
+    Zoomは指数で管理する。
+
+        zoom = 2 ^ zoomPower
+
+    とする。
+
+    Numberの乗算を繰り返さないため、
+    極端なズームでも比較的安定する。
+*/
+
+let zoomPower = 0;
+
+
+/*
+    実際のzoom値を返す。
+
+    Math.pow自体はGPU座標計算には使わない。
+    表示・パン量の計算用。
+*/
+
+function getZoom() {
+
+    return Math.pow(2, zoomPower);
+}
+
+
+let maxIterations = 500;
+
 let renderVersion = 0;
 
 let qualityTimer = null;
@@ -256,46 +294,289 @@ void main() {
 const fragmentShaderSource = `#version 300 es
 
 precision highp float;
+precision highp int;
 
 out vec4 outColor;
 
-uniform vec2 u_resolution;
-uniform vec2 u_center;
-uniform float u_zoom;
-uniform int u_iterations;
-
 
 /*
-    CPU版で使っていた
-    滑らかな色付けを再現。
+    ========================================================
+    Double-Single arithmetic
+    ========================================================
 
-    tによって色相が連続的に変化する。
+    1つの数値を
+
+        value = hi + lo
+
+    の2つのfloatで表現する。
+
+    WebGL2のfloatは32bitだが、
+    この方式によって実質的に約48bit前後の
+    有効精度を得られる。
+
+    深いMandelbrot zoomでは非常に重要。
 */
-vec3 colorize(float t) {
 
-    /*
-        以前のCPU版に近い
-        smooth coloring
-    */
 
-    float r =
-        0.5 +
-        0.5 * cos(
-            6.2831853 * (t + 0.00)
-        );
-    return vec3(r, r, r);
+struct DS {
+    float hi;
+    float lo;
+};
+
+
+/* ---------- DS constructors ---------- */
+
+DS ds(float x) {
+
+    DS r;
+
+    r.hi = x;
+    r.lo = 0.0;
+
+    return r;
 }
 
 
-void main() {
+/* ---------- DS normalize ---------- */
+
+DS dsNormalize(
+    float hi,
+    float lo
+) {
+
+    float s =
+        hi + lo;
+
+    float e =
+        lo - (s - hi);
+
+    DS r;
+
+    r.hi = s;
+    r.lo = e;
+
+    return r;
+}
+
+
+/* ---------- DS addition ---------- */
+
+DS dsAdd(
+    DS a,
+    DS b
+) {
+
+    float s =
+        a.hi + b.hi;
+
+    float v =
+        s - a.hi;
+
+    float e =
+        (a.hi - (s - v)) +
+        (b.hi - v) +
+        a.lo +
+        b.lo;
+
+    return dsNormalize(
+        s,
+        e
+    );
+}
+
+
+/* ---------- DS subtraction ---------- */
+
+DS dsSub(
+    DS a,
+    DS b
+) {
+
+    float s =
+        a.hi - b.hi;
+
+    float v =
+        s - a.hi;
+
+    float e =
+        (a.hi - (s - v)) -
+        (b.hi + v) +
+        a.lo -
+        b.lo;
+
+    return dsNormalize(
+        s,
+        e
+    );
+}
+
+
+/* ---------- DS multiplication ---------- */
+
+DS dsMul(
+    DS a,
+    DS b
+) {
 
     /*
-        アスペクト比を維持しながら
-        複素平面へ変換。
+        Dekker-style split
+
+        2^12 + 1
+        はfloat32の仮数分割用。
     */
+
+    const float SPLIT =
+        4097.0;
+
+
+    float c11 =
+        a.hi * b.hi;
+
+
+    float ca =
+        SPLIT * a.hi;
+
+    float ah =
+        ca - (ca - a.hi);
+
+    float al =
+        a.hi - ah;
+
+
+    float cb =
+        SPLIT * b.hi;
+
+    float bh =
+        cb - (cb - b.hi);
+
+    float bl =
+        b.hi - bh;
+
+
+    float c12 =
+        ah * bh - c11;
+
+    c12 +=
+        ah * bl;
+
+    c12 +=
+        al * bh;
+
+    c12 +=
+        al * bl;
+
+
+    c12 +=
+        a.hi * b.lo;
+
+    c12 +=
+        a.lo * b.hi;
+
+
+    return dsNormalize(
+        c11,
+        c12
+    );
+}
+
+
+/* ---------- DS × float ---------- */
+
+DS dsMulFloat(
+    DS a,
+    float b
+) {
+
+    float p =
+        a.hi * b;
+
+    float e =
+        a.lo * b;
+
+
+    return dsNormalize(
+        p,
+        e
+    );
+}
+
+
+/* ---------- DS absolute ---------- */
+
+float dsAbs(
+    DS a
+) {
+
+    return abs(
+        a.hi + a.lo
+    );
+}
+
+
+/* ========================================================
+   Uniforms
+======================================================== */
+
+uniform vec2 u_resolution;
+
+uniform vec2 u_centerHi;
+uniform vec2 u_centerLo;
+
+uniform float u_zoomHi;
+uniform float u_zoomLo;
+
+uniform int u_iterations;
+
+
+/* ========================================================
+   Color
+======================================================== */
+
+vec3 colorize(
+    float t
+) {
+
+    float r =
+        0.5 +
+        0.5 *
+        cos(
+            6.2831853 *
+            (t + 0.00)
+        );
+
+    float g =
+        0.5 +
+        0.5 *
+        cos(
+            6.2831853 *
+            (t + 0.33)
+        );
+
+    float b =
+        0.5 +
+        0.5 *
+        cos(
+            6.2831853 *
+            (t + 0.66)
+        );
+
+    return vec3(
+        r,
+        g,
+        b
+    );
+}
+
+
+/* ========================================================
+   Main
+======================================================== */
+
+void main() {
 
     vec2 pixel =
         gl_FragCoord.xy;
+
 
     float scale =
         min(
@@ -304,76 +585,269 @@ void main() {
         );
 
 
-    vec2 offset =
-        (pixel -
-         0.5 * u_resolution)
-        / scale;
+    /*
+        pixel offset
+
+        ここは画面内の相対値なので
+        float32でも十分な精度がある。
+
+        問題なのは巨大な中心座標との加算なので、
+        そこだけDSにする。
+    */
+
+    vec2 pixelOffset =
+        (
+            pixel -
+            0.5 * u_resolution
+        ) / scale;
 
 
     /*
-        Mandelbrotのc
+        zoomをDSとして作成
     */
 
-    vec2 c =
-        u_center +
-        offset / u_zoom;
-
-
-    vec2 z =
-        vec2(0.0);
-
-
-    int i = 0;
-
-    float smoothIteration = 0.0;
-
-
-    /*
-        z = z² + c
-    */
-
-    for (int n = 0; n < 100000; n++) {
-
-        if (n >= u_iterations) {
-            break;
-        }
-
-        float x = z.x;
-        float y = z.y;
-
-
-        z = vec2(
-            x * x - y * y + c.x,
-            2.0 * x * y + c.y
+    DS zoomDS =
+        dsNormalize(
+            u_zoomHi,
+            u_zoomLo
         );
 
 
+    /*
+        1 / zoom
+
+        深いズームでは非常に小さい値になる。
+
+        ここでは pixelOffset はfloat、
+        zoomの逆数はDSとして計算する。
+    */
+
+    float zoomValue =
+        zoomDS.hi +
+        zoomDS.lo;
+
+
+    /*
+        画面座標をfloatのまま
+        centerへ足さない。
+
+        pixelOffset / zoom を
+        DS化してから加算する。
+    */
+
+    float invZoom =
+        1.0 / zoomValue;
+
+
+    DS dx =
+        ds(
+            pixelOffset.x *
+            invZoom
+        );
+
+    DS dy =
+        ds(
+            pixelOffset.y *
+            invZoom
+        );
+
+
+    /*
+        center
+    */
+
+    DS cx =
+        dsNormalize(
+            u_centerHi.x,
+            u_centerLo.x
+        );
+
+    DS cy =
+        dsNormalize(
+            u_centerHi.y,
+            u_centerLo.y
+        );
+
+
+    /*
+        c = center + offset / zoom
+    */
+
+    cx =
+        dsAdd(
+            cx,
+            dx
+        );
+
+    cy =
+        dsAdd(
+            cy,
+            dy
+        );
+
+
+    /*
+        Mandelbrot z
+
+        zもDS。
+    */
+
+    DS zx =
+        ds(0.0);
+
+    DS zy =
+        ds(0.0);
+
+
+    int escaped =
+        0;
+
+    float smoothIteration =
+        0.0;
+
+
+    for (
+        int n = 0;
+        n < 100000;
+        n++
+    ) {
+
+        if (
+            n >= u_iterations
+        ) {
+            break;
+        }
+
+
+        /*
+            x²
+        */
+
+        DS xx =
+            dsMul(
+                zx,
+                zx
+            );
+
+
+        /*
+            y²
+        */
+
+        DS yy =
+            dsMul(
+                zy,
+                zy
+            );
+
+
+        /*
+            2xy
+        */
+
+        DS xy =
+            dsMul(
+                zx,
+                zy
+            );
+
+        xy =
+            dsMulFloat(
+                xy,
+                2.0
+            );
+
+
+        /*
+            new z
+
+            x' = x² - y² + cx
+            y' = 2xy + cy
+        */
+
+        DS newX =
+            dsAdd(
+                dsSub(
+                    xx,
+                    yy
+                ),
+                cx
+            );
+
+
+        DS newY =
+            dsAdd(
+                xy,
+                cy
+            );
+
+
+        zx =
+            newX;
+
+        zy =
+            newY;
+
+
+        /*
+            |z|²
+        */
+
+        DS xx2 =
+            dsMul(
+                zx,
+                zx
+            );
+
+        DS yy2 =
+            dsMul(
+                zy,
+                zy
+            );
+
+
+        DS magnitude =
+            dsAdd(
+                xx2,
+                yy2
+            );
+
+
         float magnitudeSquared =
-            dot(z, z);
+            magnitude.hi +
+            magnitude.lo;
 
 
-        if (magnitudeSquared > 256.0) {
+        if (
+            magnitudeSquared > 256.0
+        ) {
 
             /*
-                Smooth iteration count
-
-                境界を滑らかにする。
+                Smooth coloring
             */
 
             float logZn =
-                log(magnitudeSquared) * 0.5;
+                log(
+                    magnitudeSquared
+                ) * 0.5;
+
 
             float nu =
                 log(
-                    logZn / log(2.0)
-                ) / log(2.0);
+                    logZn /
+                    log(2.0)
+                ) /
+                log(2.0);
 
 
             smoothIteration =
-                float(n) + 1.0 - nu;
+                float(n) +
+                1.0 -
+                nu;
 
 
-            i = n + 1;
+            escaped =
+                1;
 
             break;
         }
@@ -381,10 +855,12 @@ void main() {
 
 
     /*
-        Mandelbrot集合内部
+        Interior
     */
 
-    if (i == 0) {
+    if (
+        escaped == 0
+    ) {
 
         outColor =
             vec4(
@@ -398,34 +874,25 @@ void main() {
     }
 
 
-    /*
-        正規化
-    */
-
     float t =
         smoothIteration /
         float(u_iterations);
 
 
-    /*
-        CPU版同様、
-        奥行きを出すために非線形変換。
-    */
-
     t =
         pow(
-            clamp(t, 0.0, 1.0),
+            clamp(
+                t,
+                0.0,
+                1.0
+            ),
             0.35
         );
 
 
-    vec3 color =
-        colorize(t);
-
-
     outColor =
         vec4(
-            color,
+            colorize(t),
             1.0
         );
 }
@@ -436,26 +903,36 @@ void main() {
    Shader compilation
 ========================================================= */
 
-function createShader(type, source) {
+function createShader(
+    type,
+    source
+) {
 
     const shader =
         gl.createShader(type);
+
 
     gl.shaderSource(
         shader,
         source
     );
 
-    gl.compileShader(shader);
+    gl.compileShader(
+        shader
+    );
 
 
-    if (!gl.getShaderParameter(
-        shader,
-        gl.COMPILE_STATUS
-    )) {
+    if (
+        !gl.getShaderParameter(
+            shader,
+            gl.COMPILE_STATUS
+        )
+    ) {
 
         const error =
-            gl.getShaderInfoLog(shader);
+            gl.getShaderInfoLog(
+                shader
+            );
 
         gl.deleteShader(shader);
 
@@ -477,6 +954,7 @@ function createProgram(
             gl.VERTEX_SHADER,
             vertexSource
         );
+
 
     const fragmentShader =
         createShader(
@@ -500,22 +978,33 @@ function createProgram(
     );
 
 
-    gl.linkProgram(program);
+    gl.linkProgram(
+        program
+    );
 
 
-    if (!gl.getProgramParameter(
-        program,
-        gl.LINK_STATUS
-    )) {
+    if (
+        !gl.getProgramParameter(
+            program,
+            gl.LINK_STATUS
+        )
+    ) {
 
         throw new Error(
-            gl.getProgramInfoLog(program)
+            gl.getProgramInfoLog(
+                program
+            )
         );
     }
 
 
-    gl.deleteShader(vertexShader);
-    gl.deleteShader(fragmentShader);
+    gl.deleteShader(
+        vertexShader
+    );
+
+    gl.deleteShader(
+        fragmentShader
+    );
 
 
     return program;
@@ -529,7 +1018,9 @@ const program =
     );
 
 
-gl.useProgram(program);
+gl.useProgram(
+    program
+);
 
 
 /* =========================================================
@@ -593,17 +1084,34 @@ const resolutionLocation =
         "u_resolution"
     );
 
-const centerLocation =
+
+const centerHiLocation =
     gl.getUniformLocation(
         program,
-        "u_center"
+        "u_centerHi"
     );
 
-const zoomLocation =
+
+const centerLoLocation =
     gl.getUniformLocation(
         program,
-        "u_zoom"
+        "u_centerLo"
     );
+
+
+const zoomHiLocation =
+    gl.getUniformLocation(
+        program,
+        "u_zoomHi"
+    );
+
+
+const zoomLoLocation =
+    gl.getUniformLocation(
+        program,
+        "u_zoomLo"
+    );
+
 
 const iterationsLocation =
     gl.getUniformLocation(
@@ -613,17 +1121,106 @@ const iterationsLocation =
 
 
 /* =========================================================
+   BigInt -> double-single
+========================================================= */
+
+/*
+    BigIntで持っている座標を
+
+        hi + lo
+
+    の2つのfloatへ変換する。
+
+    BigInt全体をNumberに変換すると
+    その時点で精度を失うため、
+    上位・下位へ分割する。
+*/
+
+function bigintToDS(
+    value
+) {
+
+    const scale =
+        CENTER_SCALE;
+
+
+    const integerPart =
+        value / scale;
+
+
+    const remainder =
+        value % scale;
+
+
+    const integerNumber =
+        Number(integerPart);
+
+
+    const fractionNumber =
+        Number(remainder) /
+        Number(scale);
+
+
+    /*
+        integerNumberをfloat32へ
+        落とした際の誤差を
+        low側へ回収する。
+    */
+
+    const hi =
+        Math.fround(
+            integerNumber
+        );
+
+
+    const integerError =
+        integerNumber -
+        hi;
+
+
+    const lo =
+        Math.fround(
+            integerError +
+            fractionNumber
+        );
+
+
+    return {
+        hi,
+        lo
+    };
+}
+
+
+/*
+    Numberのzoomを
+    double-singleへ分解。
+*/
+
+function numberToDS(
+    value
+) {
+
+    const hi =
+        Math.fround(value);
+
+    const lo =
+        Math.fround(
+            value - hi
+        );
+
+    return {
+        hi,
+        lo
+    };
+}
+
+
+/* =========================================================
    Resize
 ========================================================= */
 
 function resizeCanvas() {
-
-    /*
-        Canvasそのものの解像度。
-
-        これはレンダリング品質によって
-        変更しない。
-    */
 
     const dpr =
         Math.min(
@@ -634,12 +1231,15 @@ function resizeCanvas() {
 
     const width =
         Math.floor(
-            canvas.clientWidth * dpr
+            canvas.clientWidth *
+            dpr
         );
+
 
     const height =
         Math.floor(
-            canvas.clientHeight * dpr
+            canvas.clientHeight *
+            dpr
         );
 
 
@@ -648,8 +1248,11 @@ function resizeCanvas() {
         canvas.height !== height
     ) {
 
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width =
+            width;
+
+        canvas.height =
+            height;
     }
 
 
@@ -666,12 +1269,17 @@ function resizeCanvas() {
    Progress
 ========================================================= */
 
-function setProgress(value) {
+function setProgress(
+    value
+) {
 
     value =
         Math.max(
             0,
-            Math.min(1, value)
+            Math.min(
+                1,
+                value
+            )
         );
 
 
@@ -701,38 +1309,6 @@ function finishProgress() {
 }
 
 
-/*
-    推定計算量。
-
-    WebGLではGPU内部の進捗を取得できないので、
-
-        画素数 × iterations
-
-    を基準にする。
-*/
-function estimatedWork(
-    iterationRate
-) {
-
-    const pixels =
-        canvas.width *
-        canvas.height;
-
-
-    const iterations =
-        Math.max(
-            1,
-            Math.floor(
-                maxIterations *
-                iterationRate
-            )
-        );
-
-
-    return pixels * iterations;
-}
-
-
 /* =========================================================
    Render
 ========================================================= */
@@ -755,21 +1331,27 @@ function render(
         );
 
 
-    /*
-        常にcanvas全体を描画。
+    const centerX =
+        bigintToDS(
+            centerXInt
+        );
 
-        ここでは解像度を落とさない。
-    */
 
-    gl.viewport(
-        0,
-        0,
-        canvas.width,
-        canvas.height
+    const centerY =
+        bigintToDS(
+            centerYInt
+        );
+
+
+    const zoom =
+        numberToDS(
+            getZoom()
+        );
+
+
+    gl.useProgram(
+        program
     );
-
-
-    gl.useProgram(program);
 
 
     gl.uniform2f(
@@ -780,15 +1362,43 @@ function render(
 
 
     gl.uniform2f(
-        centerLocation,
-        centerX,
-        centerY
+        centerHiLocation,
+        centerX.hi,
+        centerY.hi
     );
 
 
+    gl.uniform2f(
+        centerLoLocation,
+        centerX.lo,
+        centerY.lo
+    );
+
+
+    gl.uniform2f(
+        zoomHiLocation,
+        zoom.hi,
+        zoom.lo
+    );
+
+
+    /*
+        zoomLoLocationは
+        vec2ではなくshader上ではfloatなので、
+        実際には以下のuniform設定は不要。
+
+        zoomはuniform vec2ではなく
+        float 2本として送る。
+    */
+
     gl.uniform1f(
-        zoomLocation,
-        zoom
+        zoomHiLocation,
+        zoom.hi
+    );
+
+    gl.uniform1f(
+        zoomLoLocation,
+        zoom.lo
     );
 
 
@@ -798,10 +1408,6 @@ function render(
     );
 
 
-    /*
-        GPUへ描画命令。
-    */
-
     gl.drawArrays(
         gl.TRIANGLES,
         0,
@@ -809,11 +1415,9 @@ function render(
     );
 
 
-    /*
-        その段階が完了。
-    */
-
-    setProgress(progressValue);
+    setProgress(
+        progressValue
+    );
 }
 
 
@@ -830,11 +1434,6 @@ function renderMoving() {
     );
 
 
-    /*
-        新しい計算なので
-        進捗もリセット。
-    */
-
     setProgress(0);
 
 
@@ -846,7 +1445,7 @@ function renderMoving() {
 
 
 /* =========================================================
-   High quality pipeline
+   High quality
 ========================================================= */
 
 function scheduleHighQuality() {
@@ -870,46 +1469,9 @@ function scheduleHighQuality() {
             }
 
 
-            /*
-                計算量
-            */
-
-            const movingWork =
-                estimatedWork(
-                    MOVING_ITERATION_RATE
-                );
-
-            const mediumWork =
-                estimatedWork(
-                    MEDIUM_ITERATION_RATE
-                );
-
-            const finalWork =
-                estimatedWork(
-                    FINAL_ITERATION_RATE
-                );
-
-
-            const totalWork =
-                movingWork +
-                mediumWork +
-                finalWork;
-
-
-            const mediumProgress =
-                (
-                    movingWork +
-                    mediumWork
-                ) / totalWork;
-
-
-            /*
-                中間品質
-            */
-
             render(
                 MEDIUM_ITERATION_RATE,
-                mediumProgress
+                0.5
             );
 
 
@@ -920,11 +1482,6 @@ function scheduleHighQuality() {
             }
 
 
-            /*
-                中間画像を一度画面に
-                表示する時間を与える。
-            */
-
             setTimeout(() => {
 
                 if (
@@ -933,10 +1490,6 @@ function scheduleHighQuality() {
                     return;
                 }
 
-
-                /*
-                    最終品質
-                */
 
                 render(
                     FINAL_ITERATION_RATE,
@@ -958,7 +1511,7 @@ function scheduleHighQuality() {
 
 
 /* =========================================================
-   Immediate final render
+   Final
 ========================================================= */
 
 function renderFinal() {
@@ -984,13 +1537,142 @@ function renderFinal() {
 
 
 /* =========================================================
+   High precision coordinate movement
+========================================================= */
+
+/*
+    Numberの小さなdeltaをBigIntへ変換する。
+
+    deltaは
+
+        dx / scale / zoom
+
+    なので、ズームが深くなるほど非常に小さくなる。
+
+    BigIntの40桁固定小数点へ変換する。
+*/
+
+function numberToFixedBigInt(
+    value
+) {
+
+    if (
+        !Number.isFinite(value) ||
+        value === 0
+    ) {
+        return 0n;
+    }
+
+
+    const sign =
+        value < 0
+            ? -1n
+            : 1n;
+
+
+    value =
+        Math.abs(value);
+
+
+    /*
+        40桁固定小数へ。
+    */
+
+    const scaled =
+        value *
+        10 ** CENTER_SCALE_DIGITS;
+
+
+    /*
+        Number自体の精度限界を超える部分は
+       ここでは表現できない。
+
+        ただし通常のパン操作のdeltaは
+        十分小さくても相対精度を保てる。
+    */
+
+    return (
+        sign *
+        BigInt(
+            Math.round(
+                scaled
+            )
+        )
+    );
+}
+
+
+/*
+    画面ピクセルから複素平面deltaを計算。
+
+    zoom = 2^zoomPower
+
+    として扱うことで、
+    zoom自体を直接掛け続けることによる
+   丸めを避ける。
+*/
+
+function screenDeltaToComplex(
+    pixels
+) {
+
+    const scale =
+        Math.min(
+            canvas.clientWidth,
+            canvas.clientHeight
+        );
+
+
+    /*
+        2^-zoomPower
+
+        zoomPowerが大きい場合、
+        Numberでは小さすぎて0になる可能性がある。
+
+        その場合はBigInt固定小数へ直接変換する。
+    */
+
+    const exponent =
+        -zoomPower;
+
+
+    if (exponent < -1020) {
+
+        /*
+            JavaScript Numberでは
+            これ以上小さい値を扱えない。
+
+            この領域では実質的に
+            1px未満のパンになるため無視。
+        */
+
+        return 0n;
+    }
+
+
+    const scaleFactor =
+        Math.pow(
+            2,
+            exponent
+        );
+
+
+    return numberToFixedBigInt(
+        pixels *
+        scaleFactor /
+        scale
+    );
+}
+
+
+/* =========================================================
    Zoom
 ========================================================= */
 
 function zoomAt(
     screenX,
     screenY,
-    factor
+    powerDelta
 ) {
 
     const rect =
@@ -1001,16 +1683,11 @@ function zoomAt(
         screenX -
         rect.left;
 
+
     const y =
         screenY -
         rect.top;
 
-
-    /*
-        CSSピクセル基準。
-
-        複素平面の中心を計算。
-    */
 
     const scale =
         Math.min(
@@ -1019,48 +1696,90 @@ function zoomAt(
         );
 
 
-    const worldX =
-        centerX +
+    /*
+        ズーム前のカーソル位置。
+
+        delta = pixel / zoom
+    */
+
+    const oldZoomFactor =
+        Math.pow(
+            2,
+            -zoomPower
+        );
+
+
+    const beforeX =
         (
             x -
             rect.width / 2
-        ) / scale / zoom;
+        ) /
+        scale *
+        oldZoomFactor;
 
 
-    const worldY =
-        centerY +
+    const beforeY =
         (
             rect.height / 2 -
             y
-        ) / scale / zoom;
+        ) /
+        scale *
+        oldZoomFactor;
 
 
     /*
-        Zoom
+        ズーム
     */
 
-    zoom *= factor;
+    zoomPower +=
+        powerDelta;
 
 
     /*
-        カーソル下の点を
-        同じ位置に保持。
+        ズーム後の同じ画面位置
     */
 
-    centerX =
-        worldX -
+    const newZoomFactor =
+        Math.pow(
+            2,
+            -zoomPower
+        );
+
+
+    const afterX =
         (
             x -
             rect.width / 2
-        ) / scale / zoom;
+        ) /
+        scale *
+        newZoomFactor;
 
 
-    centerY =
-        worldY -
+    const afterY =
         (
             rect.height / 2 -
             y
-        ) / scale / zoom;
+        ) /
+        scale *
+        newZoomFactor;
+
+
+    /*
+        center += before - after
+    */
+
+    centerXInt +=
+        numberToFixedBigInt(
+            beforeX -
+            afterX
+        );
+
+
+    centerYInt +=
+        numberToFixedBigInt(
+            beforeY -
+            afterY
+        );
 
 
     updateInfo();
@@ -1118,23 +1837,30 @@ window.addEventListener(
             e.clientX -
             lastMouseX;
 
+
         const dy =
             e.clientY -
             lastMouseY;
 
 
-        const scale =
-            Math.min(
-                canvas.clientWidth,
-                canvas.clientHeight
+        /*
+            右へドラッグ
+                => Mandelbrotは左へ
+
+            下へドラッグ
+                => Mandelbrotは上へ
+        */
+
+        centerXInt -=
+            screenDeltaToComplex(
+                dx
             );
 
 
-        centerX -=
-            dx / scale / zoom;
-
-        centerY +=
-            dy / scale / zoom;
+        centerYInt +=
+            screenDeltaToComplex(
+                dy
+            );
 
 
         lastMouseX =
@@ -1159,6 +1885,7 @@ window.addEventListener(
             return;
         }
 
+
         dragging = false;
 
         scheduleHighQuality();
@@ -1167,7 +1894,7 @@ window.addEventListener(
 
 
 /* =========================================================
-   Wheel zoom
+   Wheel
 ========================================================= */
 
 canvas.addEventListener(
@@ -1177,20 +1904,33 @@ canvas.addEventListener(
         e.preventDefault();
 
 
-        const factor =
-            Math.exp(
-                -e.deltaY * 0.0015
-            );
+        /*
+            以前の
+
+                exp(-deltaY * 0.0015)
+
+            の代わりに
+            2の指数で管理する。
+
+            1 wheel = 約1.5倍程度。
+        */
+
+        const powerDelta =
+            -e.deltaY *
+            0.0015 /
+            Math.LN2;
 
 
         zoomAt(
             e.clientX,
             e.clientY,
-            factor
+            powerDelta
         );
 
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1203,30 +1943,22 @@ let touches =
 
 
 let pinchStartDistance = 0;
-let pinchStartZoom = 1;
 
-let pinchCenterX = 0;
-let pinchCenterY = 0;
+let pinchStartZoomPower = 0;
 
 
-function touchDistance(a, b) {
+function touchDistance(
+    a,
+    b
+) {
 
     return Math.hypot(
-        a.clientX - b.clientX,
-        a.clientY - b.clientY
+        a.clientX -
+        b.clientX,
+
+        a.clientY -
+        b.clientY
     );
-}
-
-
-function touchMidpoint(a, b) {
-
-    return {
-        x:
-            (a.clientX + b.clientX) / 2,
-
-        y:
-            (a.clientY + b.clientY) / 2
-    };
 }
 
 
@@ -1245,10 +1977,17 @@ canvas.addEventListener(
             touches.set(
                 touch.identifier,
                 {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    lastX: touch.clientX,
-                    lastY: touch.clientY
+                    clientX:
+                        touch.clientX,
+
+                    clientY:
+                        touch.clientY,
+
+                    lastX:
+                        touch.clientX,
+
+                    lastY:
+                        touch.clientY
                 }
             );
         }
@@ -1260,36 +1999,33 @@ canvas.addEventListener(
             qualityTimer
         );
 
-        setProgress(0);
 
+        if (
+            touches.size === 2
+        ) {
 
-        if (touches.size === 2) {
-
-            const [a, b] =
+            const [
+                a,
+                b
+            ] =
                 [...touches.values()];
 
 
             pinchStartDistance =
-                touchDistance(a, b);
+                touchDistance(
+                    a,
+                    b
+                );
 
 
-            pinchStartZoom =
-                zoom;
-
-
-            const mid =
-                touchMidpoint(a, b);
-
-
-            pinchCenterX =
-                mid.x;
-
-            pinchCenterY =
-                mid.y;
+            pinchStartZoomPower =
+                zoomPower;
         }
 
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1322,7 +2058,9 @@ canvas.addEventListener(
         }
 
 
-        if (touches.size === 1) {
+        if (
+            touches.size === 1
+        ) {
 
             const touch =
                 [...touches.values()][0];
@@ -1332,23 +2070,22 @@ canvas.addEventListener(
                 touch.clientX -
                 touch.lastX;
 
+
             const dy =
                 touch.clientY -
                 touch.lastY;
 
 
-            const scale =
-                Math.min(
-                    canvas.clientWidth,
-                    canvas.clientHeight
+            centerXInt -=
+                screenDeltaToComplex(
+                    dx
                 );
 
 
-            centerX -=
-                dx / scale / zoom;
-
-            centerY +=
-                dy / scale / zoom;
+            centerYInt +=
+                screenDeltaToComplex(
+                    dy
+                );
 
 
             touch.lastX =
@@ -1364,25 +2101,42 @@ canvas.addEventListener(
         }
 
 
-        else if (touches.size === 2) {
+        else if (
+            touches.size === 2
+        ) {
 
-            const [a, b] =
+            const [
+                a,
+                b
+            ] =
                 [...touches.values()];
 
 
-            const currentDistance =
-                touchDistance(a, b);
+            const distance =
+                touchDistance(
+                    a,
+                    b
+                );
 
 
             if (
                 pinchStartDistance > 0
             ) {
 
-                zoom =
-                    pinchStartZoom *
-                    (
-                        currentDistance /
-                        pinchStartDistance
+                /*
+                    ピンチ比率から
+                    log2 zoomを計算
+                */
+
+                const ratio =
+                    distance /
+                    pinchStartDistance;
+
+
+                zoomPower =
+                    pinchStartZoomPower +
+                    Math.log2(
+                        ratio
                     );
 
 
@@ -1393,7 +2147,9 @@ canvas.addEventListener(
         }
 
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1415,13 +2171,16 @@ canvas.addEventListener(
         }
 
 
-        if (touches.size === 0) {
+        if (
+            touches.size === 0
+        ) {
 
             scheduleHighQuality();
         }
-
     },
-    { passive: false }
+    {
+        passive: false
+    }
 );
 
 
@@ -1432,7 +2191,6 @@ canvas.addEventListener(
         touches.clear();
 
         scheduleHighQuality();
-
     }
 );
 
@@ -1452,7 +2210,9 @@ iterationsInput.addEventListener(
             );
 
 
-        if (!Number.isFinite(value)) {
+        if (
+            !Number.isFinite(value)
+        ) {
             value = 500;
         }
 
@@ -1492,9 +2252,20 @@ resetButton.addEventListener(
     "click",
     () => {
 
-        centerX = -0.75;
-        centerY = 0;
-        zoom = 1;
+        centerXInt =
+            -75n *
+            10n **
+            BigInt(
+                CENTER_SCALE_DIGITS - 2
+            );
+
+
+        centerYInt =
+            0n;
+
+
+        zoomPower =
+            0;
 
 
         updateInfo();
@@ -1510,13 +2281,20 @@ resetButton.addEventListener(
 
 function updateInfo() {
 
-    if (zoom >= 1000000) {
+    const zoom =
+        getZoom();
+
+
+    if (
+        !Number.isFinite(zoom) ||
+        zoom >= 1000000
+    ) {
 
         zoomText.textContent =
-            zoom.toExponential(2) +
-            "×";
+            `2^${zoomPower.toFixed(2)}`;
 
-    } else {
+    }
+    else {
 
         zoomText.textContent =
             zoom.toFixed(
