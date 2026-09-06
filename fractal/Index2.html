@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Infinite Mandelbrot Zoom</title>
+<style>
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  canvas.dragging {
+    cursor: grabbing;
+  }
+
+  #info {
+    position: fixed;
+    left: 14px;
+    top: 12px;
+    padding: 10px 13px;
+    border-radius: 10px;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+    font: 12px/1.55 ui-monospace, monospace;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #help {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(8px);
+    font-size: 12px;
+    opacity: .75;
+    pointer-events: none;
+  }
+
+  #reset {
+    position: fixed;
+    right: 14px;
+    top: 14px;
+    border: 0;
+    border-radius: 9px;
+    padding: 8px 12px;
+    color: white;
+    background: rgba(255,255,255,.13);
+    cursor: pointer;
+  }
+
+  #reset:hover {
+    background: rgba(255,255,255,.22);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+
+<div id="info"></div>
+<button id="reset">リセット</button>
+<div id="help">ホイール / ピンチ：ズーム　　ドラッグ：移動　　R：リセット</div>
+
+<script>
+"use strict";
+
+const canvas = document.getElementById("gl");
+const info = document.getElementById("info");
+const resetButton = document.getElementById("reset");
+
+const gl = canvas.getContext("webgl", {
+  antialias: false,
+  alpha: false,
+  preserveDrawingBuffer: false
+});
+
+if (!gl) {
+  document.body.innerHTML =
+    "<div style='padding:30px'>WebGLに対応したブラウザが必要です。</div>";
+  throw new Error("WebGL unavailable");
+}
+
+/*
+ * 高精度ズーム用。
+ *
+ * JavaScript側では中心座標を通常のNumberで保持しつつ、
+ * シェーダーでは high/low の2つのfloatに分割して
+ * double-double風の精度を確保します。
+ */
+
+const vertexSource = `
+attribute vec2 a_position;
+
+void main() {
+  gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+
+const fragmentSource = `
+precision highp float;
+
+uniform vec2 u_resolution;
+
+uniform vec2 u_centerHigh;
+uniform vec2 u_centerLow;
+
+uniform float u_scale;
+uniform float u_time;
+uniform float u_iterations;
+
+vec2 twoSum(float a, float b) {
+  float s = a + b;
+  float v = s - a;
+  float e = (a - (s - v)) + (b - v);
+  return vec2(s, e);
+}
+
+/* Smooth coloring Mandelbrot */
+float mandelbrot(vec2 c) {
+  vec2 z = vec2(0.0);
+
+  float i;
+
+  for (float n = 0.0; n < 1600.0; n++) {
+    if (n >= u_iterations) break;
+
+    float x = z.x * z.x - z.y * z.y + c.x;
+    float y = 2.0 * z.x * z.y + c.y;
+
+    z = vec2(x, y);
+
+    if (dot(z,z) > 256.0) {
+      i = n;
+      float log_zn = log(dot(z,z)) * 0.5;
+      float nu = log(log_zn / log(2.0)) / log(2.0);
+      return i + 1.0 - nu;
+    }
+  }
+
+  return -1.0;
+}
+
+vec3 palette(float t) {
+  // 深い青 → 紫 → 赤 → オレンジ → 白
+  vec3 c1 = vec3(0.00, 0.02, 0.08);
+  vec3 c2 = vec3(0.05, 0.20, 0.75);
+  vec3 c3 = vec3(0.55, 0.05, 0.85);
+  vec3 c4 = vec3(1.00, 0.18, 0.05);
+  vec3 c5 = vec3(1.00, 0.85, 0.20);
+
+  t = fract(t);
+
+  if (t < .25) return mix(c1,c2,t/.25);
+  if (t < .50) return mix(c2,c3,(t-.25)/.25);
+  if (t < .75) return mix(c3,c4,(t-.50)/.25);
+  return mix(c4,c5,(t-.75)/.25);
+}
+
+void main() {
+  vec2 p = (gl_FragCoord.xy - 0.5 * u_resolution.xy)
+         / min(u_resolution.x, u_resolution.y);
+
+  /*
+   * u_scale は「画面上の1単位が複素平面で何になるか」。
+   * 小さくなるほど深くズーム。
+   */
+  float x = p.x * u_scale;
+  float y = p.y * u_scale;
+
+  /*
+   * high + low に分割して中心値を加える。
+   * 極端なズームで通常floatの精度が不足するのを緩和。
+   */
+  vec2 c = vec2(
+    u_centerHigh.x + (u_centerLow.x + x),
+    u_centerHigh.y + (u_centerLow.y + y)
+  );
+
+  float m = mandelbrot(c);
+
+  if (m < 0.0) {
+    gl_FragColor = vec4(0.002, 0.003, 0.008, 1.0);
+    return;
+  }
+
+  float it = u_iterations;
+
+  float t = m / it;
+
+  // ズームに応じて少し色調を変化
+  float bands = 0.075;
+  float v = pow(t, 0.38);
+
+  vec3 col = palette(v * 4.0 + u_time * 0.002);
+
+  // 境界を少し強調
+  float edge = smoothstep(0.0, 0.22, fract(t * 18.0));
+  col *= 0.72 + 0.28 * edge;
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function compile(type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    throw new Error(gl.getShaderInfoLog(shader));
+  }
+
+  return shader;
+}
+
+const program = gl.createProgram();
+gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource));
+gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource));
+gl.linkProgram(program);
+
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  throw new Error(gl.getProgramInfoLog(program));
+}
+
+gl.useProgram(program);
+
+const buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array([
+    -1,-1,
+     1,-1,
+    -1, 1,
+    -1, 1,
+     1,-1,
+     1, 1
+  ]),
+  gl.STATIC_DRAW
+);
+
+const position = gl.getAttribLocation(program, "a_position");
+gl.enableVertexAttribArray(position);
+gl.vertexAttribPointer(
+  position,
+  2,
+  gl.FLOAT,
+  false,
+  0,
+  0
+);
+
+const uniforms = {
+  resolution: gl.getUniformLocation(program, "u_resolution"),
+  centerHigh: gl.getUniformLocation(program, "u_centerHigh"),
+  centerLow: gl.getUniformLocation(program, "u_centerLow"),
+  scale: gl.getUniformLocation(program, "u_scale"),
+  time: gl.getUniformLocation(program, "u_time"),
+  iterations: gl.getUniformLocation(program, "u_iterations")
+};
+
+/* 初期位置 */
+const INITIAL_X = -0.743643887037151;
+const INITIAL_Y =  0.131825904205330;
+
+let centerX = INITIAL_X;
+let centerY = INITIAL_Y;
+
+/*
+ * 初期の表示幅。
+ * 数値を小さくすると最初から深い場所から開始。
+ */
+let scale = 3.0;
+
+let width = 1;
+let height = 1;
+let dpr = 1;
+
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+
+let pinchDistance = null;
+let pinchCenter = null;
+
+let animationStart = performance.now();
+
+function splitDouble(v) {
+  /*
+   * float32で表現したhighと、その誤差lowに分割。
+   */
+  const high = Math.fround(v);
+  const low = v - high;
+  return [high, low];
+}
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  width = window.innerWidth;
+  height = window.innerHeight;
+
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+window.addEventListener("resize", resize);
+resize();
+
+function getIterations() {
+  /*
+   * ズームが深くなるほど反復回数を増加。
+   */
+  const depth = Math.max(0, -Math.log10(scale / 3));
+  return Math.min(1500, 180 + depth * 55);
+}
+
+function render(now) {
+  gl.useProgram(program);
+
+  const sx = splitDouble(centerX);
+  const sy = splitDouble(centerY);
+
+  gl.uniform2f(
+    uniforms.resolution,
+    canvas.width,
+    canvas.height
+  );
+
+  gl.uniform2f(
+    uniforms.centerHigh,
+    sx[0],
+    sy[0]
+  );
+
+  gl.uniform2f(
+    uniforms.centerLow,
+    sx[1],
+    sy[1]
+  );
+
+  gl.uniform1f(uniforms.scale, scale);
+
+  gl.uniform1f(
+    uniforms.time,
+    (now - animationStart) * 0.01
+  );
+
+  gl.uniform1f(
+    uniforms.iterations,
+    getIterations()
+  );
+
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  updateInfo();
+
+  requestAnimationFrame(render);
+}
+
+function updateInfo() {
+  const zoom = 3 / scale;
+
+  info.textContent =
+    "Mandelbrot Set\n" +
+    "center: " +
+    centerX.toPrecision(14) +
+    "  " +
+    centerY.toPrecision(14) +
+    "\n" +
+    "zoom: " +
+    formatZoom(zoom) +
+    "×\n" +
+    "iterations: " +
+    Math.floor(getIterations());
+}
+
+function formatZoom(z) {
+  if (z < 1000) return z.toFixed(1);
+  if (z < 1e6) return (z/1e3).toFixed(2) + "k";
+  if (z < 1e9) return (z/1e6).toFixed(2) + "M";
+  if (z < 1e12) return (z/1e9).toFixed(2) + "B";
+  return z.toExponential(3);
+}
+
+/*
+ * 画面座標 → 複素平面
+ */
+function screenToComplex(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+
+  const x =
+    (clientX - rect.left - width / 2) /
+    Math.min(width, height);
+
+  const y =
+    (height / 2 - (clientY - rect.top)) /
+    Math.min(width, height);
+
+  return {
+    x: centerX + x * scale,
+    y: centerY + y * scale
+  };
+}
+
+/*
+ * 指定した画面位置を中心にズーム。
+ */
+function zoomAt(clientX, clientY, factor) {
+  const before = screenToComplex(clientX, clientY);
+
+  scale *= factor;
+
+  /*
+   * ズーム後にもカーソル位置が
+   * 同じ複素平面座標になるよう中心を補正。
+   */
+  const after = screenToComplex(clientX, clientY);
+
+  centerX += before.x - after.x;
+  centerY += before.y - after.y;
+
+  /*
+   * JavaScript Numberの限界を超えても
+   * 表示上は可能な限りズームを続ける。
+   */
+  scale = Math.max(Number.MIN_VALUE * 1e20, scale);
+}
+
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+
+  const factor = Math.exp(e.deltaY * 0.0015);
+
+  zoomAt(e.clientX, e.clientY, factor);
+}, { passive:false });
+
+/* マウス操作 */
+canvas.addEventListener("pointerdown", e => {
+  dragging = true;
+
+  lastX = e.clientX;
+  lastY = e.clientY;
+
+  canvas.classList.add("dragging");
+  canvas.setPointerCapture(e.pointerId);
+});
+
+canvas.addEventListener("pointermove", e => {
+  if (!dragging) return;
+
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  const unit = scale / Math.min(width, height);
+
+  centerX -= dx * unit;
+  centerY += dy * unit;
+
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+canvas.addEventListener("pointerup", () => {
+  dragging = false;
+  canvas.classList.remove("dragging");
+});
+
+canvas.addEventListener("pointercancel", () => {
+  dragging = false;
+  canvas.classList.remove("dragging");
+});
+
+/* タッチのピンチズーム */
+function distance(a,b) {
+  return Math.hypot(
+    a.clientX - b.clientX,
+    a.clientY - b.clientY
+  );
+}
+
+function midpoint(a,b) {
+  return {
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2
+  };
+}
+
+const touches = new Map();
+
+canvas.addEventListener("touchstart", e => {
+  for (const t of e.changedTouches) {
+    touches.set(t.identifier, t);
+  }
+
+  if (touches.size === 2) {
+    const arr = [...touches.values()];
+    pinchDistance = distance(arr[0], arr[1]);
+    pinchCenter = midpoint(arr[0], arr[1]);
+  }
+}, {passive:false});
+
+canvas.addEventListener("touchmove", e => {
+  e.preventDefault();
+
+  for (const t of e.changedTouches) {
+    touches.set(t.identifier, t);
+  }
+
+  if (touches.size === 2) {
+    const arr = [...touches.values()];
+
+    const d = distance(arr[0], arr[1]);
+    const c = midpoint(arr[0], arr[1]);
+
+    if (pinchDistance && pinchDistance > 0) {
+      const factor = pinchDistance / d;
+      zoomAt(c.x, c.y, factor);
+    }
+
+    pinchDistance = d;
+    pinchCenter = c;
+  }
+}, {passive:false});
+
+canvas.addEventListener("touchend", e => {
+  for (const t of e.changedTouches) {
+    touches.delete(t.identifier);
+  }
+
+  if (touches.size < 2) {
+    pinchDistance = null;
+    pinchCenter = null;
+  }
+}, {passive:false});
+
+/* リセット */
+function reset() {
+  centerX = INITIAL_X;
+  centerY = INITIAL_Y;
+  scale = 3.0;
+}
+
+resetButton.addEventListener("click", reset);
+
+window.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "r") {
+    reset();
+  }
+});
+
+requestAnimationFrame(render);
+</script>
+
+</body>
+</html>
