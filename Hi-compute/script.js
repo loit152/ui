@@ -3,7 +3,7 @@ const gl = canvas.getContext("webgl2");
 
 const xInput = document.querySelector("#coordinatex");
 const yInput = document.querySelector("#coordinatey");
-const result = document.querySelector("#input");
+const result = document.querySelector("#result");
 
 function calculate() {
     const x = Number(xInput.value);
