@@ -185,7 +185,7 @@ vec3 palette(float t) {
 
 void main() {
   vec2 p = (gl_FragCoord.xy - 0.5 * u_resolution.xy)
-         / 1000;
+         / min(u_resolution.x,u_resolution.y);
 
   /*
    * u_scale は「画面上の1単位が複素平面で何になるか」。
