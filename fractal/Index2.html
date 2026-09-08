@@ -193,10 +193,8 @@ void main() {
    */
   vec2 r = rounder(u_scale,4.0);
   float rounded_u_scale = r.x * pow(10.0, r.y);
-  vec2 roundx = rounder(p.x * rounded_u_scale,10.0);
-  vec2 roundy = rounder(p.y * rounded_u_scale,10.0);
-  float x = roundx.x * pow(10.0,roundx.y);
-  float y = roundy.x * pow(10.0,roundy.y);
+  float x = p.x * rounded_u_scale;
+  float y = p.y * rounded_u_scale;
 
 
 
