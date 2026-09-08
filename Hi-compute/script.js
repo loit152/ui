@@ -1,12 +1,12 @@
 const canvas = document.getElementById("canvas");;
-const gl = camvas.getContext("webgl2");
-const x = 0;
-const y = 0;
+const gl = canvas.getContext("webgl2");
+let x = 0;
+let y = 0;
 const input = document.querySelector("input");
 
-input.addEventListener(input , () => {
-    x = document.querySelector("coordinaterx");
-    y = document.querySelector("coordinatery");
+input.addEventListener("input" , () => {
+    x = document.querySelector("#coordinaterx").value;
+    y = document.querySelector("#coordinatery").value;
     input.value = x * y;
     }
-)
+);
