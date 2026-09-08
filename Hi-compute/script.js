@@ -3,13 +3,13 @@ const gl = canvas.getContext("webgl2");
 
 const xInput = document.querySelector("#coordinatex");
 const yInput = document.querySelector("#coordinatey");
-const result = document.querySelector("#result");
+const result = document.getElementById("#result");
 
 function calculate() {
     const x = Number(xInput.value);
     const y = Number(yInput.value);
 
-    result.value = x * y;
+    result.innerHTML = x * y;
 }
 
 xInput.addEventListener("input", calculate);
