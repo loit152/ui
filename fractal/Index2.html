@@ -159,8 +159,8 @@ float mandelbrot(vec2 c) {
   for (float n = 0.0; n < 1600.0; n++) {
     if (n >= u_iterations) break;
 
-    vec2 roundedx = rounder(z.x * z.x - z.y * z.y + c.x,100.0);
-    vec2 roundedy = rounder(2.0 * z.x * z.y + c.y,100.0);
+    vec2 roundedx = z.x * z.x - z.y * z.y + c.x;
+    vec2 roundedy = 2.0 * z.x * z.y + c.y;
     float x = roundedx.x*pow(10.0,roundedx.y);
     float y = roundedy.x*pow(10.0,roundedy.y);
 
@@ -193,19 +193,12 @@ void main() {
    * u_scale は「画面上の1単位が複素平面で何になるか」。
    * 小さくなるほど深くズーム。
    */
-  /*
   vec2 r = rounder(u_scale,4.0);
   float rounded_u_scale = r.x * pow(10.0, r.y);
   vec2 roundx = rounder(p.x * rounded_u_scale,10.0);
   vec2 roundy = rounder(p.y * rounded_u_scale,10.0);
   float x = roundx.x * pow(10.0,roundx.y);
   float y = roundy.x * pow(10.0,roundy.y);
-*/
-
-  vec2 r = rounder(u_scale,4.0);
-  float rounded_u_scale = r.x * pow(10.0, r.y);
-  float x = p.x * rounded_u_scale;
-  float y = p.y * rounded_u_scale;
 
 
 
