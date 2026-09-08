@@ -159,11 +159,9 @@ float mandelbrot(vec2 c) {
   for (float n = 0.0; n < 1600.0; n++) {
     if (n >= u_iterations) break;
 
-    vec2 roundedx = z.x * z.x - z.y * z.y + c.x;
-    vec2 roundedy = 2.0 * z.x * z.y + c.y;
-    float x = roundedx.x*pow(10.0,roundedx.y);
-    float y = roundedy.x*pow(10.0,roundedy.y);
-
+    float x = z.x * z.x - z.y * z.y + c.x;
+    float y = 2.0 * z.x * z.y + c.y;
+    
     z = vec2(x, y);
 
     if (dot(z,z) > 4.0) {
