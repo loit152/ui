@@ -1,12 +1,18 @@
-const canvas = document.getElementById("canvas");;
+const canvas = document.getElementById("canvas");
 const gl = canvas.getContext("webgl2");
-let x = 0;
-let y = 0;
-const input = document.querySelector("#input");
 
-input.addEventListener("input" , () => {
-    x = document.querySelector("#coordinatex").value;
-    y = document.querySelector("#coordinatey").value;
-    input.value = x * y;
-    }
-);
+const xInput = document.querySelector("#coordinatex");
+const yInput = document.querySelector("#coordinatey");
+const result = document.querySelector("#input");
+
+function calculate() {
+    const x = Number(xInput.value);
+    const y = Number(yInput.value);
+
+    result.value = x * y;
+}
+
+xInput.addEventListener("input", calculate);
+yInput.addEventListener("input", calculate);
+
+calculate();
