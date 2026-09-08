@@ -5,8 +5,8 @@ let y = 0;
 const input = document.querySelector("#input");
 
 input.addEventListener("input" , () => {
-    x = document.querySelector("#coordinaterx").value;
-    y = document.querySelector("#coordinatery").value;
+    x = document.querySelector("#coordinatex").value;
+    y = document.querySelector("#coordinatey").value;
     input.value = x * y;
     }
 );
