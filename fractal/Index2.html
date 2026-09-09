@@ -81,6 +81,10 @@
 <script>
 "use strict";
 
+/* ============================================================
+ * WebGL
+ * ========================================================== */
+
 const canvas = document.getElementById("gl");
 const info = document.getElementById("info");
 const resetButton = document.getElementById("reset");
@@ -97,13 +101,10 @@ if (!gl) {
   throw new Error("WebGL unavailable");
 }
 
-/*
- * 高精度ズーム用。
- *
- * JavaScript側では中心座標を通常のNumberで保持しつつ、
- * シェーダーでは high/low の2つのfloatに分割して
- * double-double風の精度を確保します。
- */
+
+/* ============================================================
+ * Vertex Shader
+ * ========================================================== */
 
 const vertexSource = `#version 300 es
 
@@ -113,6 +114,22 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }
 `;
+
+
+/* ============================================================
+ * Fragment Shader
+ *
+ * 重要:
+ * u_scale の4桁丸め処理は元コードのまま。
+ *
+ * ただし極端なズームでは u_scale を
+ *
+ *   仮数 × 10^指数
+ *
+ * として扱うため u_scaleExp を追加している。
+ *
+ * 通常範囲では元コードと同じ動作になる。
+ * ========================================================== */
 
 const fragmentSource = `#version 300 es
 precision highp float;
@@ -125,10 +142,28 @@ uniform vec2 u_centerHigh;
 uniform vec2 u_centerLow;
 
 uniform float u_scale;
+
+/*
+ * u_scale の10進指数。
+ *
+ * 例:
+ *   u_scale     = 3.0
+ *   u_scaleExp  = -100
+ *
+ * なら実際のscaleは 3 × 10^-100。
+ *
+ * 元の u_scale の4桁丸め自体は変更しない。
+ */
+uniform int u_scaleExp;
+
 uniform float u_time;
 uniform float u_iterations;
 
-/*四捨五入して4桁と指数を返還する*/
+
+/* ============================================================
+ * 元コードの4桁丸め
+ * ========================================================== */
+
 float roundFloat(float x) {
     if (x >= 0.0) {
         return floor(x + 0.5);
@@ -143,31 +178,43 @@ vec2 rounder(float x,float n) {
     float e = floor(log(abs(x)) / log(10.0));
     float d = pow(10.0, e - n + 1.0);
     float r = roundFloat(x / d) * d;
+
     if (r == 0.0)
       return vec2(0.0);
+
     e = floor(log(abs(r)) / log(10.0));
 
     return vec2(r / pow(10.0, e), e);
 }
 
-/* Smooth coloring Mandelbrot */
+
+/* ============================================================
+ * Mandelbrot
+ * ========================================================== */
+
 float mandelbrot(vec2 c) {
   vec2 z = vec2(0.0);
 
-  float i;
+  float i = -1.0;
 
   for (float n = 0.0; n < 1600.0; n++) {
-    if (n >= u_iterations) break;
+
+    if (n >= u_iterations) {
+      break;
+    }
 
     float x = z.x * z.x - z.y * z.y + c.x;
     float y = 2.0 * z.x * z.y + c.y;
-    
+
     z = vec2(x, y);
 
-    if (dot(z,z) > 4.0) {
+    if (dot(z, z) > 4.0) {
       i = n;
+
       float log_zn = log(dot(z,z)) * 0.5;
-      float nu = log(log_zn / log(2.0)) / log(2.0);
+      float nu =
+        log(log_zn / log(2.0)) / log(2.0);
+
       return i + 1.0 - nu;
     }
   }
@@ -175,88 +222,235 @@ float mandelbrot(vec2 c) {
   return -1.0;
 }
 
+
+/* ============================================================
+ * Palette
+ * ========================================================== */
+
 vec3 palette(float t) {
     t = fract(t);
-    vec3 col = vec3(0.05, 0.02, 0.10);
-    vec3 amp = vec3(0.95, 0.80, 0.85);
-    vec3 phase = vec3(0.00, 0.18, 0.38);
-    return col + amp * (0.5 + 0.5 * cos(6.28318 * (t + phase)));
+
+    vec3 col =
+      vec3(0.05, 0.02, 0.10);
+
+    vec3 amp =
+      vec3(0.95, 0.80, 0.85);
+
+    vec3 phase =
+      vec3(0.00, 0.18, 0.38);
+
+    return col +
+      amp *
+      (0.5 +
+       0.5 *
+       cos(6.28318 * (t + phase)));
 }
 
+
+/* ============================================================
+ * Main
+ * ========================================================== */
+
 void main() {
-  vec2 p = (gl_FragCoord.xy - 0.5 * u_resolution.xy)
-         / min(u_resolution.x,u_resolution.y);
+
+  vec2 p =
+    (gl_FragCoord.xy -
+     0.5 * u_resolution.xy)
+    / min(u_resolution.x,
+          u_resolution.y);
+
 
   /*
-   * u_scale は「画面上の1単位が複素平面で何になるか」。
-   * 小さくなるほど深くズーム。u_scaleの数値の精度は描画にそこまで関係ないため計算そ軽くする目的で導入
+   * ----------------------------------------------------------
+   * 元コードの u_scale 4桁丸め
+   * ----------------------------------------------------------
+   *
+   * u_scale は常に 1～10 程度の仮数として渡される。
+   *
+   * そのため元の rounder() が正常に動作する。
    */
-  vec2 r = rounder(u_scale,4.0);
-  float rounded_u_scale = r.x * pow(10.0, r.y);
-  float x = p.x * rounded_u_scale;
-  float y = p.y * rounded_u_scale;
+  vec2 r = rounder(u_scale, 4.0);
 
+  float roundedScaleMantissa = r.x;
 
 
   /*
-   * high + low に分割して中心値を加える。
-   * 極端なズームで通常floatの精度が不足するのを緩和。
+   * ----------------------------------------------------------
+   * 実スケール
+   *
+   * roundedScaleMantissa × 10^u_scaleExp
+   *
+   * ----------------------------------------------------------
+   *
+   * GPU floatで極端に小さい値を直接作ると
+   * いずれアンダーフローする。
+   *
+   * そこで、通常の範囲だけ実値を使う。
+   *
+   * 深いズームでは元コードの描画方式そのものが
+   * floatの精度限界に達するため、0に近づける。
+   *
+   * カメラ計算側はBigIntなので、ここで座標情報が
+   * 壊れることはない。
+   */
+  float roundedScale;
+
+  if (u_scaleExp > -37) {
+    roundedScale =
+      roundedScaleMantissa *
+      pow(10.0, float(u_scaleExp));
+  } else {
+    roundedScale = 0.0;
+  }
+
+
+  float x =
+    p.x * roundedScale;
+
+  float y =
+    p.y * roundedScale;
+
+
+  /*
+   * ----------------------------------------------------------
+   * centerHigh + centerLow
+   * ----------------------------------------------------------
+   *
+   * 元コードと同じ考え方。
    */
   vec2 c = vec2(
-    u_centerHigh.x + (u_centerLow.x + x),
-    u_centerHigh.y + (u_centerLow.y + y)
+    u_centerHigh.x +
+      (u_centerLow.x + x),
+
+    u_centerHigh.y +
+      (u_centerLow.y + y)
   );
+
 
   float m = mandelbrot(c);
 
+
   if (m < 0.0) {
-    outColor = vec4(0.002, 0.003, 0.008, 1.0);
+    outColor =
+      vec4(
+        0.002,
+        0.003,
+        0.008,
+        1.0
+      );
+
     return;
   }
+
 
   float it = u_iterations;
 
   float t = m / it;
 
-  // ズームに応じて少し色調を変化
-  float bands = 0.075;
-  float v = pow(t, 0.38);
+  float v =
+    pow(t, 0.38);
 
-  vec3 col = palette(v * 4.0 + u_time * 0.002);
+  vec3 col =
+    palette(
+      v * 4.0 +
+      u_time * 0.002
+    );
 
-  // 境界を少し強調
-  float edge = smoothstep(0.0, 0.22, fract(t * 18.0));
-  col *= 0.72 + 0.28 * edge;
+  float edge =
+    smoothstep(
+      0.0,
+      0.22,
+      fract(t * 18.0)
+    );
 
- outColor = vec4(col, 1.0);
+  col *=
+    0.72 +
+    0.28 * edge;
+
+  outColor =
+    vec4(col, 1.0);
 }
 `;
 
+
+/* ============================================================
+ * Shader compile
+ * ========================================================== */
+
 function compile(type, source) {
-  const shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
+
+  const shader =
+    gl.createShader(type);
+
+  gl.shaderSource(
+    shader,
+    source
+  );
+
   gl.compileShader(shader);
 
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shader));
+  if (!gl.getShaderParameter(
+        shader,
+        gl.COMPILE_STATUS
+      )) {
+
+    const log =
+      gl.getShaderInfoLog(shader);
+
+    console.error(log);
+
+    throw new Error(log);
   }
 
   return shader;
 }
 
-const program = gl.createProgram();
-gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexSource));
-gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentSource));
+
+const program =
+  gl.createProgram();
+
+gl.attachShader(
+  program,
+  compile(
+    gl.VERTEX_SHADER,
+    vertexSource
+  )
+);
+
+gl.attachShader(
+  program,
+  compile(
+    gl.FRAGMENT_SHADER,
+    fragmentSource
+  )
+);
+
 gl.linkProgram(program);
 
-if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-  throw new Error(gl.getProgramInfoLog(program));
+if (!gl.getProgramParameter(
+      program,
+      gl.LINK_STATUS
+    )) {
+
+  throw new Error(
+    gl.getProgramInfoLog(program)
+  );
 }
 
 gl.useProgram(program);
 
-const buffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+/* ============================================================
+ * Fullscreen triangle pair
+ * ========================================================== */
+
+const buffer =
+  gl.createBuffer();
+
+gl.bindBuffer(
+  gl.ARRAY_BUFFER,
+  buffer
+);
 
 gl.bufferData(
   gl.ARRAY_BUFFER,
@@ -264,6 +458,7 @@ gl.bufferData(
     -1,-1,
      1,-1,
     -1, 1,
+
     -1, 1,
      1,-1,
      1, 1
@@ -271,8 +466,16 @@ gl.bufferData(
   gl.STATIC_DRAW
 );
 
-const position = gl.getAttribLocation(program, "a_position");
-gl.enableVertexAttribArray(position);
+const position =
+  gl.getAttribLocation(
+    program,
+    "a_position"
+  );
+
+gl.enableVertexAttribArray(
+  position
+);
+
 gl.vertexAttribPointer(
   position,
   2,
@@ -282,78 +485,445 @@ gl.vertexAttribPointer(
   0
 );
 
+
+/* ============================================================
+ * Uniforms
+ * ========================================================== */
+
 const uniforms = {
-  resolution: gl.getUniformLocation(program, "u_resolution"),
-  centerHigh: gl.getUniformLocation(program, "u_centerHigh"),
-  centerLow: gl.getUniformLocation(program, "u_centerLow"),
-  scale: gl.getUniformLocation(program, "u_scale"),
-  time: gl.getUniformLocation(program, "u_time"),
-  iterations: gl.getUniformLocation(program, "u_iterations")
+
+  resolution:
+    gl.getUniformLocation(
+      program,
+      "u_resolution"
+    ),
+
+  centerHigh:
+    gl.getUniformLocation(
+      program,
+      "u_centerHigh"
+    ),
+
+  centerLow:
+    gl.getUniformLocation(
+      program,
+      "u_centerLow"
+    ),
+
+  scale:
+    gl.getUniformLocation(
+      program,
+      "u_scale"
+    ),
+
+  scaleExp:
+    gl.getUniformLocation(
+      program,
+      "u_scaleExp"
+    ),
+
+  time:
+    gl.getUniformLocation(
+      program,
+      "u_time"
+    ),
+
+  iterations:
+    gl.getUniformLocation(
+      program,
+      "u_iterations"
+    )
 };
 
-/* 初期位置 */
-const INITIAL_X = -0.743643887037151;
-const INITIAL_Y =  0.131825904205330;
 
-let centerX = INITIAL_X;
-let centerY = INITIAL_Y;
+/* ============================================================
+ * 高精度カメラ
+ *
+ * 160桁固定小数。
+ *
+ * 例:
+ *
+ * -0.743643887037151
+ *
+ * を
+ *
+ * -743643887037151000.... / 10^160
+ *
+ * として保持する。
+ *
+ * したがって Number の 53bit 制限を受けない。
+ * ========================================================== */
 
-/*
- * 初期の表示幅。
- * 数値を小さくすると最初から深い場所から開始。
- */
-let scale = 3.0;
+const FP_DIGITS = 160;
+
+const FP =
+  10n ** BigInt(FP_DIGITS);
+
+
+/* ============================================================
+ * decimal string → fixed point BigInt
+ * ========================================================== */
+
+function decimalToFixed(value) {
+
+  let s = String(value).trim();
+
+  let sign = 1n;
+
+  if (s.startsWith("-")) {
+    sign = -1n;
+    s = s.slice(1);
+  } else if (s.startsWith("+")) {
+    s = s.slice(1);
+  }
+
+  /*
+   * scientific notationにも対応
+   */
+  let exponent = 0;
+
+  const eIndex =
+    s.search(/[eE]/);
+
+  if (eIndex >= 0) {
+
+    exponent =
+      Number(
+        s.slice(eIndex + 1)
+      );
+
+    s =
+      s.slice(0, eIndex);
+  }
+
+  let [integer, fraction = ""] =
+    s.split(".");
+
+  if (integer === "") {
+    integer = "0";
+  }
+
+  /*
+   * 数字以外を排除
+   */
+  integer =
+    integer.replace(/\D/g, "");
+
+  fraction =
+    fraction.replace(/\D/g, "");
+
+  /*
+   * 10進小数をBigIntへ
+   */
+  let digits =
+    integer + fraction;
+
+  if (digits === "") {
+    digits = "0";
+  }
+
+  let n =
+    BigInt(digits);
+
+  const decimalPlaces =
+    fraction.length;
+
+  const shift =
+    FP_DIGITS +
+    exponent -
+    decimalPlaces;
+
+  if (shift >= 0) {
+    n *=
+      10n ** BigInt(shift);
+  } else {
+    const divisor =
+      10n ** BigInt(-shift);
+
+    /*
+     * 四捨五入
+     */
+    n =
+      (n + divisor / 2n) /
+      divisor;
+  }
+
+  return sign * n;
+}
+
+
+/* ============================================================
+ * fixed point BigInt → Number
+ *
+ * 描画用の高/low分割にのみ使用。
+ * カメラ内部の値をNumberへ戻すことはない。
+ * ========================================================== */
+
+function fixedToNumber(v) {
+
+  const sign =
+    v < 0n ? -1 : 1;
+
+  const a =
+    v < 0n ? -v : v;
+
+  const integerPart =
+    a / FP;
+
+  const fractionPart =
+    a % FP;
+
+  /*
+   * integer部分とfraction部分を別々に変換する。
+   * 一度に巨大なBigIntをNumberへ変換しない。
+   */
+  const integerNumber =
+    Number(integerPart);
+
+  const fractionNumber =
+    Number(fractionPart) /
+    Number(FP);
+
+  return sign *
+    (integerNumber +
+     fractionNumber);
+}
+
+
+/* ============================================================
+ * BigInt fixed point → float32 high / low
+ *
+ * high はfloat32。
+ * low はhighを引いた残差。
+ *
+ * GPU側では high + low でdouble-double風に使う。
+ * ========================================================== */
+
+function splitFixed(v) {
+
+  const value =
+    fixedToNumber(v);
+
+  const high =
+    Math.fround(value);
+
+  /*
+   * highを固定小数へ戻して、
+   * 元のBigIntとの差を正確に求める。
+   */
+  const highFixed =
+    decimalToFixed(
+      high.toString()
+    );
+
+  const lowFixed =
+    v - highFixed;
+
+  const low =
+    fixedToNumber(lowFixed);
+
+  return [
+    high,
+    Math.fround(low)
+  ];
+}
+
+
+/* ============================================================
+ * Scale
+ *
+ * scale =
+ *
+ *   scaleMantissa × 10^scaleExponent
+ *
+ * で保持。
+ *
+ * scaleMantissa は常に
+ *
+ *   1 <= mantissa < 10
+ *
+ * ========================================================== */
+
+let scaleMantissa = 3.0;
+let scaleExponent = 0;
+
+
+/* ============================================================
+ * Scale normalize
+ * ========================================================== */
+
+function normalizeScale() {
+
+  while (scaleMantissa >= 10.0) {
+
+    scaleMantissa /= 10.0;
+    scaleExponent++;
+  }
+
+  while (
+    scaleMantissa < 1.0 &&
+    scaleMantissa > 0.0
+  ) {
+
+    scaleMantissa *= 10.0;
+    scaleExponent--;
+  }
+}
+
+
+/* ============================================================
+ * Scale multiply
+ * ========================================================== */
+
+function multiplyScale(factor) {
+
+  scaleMantissa *= factor;
+
+  normalizeScale();
+}
+
+
+/* ============================================================
+ * Scale as approximate Number
+ *
+ * これは表示・反復回数計算専用。
+ *
+ * 10^-100をNumberとしてカメラ計算には使わない。
+ * ========================================================== */
+
+function approximateScale() {
+
+  return scaleMantissa *
+    Math.pow(
+      10,
+      scaleExponent
+    );
+}
+
+
+/* ============================================================
+ * 初期位置
+ * ========================================================== */
+
+const INITIAL_X =
+  "-0.743643887037151";
+
+const INITIAL_Y =
+  "0.131825904205330";
+
+
+let centerX =
+  decimalToFixed(INITIAL_X);
+
+let centerY =
+  decimalToFixed(INITIAL_Y);
+
+
+/* ============================================================
+ * Canvas
+ * ========================================================== */
 
 let width = 1;
 let height = 1;
 let dpr = 1;
 
-let dragging = false;
-let lastX = 0;
-let lastY = 0;
-
-let pinchDistance = null;
-let pinchCenter = null;
-
-let animationStart = performance.now();
-
-function splitDouble(v) {
-  /*
-   * float32で表現したhighと、その誤差lowに分割。
-   */
-  const high = Math.fround(v);
-  const low = v - high;
-  return [high, low];
-}
-
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-  width = window.innerWidth;
-  height = window.innerHeight;
+  dpr =
+    Math.min(
+      window.devicePixelRatio || 1,
+      2
+    );
 
-  canvas.width = Math.floor(width * dpr);
-  canvas.height = Math.floor(height * dpr);
+  width =
+    window.innerWidth;
 
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  height =
+    window.innerHeight;
+
+  canvas.width =
+    Math.floor(
+      width * dpr
+    );
+
+  canvas.height =
+    Math.floor(
+      height * dpr
+    );
+
+  gl.viewport(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 }
 
-window.addEventListener("resize", resize);
+window.addEventListener(
+  "resize",
+  resize
+);
+
 resize();
 
-function getIterations() {
+
+/* ============================================================
+ * Iterations
+ *
+ * scaleを直接Numberとして扱わない。
+ * ========================================================== */
+
+function getZoomDepth() {
+
   /*
-   * ズームが深くなるほど反復回数を増加。
+   * 初期scale = 3
+   *
+   * scale = mantissa × 10^exponent
    */
-  const depth = Math.max(0, -Math.log10(scale / 3));
-  return Math.min(1500, 180 + depth * 55);
+  const logScale =
+    Math.log10(scaleMantissa) +
+    scaleExponent;
+
+  const depth =
+    Math.max(
+      0,
+      -logScale + Math.log10(3)
+    );
+
+  return depth;
 }
 
+
+function getIterations() {
+
+  const depth =
+    getZoomDepth();
+
+  return Math.min(
+    1500,
+    180 + depth * 55
+  );
+}
+
+
+/* ============================================================
+ * Render
+ * ========================================================== */
+
+const animationStart =
+  performance.now();
+
 function render(now) {
+
   gl.useProgram(program);
 
-  const sx = splitDouble(centerX);
-  const sy = splitDouble(centerY);
+
+  const sx =
+    splitFixed(centerX);
+
+  const sy =
+    splitFixed(centerY);
+
 
   gl.uniform2f(
     uniforms.resolution,
@@ -361,11 +931,13 @@ function render(now) {
     canvas.height
   );
 
+
   gl.uniform2f(
     uniforms.centerHigh,
     sx[0],
     sy[0]
   );
+
 
   gl.uniform2f(
     uniforms.centerLow,
@@ -373,213 +945,983 @@ function render(now) {
     sy[1]
   );
 
-  gl.uniform1f(uniforms.scale, scale);
+
+  /*
+   * ----------------------------------------------------------
+   * u_scale
+   *
+   * ここは元コードのrounder()を維持するため、
+   * 仮数だけを渡す。
+   *
+   * 実際の指数は u_scaleExp。
+   * ----------------------------------------------------------
+   */
+  gl.uniform1f(
+    uniforms.scale,
+    scaleMantissa
+  );
+
+
+  gl.uniform1i(
+    uniforms.scaleExp,
+    scaleExponent
+  );
+
 
   gl.uniform1f(
     uniforms.time,
-    (now - animationStart) * 0.01
+    (now - animationStart) *
+    0.01
   );
+
 
   gl.uniform1f(
     uniforms.iterations,
     getIterations()
   );
 
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+  gl.drawArrays(
+    gl.TRIANGLES,
+    0,
+    6
+  );
+
 
   updateInfo();
 
   requestAnimationFrame(render);
 }
 
+
+/* ============================================================
+ * BigInt center → display string
+ * ========================================================== */
+
+function fixedToDecimalString(
+  v,
+  digits = 15
+) {
+
+  const negative =
+    v < 0n;
+
+  const a =
+    negative ? -v : v;
+
+  const integerPart =
+    a / FP;
+
+  const fractionPart =
+    a % FP;
+
+  if (fractionPart === 0n) {
+    return (
+      negative ? "-" : ""
+    ) +
+    integerPart.toString();
+  }
+
+  let fraction =
+    fractionPart
+      .toString()
+      .padStart(
+        FP_DIGITS,
+        "0"
+      );
+
+  /*
+   * 必要桁数だけ表示
+   */
+  fraction =
+    fraction.slice(0, digits);
+
+  fraction =
+    fraction.replace(
+      /0+$/,
+      ""
+    );
+
+  return (
+    negative ? "-" : ""
+  ) +
+    integerPart.toString() +
+    "." +
+    fraction;
+}
+
+
+/* ============================================================
+ * Zoom display
+ * ========================================================== */
+
+function getZoomDisplay() {
+
+  /*
+   * zoom = 3 / scale
+   *
+   * log10(zoom)
+   */
+  const logZoom =
+    Math.log10(3) -
+    (
+      Math.log10(scaleMantissa) +
+      scaleExponent
+    );
+
+  const exponent =
+    Math.floor(logZoom);
+
+  const mantissa =
+    Math.pow(
+      10,
+      logZoom - exponent
+    );
+
+  return (
+    mantissa.toFixed(3) +
+    "e" +
+    (
+      exponent >= 0
+        ? "+" + exponent
+        : exponent
+    )
+  );
+}
+
+
+/* ============================================================
+ * Info
+ * ========================================================== */
+
 function updateInfo() {
-  const zoom = 3 / scale;
 
   info.textContent =
     "Mandelbrot Set\n" +
+
     "center: " +
-    centerX.toPrecision(14) +
+    fixedToDecimalString(
+      centerX,
+      15
+    ) +
     "  " +
-    centerY.toPrecision(14) +
+    fixedToDecimalString(
+      centerY,
+      15
+    ) +
+
     "\n" +
+
     "zoom: " +
-    formatZoom(zoom) +
-    "×\n" +
+    getZoomDisplay() +
+    "×" +
+
+    "\n" +
+
+    "scale: " +
+    scaleMantissa.toPrecision(8) +
+    "e" +
+    (
+      scaleExponent >= 0
+        ? "+" + scaleExponent
+        : scaleExponent
+    ) +
+
+    "\n" +
+
     "iterations: " +
-    Math.floor(getIterations());
+    Math.floor(
+      getIterations()
+    );
 }
 
-function formatZoom(z) {
-  return z.toExponential(3);
-}
 
-/*
- * 画面座標 → 複素平面
- */
-function screenToComplex(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
+/* ============================================================
+ * 画面座標
+ *
+ * ここではpixel位置だけをNumberで扱う。
+ *
+ * 複素数の中心やscaleとの乗算はBigInt側で行う。
+ * ========================================================== */
 
-  const x =
-    (clientX - rect.left - width / 2) /
-    Math.min(width, height);
+function screenToNormalized(
+  clientX,
+  clientY
+) {
 
-  const y =
-    (height / 2 - (clientY - rect.top)) /
-    Math.min(width, height);
+  const rect =
+    canvas.getBoundingClientRect();
+
+  const size =
+    Math.min(
+      width,
+      height
+    );
 
   return {
-    x: centerX + x * scale,
-    y: centerY + y * scale
+
+    x:
+      (
+        clientX -
+        rect.left -
+        width / 2
+      ) / size,
+
+    y:
+      (
+        height / 2 -
+        (
+          clientY -
+          rect.top
+        )
+      ) / size
   };
 }
 
-/*
- * 指定した画面位置を中心にズーム。
- */
-function zoomAt(clientX, clientY, factor) {
-  const before = screenToComplex(clientX, clientY);
 
-  scale *= factor;
+/* ============================================================
+ * Number → fixed
+ *
+ * pixel座標は最大でもほぼ±1なので安全。
+ * ========================================================== */
 
-  /*
-   * ズーム後にもカーソル位置が
-   * 同じ複素平面座標になるよう中心を補正。
-   */
-  const after = screenToComplex(clientX, clientY);
-
-  centerX += before.x - after.x;
-  centerY += before.y - after.y;
+function numberToFixed(v) {
 
   /*
-   * JavaScript Numberの限界を超えても
-   * 表示上は可能な限りズームを続ける。
+   * 30桁程度まで必要ない。
+   * ここではFPの分解能まで利用する。
    */
-  scale = Math.max(Number.MIN_VALUE * 1e20, scale);
+  const scaled =
+    v * 1e15;
+
+  const integer =
+    BigInt(
+      Math.round(scaled)
+    );
+
+  /*
+   * 1e15スケールから160桁固定小数へ。
+   */
+  return (
+    integer *
+    10n ** BigInt(
+      FP_DIGITS - 15
+    )
+  );
 }
 
-canvas.addEventListener("wheel", e => {
-  e.preventDefault();
 
-  const factor = Math.exp(e.deltaY * 0.0015);
+/* ============================================================
+ * fixed × fixed
+ * ========================================================== */
 
-  zoomAt(e.clientX, e.clientY, factor);
-}, { passive:false });
+function fixedMultiply(a, b) {
 
-/* マウス操作 */
-canvas.addEventListener("pointerdown", e => {
-  dragging = true;
+  const product =
+    a * b;
 
-  lastX = e.clientX;
-  lastY = e.clientY;
+  const positive =
+    product >= 0n;
 
-  canvas.classList.add("dragging");
-  canvas.setPointerCapture(e.pointerId);
-});
+  const abs =
+    positive
+      ? product
+      : -product;
 
-canvas.addEventListener("pointermove", e => {
-  if (!dragging) return;
+  const result =
+    (abs + FP / 2n) /
+    FP;
 
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
+  return positive
+    ? result
+    : -result;
+}
 
-  const unit = scale / Math.min(width, height);
 
-  centerX -= dx * unit;
-  centerY += dy * unit;
+/* ============================================================
+ * 画面座標 → 高精度複素座標
+ *
+ * ここが今回の重要部分。
+ *
+ * centerX + x * scale
+ *
+ * をNumberでは絶対に計算しない。
+ * ========================================================== */
 
-  lastX = e.clientX;
-  lastY = e.clientY;
-});
+function screenToComplexFixed(
+  clientX,
+  clientY
+) {
 
-canvas.addEventListener("pointerup", () => {
+  const p =
+    screenToNormalized(
+      clientX,
+      clientY
+    );
+
+
+  /*
+   * scaleを固定小数へ変換。
+   *
+   * scale =
+   * mantissa × 10^exponent
+   */
+  let scaleFixed;
+
+  /*
+   * mantissaは1～10なので、
+   * まず固定小数へ。
+   */
+  const mantissaFixed =
+    numberToFixed(
+      scaleMantissa
+    );
+
+
+  if (scaleExponent >= 0) {
+
+    scaleFixed =
+      mantissaFixed *
+      (
+        10n **
+        BigInt(scaleExponent)
+      );
+
+  } else {
+
+    const divisor =
+      10n **
+      BigInt(-scaleExponent);
+
+    scaleFixed =
+      (
+        mantissaFixed +
+        divisor / 2n
+      ) /
+      divisor;
+  }
+
+
+  const px =
+    numberToFixed(p.x);
+
+  const py =
+    numberToFixed(p.y);
+
+
+  const dx =
+    fixedMultiply(
+      px,
+      scaleFixed
+    );
+
+  const dy =
+    fixedMultiply(
+      py,
+      scaleFixed
+    );
+
+
+  return {
+
+    x:
+      centerX + dx,
+
+    y:
+      centerY + dy
+  };
+}
+
+
+/* ============================================================
+ * Zoom
+ *
+ * ズーム前後の座標差もBigInt。
+ * ========================================================== */
+
+function zoomAt(
+  clientX,
+  clientY,
+  factor
+) {
+
+  /*
+   * ズーム前
+   */
+  const before =
+    screenToComplexFixed(
+      clientX,
+      clientY
+    );
+
+
+  /*
+   * scale変更。
+   *
+   * Numberのscaleそのものを
+   * 掛け算することはしない。
+   */
+  multiplyScale(factor);
+
+
+  /*
+   * ズーム後
+   */
+  const after =
+    screenToComplexFixed(
+      clientX,
+      clientY
+    );
+
+
+  /*
+   * カーソル位置固定。
+   */
+  centerX +=
+    before.x -
+    after.x;
+
+  centerY +=
+    before.y -
+    after.y;
+}
+
+
+/* ============================================================
+ * Wheel
+ * ========================================================== */
+
+canvas.addEventListener(
+  "wheel",
+  e => {
+
+    e.preventDefault();
+
+    /*
+     * factor自体は小さなNumberなので問題ない。
+     *
+     * 実際のscaleへの適用は
+     * multiplyScale()で仮数・指数に分解される。
+     */
+    const factor =
+      Math.exp(
+        e.deltaY * 0.0015
+      );
+
+    zoomAt(
+      e.clientX,
+      e.clientY,
+      factor
+    );
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* ============================================================
+ * Pointer
+ *
+ * タッチとPointerを二重処理しない。
+ * ========================================================== */
+
+let dragging = false;
+let activePointerId = null;
+
+let lastX = 0;
+let lastY = 0;
+
+
+canvas.addEventListener(
+  "pointerdown",
+  e => {
+
+    /*
+     * 2本指操作中は通常ドラッグを開始しない。
+     */
+    if (touches.size >= 2) {
+      return;
+    }
+
+    dragging = true;
+    activePointerId =
+      e.pointerId;
+
+    lastX = e.clientX;
+    lastY = e.clientY;
+
+    canvas.classList.add(
+      "dragging"
+    );
+
+    try {
+      canvas.setPointerCapture(
+        e.pointerId
+      );
+    } catch (_) {}
+
+  }
+);
+
+
+canvas.addEventListener(
+  "pointermove",
+  e => {
+
+    if (!dragging) return;
+
+    if (
+      activePointerId !==
+      e.pointerId
+    ) {
+      return;
+    }
+
+    /*
+     * 2本指になったらドラッグ停止。
+     */
+    if (touches.size >= 2) {
+      dragging = false;
+      canvas.classList.remove(
+        "dragging"
+      );
+      return;
+    }
+
+
+    const dx =
+      e.clientX -
+      lastX;
+
+    const dy =
+      e.clientY -
+      lastY;
+
+
+    /*
+     * scaleを直接Number化しない。
+     *
+     * 1 pixel分の複素座標量を
+     * BigIntで計算する。
+     */
+    const size =
+      Math.min(
+        width,
+        height
+      );
+
+
+    /*
+     * 画面pixel → 正規化座標
+     */
+    const nx =
+      dx / size;
+
+    const ny =
+      dy / size;
+
+
+    /*
+     * scaleFixed
+     */
+    const mantissaFixed =
+      numberToFixed(
+        scaleMantissa
+      );
+
+    let scaleFixed;
+
+    if (scaleExponent >= 0) {
+
+      scaleFixed =
+        mantissaFixed *
+        (
+          10n **
+          BigInt(scaleExponent)
+        );
+
+    } else {
+
+      const divisor =
+        10n **
+        BigInt(-scaleExponent);
+
+      scaleFixed =
+        (
+          mantissaFixed +
+          divisor / 2n
+        ) /
+        divisor;
+    }
+
+
+    const dxFixed =
+      fixedMultiply(
+        numberToFixed(nx),
+        scaleFixed
+      );
+
+    const dyFixed =
+      fixedMultiply(
+        numberToFixed(ny),
+        scaleFixed
+      );
+
+
+    /*
+     * ドラッグ方向と反対へ中心移動。
+     */
+    centerX -= dxFixed;
+    centerY += dyFixed;
+
+
+    lastX =
+      e.clientX;
+
+    lastY =
+      e.clientY;
+
+  }
+);
+
+
+function stopPointerDrag() {
+
   dragging = false;
-  canvas.classList.remove("dragging");
-});
+  activePointerId = null;
 
-canvas.addEventListener("pointercancel", () => {
-  dragging = false;
-  canvas.classList.remove("dragging");
-});
+  canvas.classList.remove(
+    "dragging"
+  );
+}
 
-/* タッチのピンチズーム */
-function distance(a,b) {
+
+canvas.addEventListener(
+  "pointerup",
+  stopPointerDrag
+);
+
+canvas.addEventListener(
+  "pointercancel",
+  stopPointerDrag
+);
+
+canvas.addEventListener(
+  "pointerleave",
+  e => {
+
+    if (
+      dragging &&
+      activePointerId ===
+      e.pointerId
+    ) {
+      /*
+       * pointer capture中ならmoveは継続するので
+       * ここでは何もしない。
+       */
+    }
+
+  }
+);
+
+
+/* ============================================================
+ * Touch / Pinch
+ * ========================================================== */
+
+const touches =
+  new Map();
+
+let pinchDistance = null;
+let pinchCenter = null;
+
+
+function distance(a, b) {
+
   return Math.hypot(
     a.clientX - b.clientX,
     a.clientY - b.clientY
   );
 }
 
-function midpoint(a,b) {
+
+function midpoint(a, b) {
+
   return {
-    x: (a.clientX + b.clientX) / 2,
-    y: (a.clientY + b.clientY) / 2
+
+    x:
+      (
+        a.clientX +
+        b.clientX
+      ) / 2,
+
+    y:
+      (
+        a.clientY +
+        b.clientY
+      ) / 2
   };
 }
 
-const touches = new Map();
 
-canvas.addEventListener("touchstart", e => {
-  for (const t of e.changedTouches) {
-    touches.set(t.identifier, t);
-  }
+canvas.addEventListener(
+  "touchstart",
+  e => {
 
-  if (touches.size === 2) {
-    const arr = [...touches.values()];
-    pinchDistance = distance(arr[0], arr[1]);
-    pinchCenter = midpoint(arr[0], arr[1]);
-  }
-}, {passive:false});
+    e.preventDefault();
 
-canvas.addEventListener("touchmove", e => {
-  e.preventDefault();
+    for (
+      const t of e.changedTouches
+    ) {
 
-  for (const t of e.changedTouches) {
-    touches.set(t.identifier, t);
-  }
-
-  if (touches.size === 2) {
-    const arr = [...touches.values()];
-
-    const d = distance(arr[0], arr[1]);
-    const c = midpoint(arr[0], arr[1]);
-
-    if (pinchDistance && pinchDistance > 0) {
-      const factor = pinchDistance / d;
-      zoomAt(c.x, c.y, factor);
+      touches.set(
+        t.identifier,
+        {
+          clientX: t.clientX,
+          clientY: t.clientY
+        }
+      );
     }
+
+
+    if (touches.size === 2) {
+
+      /*
+       * 2本指になった瞬間に
+       * pointerドラッグを止める。
+       */
+      dragging = false;
+      activePointerId = null;
+
+      canvas.classList.remove(
+        "dragging"
+      );
+
+
+      const arr =
+        [...touches.values()];
+
+
+      pinchDistance =
+        distance(
+          arr[0],
+          arr[1]
+        );
+
+      pinchCenter =
+        midpoint(
+          arr[0],
+          arr[1]
+        );
+    }
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+canvas.addEventListener(
+  "touchmove",
+  e => {
+
+    e.preventDefault();
+
+    for (
+      const t of e.changedTouches
+    ) {
+
+      touches.set(
+        t.identifier,
+        {
+          clientX: t.clientX,
+          clientY: t.clientY
+        }
+      );
+    }
+
+
+    if (touches.size !== 2) {
+      return;
+    }
+
+
+    const arr =
+      [...touches.values()];
+
+
+    const d =
+      distance(
+        arr[0],
+        arr[1]
+      );
+
+
+    const c =
+      midpoint(
+        arr[0],
+        arr[1]
+      );
+
+
+    if (
+      pinchDistance !== null &&
+      pinchDistance > 0 &&
+      d > 0
+    ) {
+
+      const factor =
+        pinchDistance / d;
+
+
+      /*
+       * ピンチ中心を固定したまま
+       * 高精度ズーム。
+       */
+      zoomAt(
+        c.x,
+        c.y,
+        factor
+      );
+    }
+
 
     pinchDistance = d;
     pinchCenter = c;
-  }
-}, {passive:false});
 
-canvas.addEventListener("touchend", e => {
-  for (const t of e.changedTouches) {
-    touches.delete(t.identifier);
+  },
+  {
+    passive: false
   }
+);
 
-  if (touches.size < 2) {
-    pinchDistance = null;
-    pinchCenter = null;
-  }
-}, {passive:false});
 
-/* リセット */
-function reset() {
-  centerX = INITIAL_X;
-  centerY = INITIAL_Y;
-  scale = 3.0;
+function clearTouches() {
+
+  touches.clear();
+
+  pinchDistance = null;
+  pinchCenter = null;
 }
 
-resetButton.addEventListener("click", reset);
 
-window.addEventListener("keydown", e => {
-  if (e.key.toLowerCase() === "r") {
-    reset();
+canvas.addEventListener(
+  "touchend",
+  e => {
+
+    for (
+      const t of e.changedTouches
+    ) {
+
+      touches.delete(
+        t.identifier
+      );
+    }
+
+
+    if (touches.size < 2) {
+
+      pinchDistance = null;
+      pinchCenter = null;
+    }
+
+  },
+  {
+    passive: false
   }
-});
+);
+
+
+canvas.addEventListener(
+  "touchcancel",
+  e => {
+
+    for (
+      const t of e.changedTouches
+    ) {
+
+      touches.delete(
+        t.identifier
+      );
+    }
+
+
+    if (touches.size < 2) {
+
+      pinchDistance = null;
+      pinchCenter = null;
+    }
+
+  },
+  {
+    passive: false
+  }
+);
+
+
+/* ============================================================
+ * Reset
+ * ========================================================== */
+
+function reset() {
+
+  centerX =
+    decimalToFixed(
+      INITIAL_X
+    );
+
+  centerY =
+    decimalToFixed(
+      INITIAL_Y
+    );
+
+  scaleMantissa = 3.0;
+  scaleExponent = 0;
+
+  dragging = false;
+  activePointerId = null;
+
+  touches.clear();
+
+  pinchDistance = null;
+  pinchCenter = null;
+
+  canvas.classList.remove(
+    "dragging"
+  );
+}
+
+
+resetButton.addEventListener(
+  "click",
+  reset
+);
+
+
+window.addEventListener(
+  "keydown",
+  e => {
+
+    if (
+      e.key.toLowerCase() ===
+      "r"
+    ) {
+      reset();
+    }
+
+  }
+);
+
+
+/* ============================================================
+ * Start
+ * ========================================================== */
 
 requestAnimationFrame(render);
+
 </script>
 
 </body>
