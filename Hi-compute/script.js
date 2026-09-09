@@ -9,7 +9,18 @@ function calculate() {
     const x = Number(xInput.value);
     const y = Number(yInput.value);
 
-    result.innerHTML = x * y;
+    let r = x * y;
+    let s = 0;
+
+    while (r !== 0) {
+        const i = r % 10;
+        r = Math.floor(r / 10);
+        s++;
+
+        console.log(i);
+    }
+
+    result.innerHTML = `r = ${r}, s = ${s}`;
 }
 
 xInput.addEventListener("input", calculate);

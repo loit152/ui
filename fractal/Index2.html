@@ -189,7 +189,7 @@ void main() {
 
   /*
    * u_scale は「画面上の1単位が複素平面で何になるか」。
-   * 小さくなるほど深くズーム。
+   * 小さくなるほど深くズーム。u_scaleの数値の精度は描画にそこまで関係ないため計算そ軽くする目的で導入
    */
   vec2 r = rounder(u_scale,4.0);
   float rounded_u_scale = r.x * pow(10.0, r.y);
