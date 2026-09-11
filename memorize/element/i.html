@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -12,8 +13,7 @@
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #f5f5f7;
     color: #222;
 }
@@ -36,14 +36,15 @@ main {
     padding: 20px;
 }
 
+/* =========================
+   モード
+========================= */
+
 .mode-select {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 15px;
-}
-
-.mode-select button {
-    flex: 1;
 }
 
 button {
@@ -59,6 +60,10 @@ button.active {
     background: #222;
     color: white;
 }
+
+/* =========================
+   問題
+========================= */
 
 .question-card {
     background: white;
@@ -115,6 +120,10 @@ button.active {
     color: #d33;
 }
 
+/* =========================
+   暗記度
+========================= */
+
 .stats {
     margin-top: 15px;
     background: white;
@@ -148,6 +157,10 @@ button.active {
     color: #666;
 }
 
+/* =========================
+   リセット
+========================= */
+
 .controls {
     display: flex;
     gap: 8px;
@@ -166,59 +179,12 @@ button.active {
     background: #ddd;
 }
 
-.mastery-section {
-    margin-top: 20px;
-    background: white;
-    border-radius: 15px;
-    padding: 16px;
-}
+/* =========================
+   出題範囲
+========================= */
 
-.mastery-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.element-item {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 9px;
-}
-
-.element-name {
-    font-weight: bold;
-}
-
-.element-mastery {
-    font-size: 13px;
-    color: #666;
-    margin-top: 3px;
-}
-
-.mini-progress {
-    margin-top: 6px;
-    height: 6px;
-    background: #eee;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.mini-progress-bar {
-    height: 100%;
-    background: #222;
-}
-
-@media (max-width: 500px) {
-    .question {
-        font-size: 52px;
-    }
-
-    .mastery-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}.range-section {
-    margin-bottom: 15px;
+.range-section {
+    margin-top: 15px;
     background: white;
     border-radius: 15px;
     padding: 16px;
@@ -273,9 +239,77 @@ button.active {
     color: #666;
 }
 
+/* =========================
+   元素ごとの暗記度
+========================= */
+
+.mastery-section {
+    margin-top: 20px;
+    background: white;
+    border-radius: 15px;
+    padding: 16px;
+}
+
+.mastery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.element-item {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 9px;
+}
+
+.element-name {
+    font-weight: bold;
+}
+
+.element-mastery {
+    font-size: 13px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.mini-progress {
+    margin-top: 6px;
+    height: 6px;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    background: #222;
+}
+
+/* =========================
+   スマホ
+========================= */
+
 @media (max-width: 500px) {
+
+    .question {
+        font-size: 52px;
+    }
+
+    .mastery-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .range-presets {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mode-select {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .controls {
+        flex-direction: column;
     }
 }
 </style>
@@ -289,88 +323,146 @@ button.active {
 
 <main>
 
-    <div class="mode-select">
-        <button id="numberToSymbol" class="active">
-            元素番号 → 元素記号
-        </button>
+<!-- =========================
+     モード選択
+========================= -->
 
-        <button id="symbolToNumber">
-            元素記号 → 元素番号
-        </button>
-        <button id="numberToName">
-            元素番号 → 元素名
-        </button>
+<div class="mode-select">
+
+    <button id="numberToSymbol" class="active">
+        元素番号 → 元素記号
+    </button>
+
+    <button id="symbolToNumber">
+        元素記号 → 元素番号
+    </button>
+
+    <button id="numberToName">
+        元素番号 → 元素名
+    </button>
+
+    <button id="symbolToName">
+        元素記号 → 元素名
+    </button>
+
+</div>
+
+<!-- =========================
+     問題
+========================= -->
+
+<div class="question-card">
+
+    <div class="question-label" id="questionLabel">
+        元素番号
     </div>
 
-    <div class="question-card">
-
-        <div class="question-label" id="questionLabel">
-            元素番号
-        </div>
-
-        <div class="question" id="question">
-            1
-        </div>
-
-        <div class="answer-area">
-            <input
-                id="answer"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-            >
-
-            <button id="answerButton">
-                回答
-            </button>
-        </div>
-
-        <div id="result" class="result"></div>
-
+    <div class="question" id="question">
+        1
     </div>
 
-    <div class="stats">
+    <div class="answer-area">
 
-        <div class="stats-title">
-            全体の暗記度
-        </div>
+        <input
+            id="answer"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+        >
 
-        <div class="progress">
-            <div id="overallProgress" class="progress-bar"></div>
-        </div>
-
-        <div id="overallText" class="stat-number">
-            0%
-        </div>
+        <button id="answerButton">
+            回答
+        </button>
 
     </div>
 
-    <div class="controls">
-        <button id="resetMode">
-            このモードをリセット
-        </button>
+    <div id="result" class="result"></div>
 
-        <button id="resetAll">
-            全てリセット
-        </button>
+</div>
+
+<!-- =========================
+     全体暗記度
+========================= -->
+
+<div class="stats">
+
+    <div class="stats-title">
+        全体の暗記度
     </div>
-    <div class="range-section">
+
+    <div class="progress">
+        <div
+            id="overallProgress"
+            class="progress-bar"
+        ></div>
+    </div>
+
+    <div id="overallText" class="stat-number">
+        平均暗記度：0.0%
+    </div>
+
+</div>
+
+<!-- =========================
+     リセット
+========================= -->
+
+<div class="controls">
+
+    <button id="resetMode">
+        このモードをリセット
+    </button>
+
+    <button id="resetAll">
+        全てリセット
+    </button>
+
+</div>
+
+<!-- =========================
+     出題範囲
+========================= -->
+
+<div class="range-section">
 
     <div class="range-title">
         出題範囲
     </div>
 
     <div class="range-presets">
-        <button data-start="1" data-end="20">1〜20</button>
-        <button data-start="21" data-end="40">21〜40</button>
-        <button data-start="41" data-end="60">41〜60</button>
-        <button data-start="61" data-end="80">61〜80</button>
-        <button data-start="81" data-end="100">81〜100</button>
-        <button data-start="101" data-end="118">101〜118</button>
-        <button data-start="1" data-end="118">全て</button>
+
+        <button data-start="1" data-end="20">
+            1〜20
+        </button>
+
+        <button data-start="21" data-end="40">
+            21〜40
+        </button>
+
+        <button data-start="41" data-end="60">
+            41〜60
+        </button>
+
+        <button data-start="61" data-end="80">
+            61〜80
+        </button>
+
+        <button data-start="81" data-end="100">
+            81〜100
+        </button>
+
+        <button data-start="101" data-end="118">
+            101〜118
+        </button>
+
+        <button data-start="1" data-end="118">
+            全て
+        </button>
+
     </div>
 
     <div class="custom-range">
+
         <input
             id="rangeStart"
             type="number"
@@ -392,6 +484,7 @@ button.active {
         <button id="applyRange">
             適用
         </button>
+
     </div>
 
     <div id="rangeText">
@@ -400,24 +493,30 @@ button.active {
 
 </div>
 
-    <div class="mastery-section">
+<!-- =========================
+     元素ごとの暗記度
+========================= -->
 
-        <div class="stats-title">
-            元素ごとの暗記度
-        </div>
+<div class="mastery-section">
 
-        <div id="masteryGrid" class="mastery-grid"></div>
-
+    <div class="stats-title">
+        元素ごとの暗記度
     </div>
+
+    <div id="masteryGrid" class="mastery-grid"></div>
+
+</div>
 
 </main>
 
 <script>
-/* =========================
+
+/* =========================================================
    元素データ
-========================= */
+========================================================= */
 
 const elements = [
+
     ["H", "水素"],
     ["He", "ヘリウム"],
     ["Li", "リチウム"],
@@ -536,12 +635,13 @@ const elements = [
     ["Lv", "リバモリウム"],
     ["Ts", "テネシン"],
     ["Og", "オガネソン"]
+
 ];
 
 
-/* =========================
+/* =========================================================
    状態
-========================= */
+========================================================= */
 
 let mode = "numberToSymbol";
 
@@ -549,26 +649,38 @@ let rangeStart = 1;
 let rangeEnd = 118;
 
 let mastery = {
+
     numberToSymbol: Array(118).fill(0),
+
     symbolToNumber: Array(118).fill(0),
-    numberToName: Array(118).fill(0)
+
+    numberToName: Array(118).fill(0),
+
+    symbolToName: Array(118).fill(0)
+
 };
 
 let currentIndex = 0;
+
 let answered = false;
 
 
-/* =========================
-   Cookie
-========================= */
+/* =========================================================
+   Cookie保存
+========================================================= */
 
 function saveData() {
 
     const data = {
+
         mastery,
+
         mode,
+
         rangeStart,
+
         rangeEnd
+
     };
 
     document.cookie =
@@ -577,8 +689,13 @@ function saveData() {
         ";max-age=" +
         60 * 60 * 24 * 365 * 5 +
         ";path=/;SameSite=Lax";
+
 }
 
+
+/* =========================================================
+   Cookie読み込み
+========================================================= */
 
 function loadData() {
 
@@ -599,9 +716,9 @@ function loadData() {
         );
 
 
-        /*
-         * 既存の保存データとの互換性を維持
-         */
+        /* =========================
+           暗記度
+        ========================= */
 
         if (data.mastery) {
 
@@ -625,8 +742,20 @@ function loadData() {
                 mastery.numberToName =
                     data.mastery.numberToName;
             }
+
+            if (
+                data.mastery.symbolToName?.length === 118
+            ) {
+                mastery.symbolToName =
+                    data.mastery.symbolToName;
+            }
+
         }
 
+
+        /* =========================
+           範囲
+        ========================= */
 
         if (
             Number.isInteger(data.rangeStart) &&
@@ -634,17 +763,31 @@ function loadData() {
             data.rangeStart >= 1 &&
             data.rangeEnd <= 118
         ) {
+
             rangeStart = data.rangeStart;
+
             rangeEnd = data.rangeEnd;
+
         }
 
 
-        if (
-            data.mode === "numberToSymbol" ||
-            data.mode === "symbolToNumber" ||
-            data.mode === "numberToName"
-        ) {
+        /* =========================
+           モード
+        ========================= */
+
+        const validModes = [
+
+            "numberToSymbol",
+            "symbolToNumber",
+            "numberToName",
+            "symbolToName"
+
+        ];
+
+        if (validModes.includes(data.mode)) {
+
             mode = data.mode;
+
         }
 
     } catch (error) {
@@ -652,13 +795,15 @@ function loadData() {
         console.log(
             "保存データを読み込めませんでした"
         );
+
     }
+
 }
 
 
-/* =========================
+/* =========================================================
    問題選択
-========================= */
+========================================================= */
 
 function chooseQuestion() {
 
@@ -675,8 +820,10 @@ function chooseQuestion() {
 
         const masteryValue = values[i];
 
+
         /*
-         * 暗記度が低いほど出題確率を高くする
+         * 暗記度が低いほど
+         * 出題確率を高くする
          *
          * 0%   → 6
          * 20%  → 5
@@ -691,15 +838,20 @@ function chooseQuestion() {
 
 
         candidates.push({
+
             index: i,
+
             weight
+
         });
+
     }
 
 
     const totalWeight =
         candidates.reduce(
-            (sum, item) => sum + item.weight,
+            (sum, item) =>
+                sum + item.weight,
             0
         );
 
@@ -713,18 +865,22 @@ function chooseQuestion() {
         random -= item.weight;
 
         if (random <= 0) {
+
             return item.index;
+
         }
+
     }
 
 
     return rangeEnd - 1;
+
 }
 
 
-/* =========================
+/* =========================================================
    問題表示
-========================= */
+========================================================= */
 
 function nextQuestion() {
 
@@ -750,6 +906,10 @@ function nextQuestion() {
         document.getElementById("result");
 
 
+    /* =========================
+       問題形式
+    ========================= */
+
     if (mode === "numberToSymbol") {
 
         label.textContent =
@@ -758,7 +918,9 @@ function nextQuestion() {
         question.textContent =
             currentIndex + 1;
 
-    } else if (mode === "symbolToNumber") {
+    }
+
+    else if (mode === "symbolToNumber") {
 
         label.textContent =
             "元素記号";
@@ -766,13 +928,26 @@ function nextQuestion() {
         question.textContent =
             symbol;
 
-    } else if (mode === "numberToName") {
+    }
+
+    else if (mode === "numberToName") {
 
         label.textContent =
             "元素番号";
 
         question.textContent =
             currentIndex + 1;
+
+    }
+
+    else if (mode === "symbolToName") {
+
+        label.textContent =
+            "元素記号";
+
+        question.textContent =
+            symbol;
+
     }
 
 
@@ -782,18 +957,20 @@ function nextQuestion() {
 
     result.className = "result";
 
+
     input.focus();
+
 }
 
 
-/* =========================
+/* =========================================================
    回答判定
-========================= */
+========================================================= */
 
 function checkAnswer() {
 
     /*
-     * すでに回答済みなら
+     * 回答済みなら
      * 次の問題へ
      */
 
@@ -802,6 +979,7 @@ function checkAnswer() {
         nextQuestion();
 
         return;
+
     }
 
 
@@ -822,9 +1000,9 @@ function checkAnswer() {
     let correctAnswer;
 
 
-    /* =====================
+    /* =========================
        元素番号 → 元素記号
-    ===================== */
+    ========================= */
 
     if (mode === "numberToSymbol") {
 
@@ -838,17 +1016,22 @@ function checkAnswer() {
 
             correct();
 
-        } else {
-
-            wrong(correctAnswer);
         }
 
+        else {
 
-    /* =====================
+            wrong(correctAnswer);
+
+        }
+
+    }
+
+
+    /* =========================
        元素記号 → 元素番号
-    ===================== */
+    ========================= */
 
-    } else if (mode === "symbolToNumber") {
+    else if (mode === "symbolToNumber") {
 
         correctAnswer =
             String(currentIndex + 1);
@@ -858,17 +1041,22 @@ function checkAnswer() {
 
             correct();
 
-        } else {
-
-            wrong(correctAnswer);
         }
 
+        else {
 
-    /* =====================
+            wrong(correctAnswer);
+
+        }
+
+    }
+
+
+    /* =========================
        元素番号 → 元素名
-    ===================== */
+    ========================= */
 
-    } else if (mode === "numberToName") {
+    else if (mode === "numberToName") {
 
         correctAnswer = name;
 
@@ -877,17 +1065,46 @@ function checkAnswer() {
 
             correct();
 
-        } else {
+        }
+
+        else {
 
             wrong(correctAnswer);
+
         }
+
     }
+
+
+    /* =========================
+       元素記号 → 元素名
+    ========================= */
+
+    else if (mode === "symbolToName") {
+
+        correctAnswer = name;
+
+
+        if (answer === correctAnswer) {
+
+            correct();
+
+        }
+
+        else {
+
+            wrong(correctAnswer);
+
+        }
+
+    }
+
 }
 
 
-/* =========================
+/* =========================================================
    正解
-========================= */
+========================================================= */
 
 function correct() {
 
@@ -905,7 +1122,6 @@ function correct() {
     result.textContent =
         "正解";
 
-
     result.className =
         "result correct";
 
@@ -916,12 +1132,13 @@ function correct() {
     saveData();
 
     updateStats();
+
 }
 
 
-/* =========================
+/* =========================================================
    不正解
-========================= */
+========================================================= */
 
 function wrong(correctAnswer) {
 
@@ -950,40 +1167,52 @@ function wrong(correctAnswer) {
     saveData();
 
     updateStats();
+
 }
 
 
-/* =========================
+/* =========================================================
    モード変更
-========================= */
+========================================================= */
 
 function setMode(newMode) {
 
     mode = newMode;
 
 
-    document
-        .getElementById("numberToSymbol")
-        .classList.toggle(
+    const buttons = {
+
+        numberToSymbol:
+            document.getElementById(
+                "numberToSymbol"
+            ),
+
+        symbolToNumber:
+            document.getElementById(
+                "symbolToNumber"
+            ),
+
+        numberToName:
+            document.getElementById(
+                "numberToName"
+            ),
+
+        symbolToName:
+            document.getElementById(
+                "symbolToName"
+            )
+
+    };
+
+
+    Object.keys(buttons).forEach(key => {
+
+        buttons[key].classList.toggle(
             "active",
-            mode === "numberToSymbol"
+            mode === key
         );
 
-
-    document
-        .getElementById("symbolToNumber")
-        .classList.toggle(
-            "active",
-            mode === "symbolToNumber"
-        );
-
-
-    document
-        .getElementById("numberToName")
-        .classList.toggle(
-            "active",
-            mode === "numberToName"
-        );
+    });
 
 
     saveData();
@@ -991,49 +1220,56 @@ function setMode(newMode) {
     updateStats();
 
     nextQuestion();
+
 }
 
 
-/* =========================
+/* =========================================================
    出題範囲
-========================= */
+========================================================= */
 
 function setRange(start, end) {
 
     start = Number(start);
+
     end = Number(end);
 
 
     if (!Number.isInteger(start)) {
+
         start = 1;
+
     }
+
 
     if (!Number.isInteger(end)) {
+
         end = 118;
+
     }
 
 
-    start =
-        Math.max(
-            1,
-            Math.min(118, start)
-        );
+    start = Math.max(
+        1,
+        Math.min(118, start)
+    );
 
-    end =
-        Math.max(
-            1,
-            Math.min(118, end)
-        );
+    end = Math.max(
+        1,
+        Math.min(118, end)
+    );
 
 
     if (start > end) {
 
         [start, end] =
             [end, start];
+
     }
 
 
     rangeStart = start;
+
     rangeEnd = end;
 
 
@@ -1075,6 +1311,7 @@ function setRange(start, end) {
                 buttonStart === rangeStart &&
                 buttonEnd === rangeEnd
             );
+
         });
 
 
@@ -1083,12 +1320,13 @@ function setRange(start, end) {
     updateStats();
 
     nextQuestion();
+
 }
 
 
-/* =========================
+/* =========================================================
    暗記度表示
-========================= */
+========================================================= */
 
 function updateStats() {
 
@@ -1101,7 +1339,8 @@ function updateStats() {
 
     const average =
         values.reduce(
-            (sum, value) => sum + value,
+            (sum, value) =>
+                sum + value,
             0
         ) / values.length;
 
@@ -1119,17 +1358,20 @@ function updateStats() {
 
 
     updateMasteryList();
+
 }
 
 
-/* =========================
+/* =========================================================
    元素ごとの暗記度
-========================= */
+========================================================= */
 
 function updateMasteryList() {
 
     const grid =
-        document.getElementById("masteryGrid");
+        document.getElementById(
+            "masteryGrid"
+        );
 
 
     grid.innerHTML = "";
@@ -1158,6 +1400,7 @@ function updateMasteryList() {
 
 
         item.innerHTML = `
+
             <div class="element-name">
                 ${i + 1}. ${symbol}
             </div>
@@ -1167,22 +1410,27 @@ function updateMasteryList() {
             </div>
 
             <div class="mini-progress">
+
                 <div
                     class="mini-progress-bar"
                     style="width:${value}%"
                 ></div>
+
             </div>
+
         `;
 
 
         grid.appendChild(item);
+
     }
+
 }
 
 
-/* =========================
-   リセット
-========================= */
+/* =========================================================
+   モードリセット
+========================================================= */
 
 function resetMode() {
 
@@ -1191,7 +1439,9 @@ function resetMode() {
             "このモードの暗記度をすべてリセットしますか？"
         )
     ) {
+
         return;
+
     }
 
 
@@ -1204,8 +1454,13 @@ function resetMode() {
     updateStats();
 
     nextQuestion();
+
 }
 
+
+/* =========================================================
+   全リセット
+========================================================= */
 
 function resetAll() {
 
@@ -1214,11 +1469,14 @@ function resetAll() {
             "元素暗記のデータをすべてリセットしますか？"
         )
     ) {
+
         return;
+
     }
 
 
     mastery = {
+
         numberToSymbol:
             Array(118).fill(0),
 
@@ -1226,7 +1484,11 @@ function resetAll() {
             Array(118).fill(0),
 
         numberToName:
+            Array(118).fill(0),
+
+        symbolToName:
             Array(118).fill(0)
+
     };
 
 
@@ -1235,17 +1497,13 @@ function resetAll() {
     updateStats();
 
     nextQuestion();
+
 }
 
 
-/* =========================
-   イベント
-========================= */
-
-
-/*
- * 回答ボタン
- */
+/* =========================================================
+   回答ボタン
+========================================================= */
 
 document
     .getElementById("answerButton")
@@ -1255,9 +1513,9 @@ document
     );
 
 
-/*
- * Enterキー
- */
+/* =========================================================
+   Enterキー
+========================================================= */
 
 document
     .getElementById("answer")
@@ -1270,16 +1528,23 @@ document
                 event.preventDefault();
 
                 checkAnswer();
+
             }
+
         }
     );
 
 
+/* =========================================================
+   スペースキー
+========================================================= */
+
 /*
- * スペースキー
+ * 回答前
+ * → 回答
  *
- * 回答前 → 回答
- * 回答後 → 次の問題
+ * 回答後
+ * → 次の問題
  */
 
 document.addEventListener(
@@ -1300,26 +1565,30 @@ document.addEventListener(
             document.activeElement ===
             document.getElementById("answer")
         ) {
+
             return;
+
         }
 
 
         event.preventDefault();
 
         checkAnswer();
+
     }
 );
 
 
-/* =========================
+/* =========================================================
    モード切替
-========================= */
+========================================================= */
 
 document
     .getElementById("numberToSymbol")
     .addEventListener(
         "click",
-        () => setMode("numberToSymbol")
+        () =>
+            setMode("numberToSymbol")
     );
 
 
@@ -1327,7 +1596,8 @@ document
     .getElementById("symbolToNumber")
     .addEventListener(
         "click",
-        () => setMode("symbolToNumber")
+        () =>
+            setMode("symbolToNumber")
     );
 
 
@@ -1335,13 +1605,23 @@ document
     .getElementById("numberToName")
     .addEventListener(
         "click",
-        () => setMode("numberToName")
+        () =>
+            setMode("numberToName")
     );
 
 
-/* =========================
+document
+    .getElementById("symbolToName")
+    .addEventListener(
+        "click",
+        () =>
+            setMode("symbolToName")
+    );
+
+
+/* =========================================================
    出題範囲プリセット
-========================= */
+========================================================= */
 
 document
     .querySelectorAll(
@@ -1357,14 +1637,16 @@ document
                     button.dataset.start,
                     button.dataset.end
                 );
+
             }
         );
+
     });
 
 
-/* =========================
+/* =========================================================
    自由範囲
-========================= */
+========================================================= */
 
 document
     .getElementById("applyRange")
@@ -1385,13 +1667,14 @@ document
 
 
             setRange(start, end);
+
         }
     );
 
 
-/* =========================
+/* =========================================================
    リセット
-========================= */
+========================================================= */
 
 document
     .getElementById("resetMode")
@@ -1409,9 +1692,9 @@ document
     );
 
 
-/* =========================
+/* =========================================================
    起動
-========================= */
+========================================================= */
 
 loadData();
 
@@ -1420,28 +1703,39 @@ loadData();
  * モードボタンの状態を復元
  */
 
-document
-    .getElementById("numberToSymbol")
-    .classList.toggle(
+const modeButtons = {
+
+    numberToSymbol:
+        document.getElementById(
+            "numberToSymbol"
+        ),
+
+    symbolToNumber:
+        document.getElementById(
+            "symbolToNumber"
+        ),
+
+    numberToName:
+        document.getElementById(
+            "numberToName"
+        ),
+
+    symbolToName:
+        document.getElementById(
+            "symbolToName"
+        )
+
+};
+
+
+Object.keys(modeButtons).forEach(key => {
+
+    modeButtons[key].classList.toggle(
         "active",
-        mode === "numberToSymbol"
+        mode === key
     );
 
-
-document
-    .getElementById("symbolToNumber")
-    .classList.toggle(
-        "active",
-        mode === "symbolToNumber"
-    );
-
-
-document
-    .getElementById("numberToName")
-    .classList.toggle(
-        "active",
-        mode === "numberToName"
-    );
+});
 
 
 /*
@@ -1486,13 +1780,20 @@ document
             start === rangeStart &&
             end === rangeEnd
         );
+
     });
 
+
+/*
+ * 初期表示
+ */
 
 updateStats();
 
 nextQuestion();
+
 </script>
 
 </body>
 </html>
+```
