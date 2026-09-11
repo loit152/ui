@@ -297,6 +297,9 @@ button.active {
         <button id="symbolToNumber">
             元素記号 → 元素番号
         </button>
+        <button id="numberToName">
+            元素番号 → 元素名
+        </button>
     </div>
 
     <div class="question-card">
@@ -547,7 +550,8 @@ let rangeEnd = 118;
 
 let mastery = {
     numberToSymbol: Array(118).fill(0),
-    symbolToNumber: Array(118).fill(0)
+    symbolToNumber: Array(118).fill(0),
+    numberToName: Array(118).fill(0)
 };
 
 let currentIndex = 0;
@@ -594,13 +598,35 @@ function loadData() {
             )
         );
 
-        if (
-            data.mastery &&
-            data.mastery.numberToSymbol?.length === 118 &&
-            data.mastery.symbolToNumber?.length === 118
-        ) {
-            mastery = data.mastery;
+
+        /*
+         * 既存の保存データとの互換性を維持
+         */
+
+        if (data.mastery) {
+
+            if (
+                data.mastery.numberToSymbol?.length === 118
+            ) {
+                mastery.numberToSymbol =
+                    data.mastery.numberToSymbol;
+            }
+
+            if (
+                data.mastery.symbolToNumber?.length === 118
+            ) {
+                mastery.symbolToNumber =
+                    data.mastery.symbolToNumber;
+            }
+
+            if (
+                data.mastery.numberToName?.length === 118
+            ) {
+                mastery.numberToName =
+                    data.mastery.numberToName;
+            }
         }
+
 
         if (
             Number.isInteger(data.rangeStart) &&
@@ -612,17 +638,20 @@ function loadData() {
             rangeEnd = data.rangeEnd;
         }
 
+
         if (
             data.mode === "numberToSymbol" ||
-            data.mode === "symbolToNumber"
+            data.mode === "symbolToNumber" ||
+            data.mode === "numberToName"
         ) {
             mode = data.mode;
         }
 
     } catch (error) {
 
-        console.log("保存データを読み込めませんでした");
-
+        console.log(
+            "保存データを読み込めませんでした"
+        );
     }
 }
 
@@ -637,6 +666,7 @@ function chooseQuestion() {
 
     const candidates = [];
 
+
     for (
         let i = rangeStart - 1;
         i < rangeEnd;
@@ -646,7 +676,7 @@ function chooseQuestion() {
         const masteryValue = values[i];
 
         /*
-         * 暗記度が低いほど出題されやすい
+         * 暗記度が低いほど出題確率を高くする
          *
          * 0%   → 6
          * 20%  → 5
@@ -659,11 +689,13 @@ function chooseQuestion() {
         const weight =
             1 + (100 - masteryValue) / 20;
 
+
         candidates.push({
             index: i,
             weight
         });
     }
+
 
     const totalWeight =
         candidates.reduce(
@@ -671,8 +703,10 @@ function chooseQuestion() {
             0
         );
 
+
     let random =
         Math.random() * totalWeight;
+
 
     for (const item of candidates) {
 
@@ -682,6 +716,7 @@ function chooseQuestion() {
             return item.index;
         }
     }
+
 
     return rangeEnd - 1;
 }
@@ -697,8 +732,10 @@ function nextQuestion() {
 
     answered = false;
 
-    const [symbol] =
+
+    const [symbol, name] =
         elements[currentIndex];
+
 
     const question =
         document.getElementById("question");
@@ -715,17 +752,27 @@ function nextQuestion() {
 
     if (mode === "numberToSymbol") {
 
-        label.textContent = "元素番号";
+        label.textContent =
+            "元素番号";
 
         question.textContent =
             currentIndex + 1;
 
-    } else {
+    } else if (mode === "symbolToNumber") {
 
-        label.textContent = "元素記号";
+        label.textContent =
+            "元素記号";
 
         question.textContent =
             symbol;
+
+    } else if (mode === "numberToName") {
+
+        label.textContent =
+            "元素番号";
+
+        question.textContent =
+            currentIndex + 1;
     }
 
 
@@ -746,8 +793,10 @@ function nextQuestion() {
 function checkAnswer() {
 
     /*
-     * 回答済みなら次の問題へ
+     * すでに回答済みなら
+     * 次の問題へ
      */
+
     if (answered) {
 
         nextQuestion();
@@ -762,31 +811,67 @@ function checkAnswer() {
     const answer =
         input.value.trim();
 
+
     if (!answer) return;
 
 
-    const [symbol] =
+    const [symbol, name] =
         elements[currentIndex];
 
 
+    let correctAnswer;
+
+
+    /* =====================
+       元素番号 → 元素記号
+    ===================== */
+
     if (mode === "numberToSymbol") {
+
+        correctAnswer = symbol;
+
 
         if (
             answer.toLowerCase() ===
-            symbol.toLowerCase()
+            correctAnswer.toLowerCase()
         ) {
 
             correct();
 
         } else {
 
-            wrong(symbol);
+            wrong(correctAnswer);
         }
 
-    } else {
 
-        const correctAnswer =
+    /* =====================
+       元素記号 → 元素番号
+    ===================== */
+
+    } else if (mode === "symbolToNumber") {
+
+        correctAnswer =
             String(currentIndex + 1);
+
+
+        if (answer === correctAnswer) {
+
+            correct();
+
+        } else {
+
+            wrong(correctAnswer);
+        }
+
+
+    /* =====================
+       元素番号 → 元素名
+    ===================== */
+
+    } else if (mode === "numberToName") {
+
+        correctAnswer = name;
+
 
         if (answer === correctAnswer) {
 
@@ -812,15 +897,21 @@ function correct() {
             mastery[mode][currentIndex] + 10
         );
 
+
     const result =
         document.getElementById("result");
 
-    result.textContent = "正解";
+
+    result.textContent =
+        "正解";
+
 
     result.className =
         "result correct";
 
+
     answered = true;
+
 
     saveData();
 
@@ -840,16 +931,21 @@ function wrong(correctAnswer) {
             mastery[mode][currentIndex] - 20
         );
 
+
     const result =
         document.getElementById("result");
+
 
     result.innerHTML =
         `不正解　正解：<strong>${correctAnswer}</strong>`;
 
+
     result.className =
         "result wrong";
 
+
     answered = true;
+
 
     saveData();
 
@@ -865,6 +961,7 @@ function setMode(newMode) {
 
     mode = newMode;
 
+
     document
         .getElementById("numberToSymbol")
         .classList.toggle(
@@ -872,12 +969,22 @@ function setMode(newMode) {
             mode === "numberToSymbol"
         );
 
+
     document
         .getElementById("symbolToNumber")
         .classList.toggle(
             "active",
             mode === "symbolToNumber"
         );
+
+
+    document
+        .getElementById("numberToName")
+        .classList.toggle(
+            "active",
+            mode === "numberToName"
+        );
+
 
     saveData();
 
@@ -888,7 +995,7 @@ function setMode(newMode) {
 
 
 /* =========================
-   出題範囲変更
+   出題範囲
 ========================= */
 
 function setRange(start, end) {
@@ -896,36 +1003,64 @@ function setRange(start, end) {
     start = Number(start);
     end = Number(end);
 
-    if (!Number.isInteger(start)) start = 1;
-    if (!Number.isInteger(end)) end = 118;
 
-    start = Math.max(1, Math.min(118, start));
-    end = Math.max(1, Math.min(118, end));
+    if (!Number.isInteger(start)) {
+        start = 1;
+    }
+
+    if (!Number.isInteger(end)) {
+        end = 118;
+    }
+
+
+    start =
+        Math.max(
+            1,
+            Math.min(118, start)
+        );
+
+    end =
+        Math.max(
+            1,
+            Math.min(118, end)
+        );
+
 
     if (start > end) {
-        [start, end] = [end, start];
+
+        [start, end] =
+            [end, start];
     }
+
 
     rangeStart = start;
     rangeEnd = end;
 
 
-    document.getElementById("rangeStart").value =
-        rangeStart;
+    document
+        .getElementById("rangeStart")
+        .value = rangeStart;
 
-    document.getElementById("rangeEnd").value =
-        rangeEnd;
 
-    document.getElementById("rangeText").textContent =
+    document
+        .getElementById("rangeEnd")
+        .value = rangeEnd;
+
+
+    document
+        .getElementById("rangeText")
+        .textContent =
         `${rangeStart}〜${rangeEnd}`;
 
 
     /*
-     * プリセットボタンの状態
+     * プリセットの選択状態
      */
 
     document
-        .querySelectorAll(".range-presets button")
+        .querySelectorAll(
+            ".range-presets button"
+        )
         .forEach(button => {
 
             const buttonStart =
@@ -933,6 +1068,7 @@ function setRange(start, end) {
 
             const buttonEnd =
                 Number(button.dataset.end);
+
 
             button.classList.toggle(
                 "active",
@@ -995,6 +1131,7 @@ function updateMasteryList() {
     const grid =
         document.getElementById("masteryGrid");
 
+
     grid.innerHTML = "";
 
 
@@ -1007,12 +1144,14 @@ function updateMasteryList() {
         const [symbol, name] =
             elements[i];
 
+
         const value =
             mastery[mode][i];
 
 
         const item =
             document.createElement("div");
+
 
         item.className =
             "element-item";
@@ -1084,6 +1223,9 @@ function resetAll() {
             Array(118).fill(0),
 
         symbolToNumber:
+            Array(118).fill(0),
+
+        numberToName:
             Array(118).fill(0)
     };
 
@@ -1136,12 +1278,8 @@ document
 /*
  * スペースキー
  *
- * 回答欄に入力中は無効。
- *
- * それ以外では
- *
- * 未回答 → 回答
- * 回答済み → 次の問題
+ * 回答前 → 回答
+ * 回答後 → 次の問題
  */
 
 document.addEventListener(
@@ -1152,6 +1290,11 @@ document.addEventListener(
             return;
         }
 
+
+        /*
+         * 回答欄に入力中なら
+         * スペースキーでは操作しない
+         */
 
         if (
             document.activeElement ===
@@ -1168,9 +1311,9 @@ document.addEventListener(
 );
 
 
-/*
- * モード切替
- */
+/* =========================
+   モード切替
+========================= */
 
 document
     .getElementById("numberToSymbol")
@@ -1188,12 +1331,22 @@ document
     );
 
 
-/*
- * プリセット範囲
- */
+document
+    .getElementById("numberToName")
+    .addEventListener(
+        "click",
+        () => setMode("numberToName")
+    );
+
+
+/* =========================
+   出題範囲プリセット
+========================= */
 
 document
-    .querySelectorAll(".range-presets button")
+    .querySelectorAll(
+        ".range-presets button"
+    )
     .forEach(button => {
 
         button.addEventListener(
@@ -1209,9 +1362,9 @@ document
     });
 
 
-/*
- * 自由範囲
- */
+/* =========================
+   自由範囲
+========================= */
 
 document
     .getElementById("applyRange")
@@ -1224,19 +1377,21 @@ document
                     "rangeStart"
                 ).value;
 
+
             const end =
                 document.getElementById(
                     "rangeEnd"
                 ).value;
+
 
             setRange(start, end);
         }
     );
 
 
-/*
- * リセット
- */
+/* =========================
+   リセット
+========================= */
 
 document
     .getElementById("resetMode")
@@ -1262,8 +1417,7 @@ loadData();
 
 
 /*
- * 保存されていたモード・範囲を
- * UIにも反映
+ * モードボタンの状態を復元
  */
 
 document
@@ -1273,6 +1427,7 @@ document
         mode === "numberToSymbol"
     );
 
+
 document
     .getElementById("symbolToNumber")
     .classList.toggle(
@@ -1281,18 +1436,42 @@ document
     );
 
 
-document.getElementById("rangeStart").value =
-    rangeStart;
+document
+    .getElementById("numberToName")
+    .classList.toggle(
+        "active",
+        mode === "numberToName"
+    );
 
-document.getElementById("rangeEnd").value =
-    rangeEnd;
 
-document.getElementById("rangeText").textContent =
-    `${rangeStart}〜${rangeEnd}`;
+/*
+ * 範囲を復元
+ */
+
+document
+    .getElementById("rangeStart")
+    .value = rangeStart;
 
 
 document
-    .querySelectorAll(".range-presets button")
+    .getElementById("rangeEnd")
+    .value = rangeEnd;
+
+
+document
+    .getElementById("rangeText")
+    .textContent =
+    `${rangeStart}〜${rangeEnd}`;
+
+
+/*
+ * プリセットの状態を復元
+ */
+
+document
+    .querySelectorAll(
+        ".range-presets button"
+    )
     .forEach(button => {
 
         const start =
@@ -1300,6 +1479,7 @@ document
 
         const end =
             Number(button.dataset.end);
+
 
         button.classList.toggle(
             "active",
