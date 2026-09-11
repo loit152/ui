@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>eitan!</title>
+    <style>
+
+    </style>
+</head>
+
+<body>
+
+<script>
+fetch("words.txt")
+    .then(response => response.text())
+    .then(text => {
+
+        const words = text
+            .trim()
+            .split("\n")
+            .map(line => {
+                const [english, japanese] = line.split("/");
+
+                return {
+                    english: english.trim(),
+                    japanese: japanese.trim()
+                };
+            });
+
+        const randomWord =
+            words[Math.floor(Math.random() * words.length)];
+
+        console.log(randomWord.english);
+        console.log(randomWord.japanese);
+    });
+</script>
+
+</body>
+</html>

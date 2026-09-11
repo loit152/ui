@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元素暗記</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 sans-serif;
+    background: #f5f5f7;
+    color: #222;
+}
+
+header {
+    background: #222;
+    color: white;
+    padding: 16px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+main {
+    max-width: 700px;
+    margin: auto;
+    padding: 20px;
+}
+
+.mode-select {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.mode-select button {
+    flex: 1;
+}
+
+button {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 15px;
+    cursor: pointer;
+    background: #ddd;
+}
+
+button.active {
+    background: #222;
+    color: white;
+}
+
+.question-card {
+    background: white;
+    border-radius: 18px;
+    padding: 35px 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,.08);
+}
+
+.question-label {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.question {
+    font-size: 64px;
+    font-weight: bold;
+    margin: 10px 0 25px;
+}
+
+.answer-area {
+    display: flex;
+    gap: 8px;
+}
+
+.answer-area input {
+    flex: 1;
+    min-width: 0;
+    padding: 14px;
+    font-size: 20px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.answer-area button {
+    background: #222;
+    color: white;
+}
+
+.result {
+    min-height: 30px;
+    margin-top: 15px;
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.result.correct {
+    color: #16803c;
+}
+
+.result.wrong {
+    color: #d33;
+}
+
+.stats {
+    margin-top: 15px;
+    background: white;
+    border-radius: 15px;
+    padding: 16px;
+}
+
+.stats-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.progress {
+    height: 12px;
+    background: #e5e5e5;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #222;
+    width: 0%;
+    transition: width .3s;
+}
+
+.stat-number {
+    margin-top: 6px;
+    text-align: right;
+    font-size: 14px;
+    color: #666;
+}
+
+.controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.controls button {
+    flex: 1;
+}
+
+#resetMode {
+    background: #eee;
+}
+
+#resetAll {
+    background: #ddd;
+}
+
+.mastery-section {
+    margin-top: 20px;
+    background: white;
+    border-radius: 15px;
+    padding: 16px;
+}
+
+.mastery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.element-item {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 9px;
+}
+
+.element-name {
+    font-weight: bold;
+}
+
+.element-mastery {
+    font-size: 13px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.mini-progress {
+    margin-top: 6px;
+    height: 6px;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    background: #222;
+}
+
+@media (max-width: 500px) {
+    .question {
+        font-size: 52px;
+    }
+
+    .mastery-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}.range-section {
+    margin-bottom: 15px;
+    background: white;
+    border-radius: 15px;
+    padding: 16px;
+}
+
+.range-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.range-presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.range-presets button {
+    padding: 9px 5px;
+    font-size: 13px;
+}
+
+.range-presets button.active {
+    background: #222;
+    color: white;
+}
+
+.custom-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.custom-range input {
+    width: 70px;
+    padding: 9px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+}
+
+.custom-range button {
+    background: #222;
+    color: white;
+}
+
+#rangeText {
+    margin-top: 8px;
+    text-align: right;
+    font-size: 13px;
+    color: #666;
+}
+
+@media (max-width: 500px) {
+    .range-presets {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>元素暗記</h1>
+</header>
+
+<main>
+
+    <div class="mode-select">
+        <button id="numberToSymbol" class="active">
+            元素番号 → 元素記号
+        </button>
+
+        <button id="symbolToNumber">
+            元素記号 → 元素番号
+        </button>
+    </div>
+
+    <div class="question-card">
+
+        <div class="question-label" id="questionLabel">
+            元素番号
+        </div>
+
+        <div class="question" id="question">
+            1
+        </div>
+
+        <div class="answer-area">
+            <input
+                id="answer"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+            >
+
+            <button id="answerButton">
+                回答
+            </button>
+        </div>
+
+        <div id="result" class="result"></div>
+
+    </div>
+
+    <div class="stats">
+
+        <div class="stats-title">
+            全体の暗記度
+        </div>
+
+        <div class="progress">
+            <div id="overallProgress" class="progress-bar"></div>
+        </div>
+
+        <div id="overallText" class="stat-number">
+            0%
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <button id="resetMode">
+            このモードをリセット
+        </button>
+
+        <button id="resetAll">
+            全てリセット
+        </button>
+    </div>
+    <div class="range-section">
+
+    <div class="range-title">
+        出題範囲
+    </div>
+
+    <div class="range-presets">
+        <button data-start="1" data-end="20">1〜20</button>
+        <button data-start="21" data-end="40">21〜40</button>
+        <button data-start="41" data-end="60">41〜60</button>
+        <button data-start="61" data-end="80">61〜80</button>
+        <button data-start="81" data-end="100">81〜100</button>
+        <button data-start="101" data-end="118">101〜118</button>
+        <button data-start="1" data-end="118">全て</button>
+    </div>
+
+    <div class="custom-range">
+        <input
+            id="rangeStart"
+            type="number"
+            min="1"
+            max="118"
+            value="1"
+        >
+
+        <span>〜</span>
+
+        <input
+            id="rangeEnd"
+            type="number"
+            min="1"
+            max="118"
+            value="118"
+        >
+
+        <button id="applyRange">
+            適用
+        </button>
+    </div>
+
+    <div id="rangeText">
+        1〜118
+    </div>
+
+</div>
+
+    <div class="mastery-section">
+
+        <div class="stats-title">
+            元素ごとの暗記度
+        </div>
+
+        <div id="masteryGrid" class="mastery-grid"></div>
+
+    </div>
+
+</main>
+
+<script>
+/* =========================
+   元素データ
+========================= */
+
+const elements = [
+    ["H", "水素"],
+    ["He", "ヘリウム"],
+    ["Li", "リチウム"],
+    ["Be", "ベリリウム"],
+    ["B", "ホウ素"],
+    ["C", "炭素"],
+    ["N", "窒素"],
+    ["O", "酸素"],
+    ["F", "フッ素"],
+    ["Ne", "ネオン"],
+    ["Na", "ナトリウム"],
+    ["Mg", "マグネシウム"],
+    ["Al", "アルミニウム"],
+    ["Si", "ケイ素"],
+    ["P", "リン"],
+    ["S", "硫黄"],
+    ["Cl", "塩素"],
+    ["Ar", "アルゴン"],
+    ["K", "カリウム"],
+    ["Ca", "カルシウム"],
+    ["Sc", "スカンジウム"],
+    ["Ti", "チタン"],
+    ["V", "バナジウム"],
+    ["Cr", "クロム"],
+    ["Mn", "マンガン"],
+    ["Fe", "鉄"],
+    ["Co", "コバルト"],
+    ["Ni", "ニッケル"],
+    ["Cu", "銅"],
+    ["Zn", "亜鉛"],
+    ["Ga", "ガリウム"],
+    ["Ge", "ゲルマニウム"],
+    ["As", "ヒ素"],
+    ["Se", "セレン"],
+    ["Br", "臭素"],
+    ["Kr", "クリプトン"],
+    ["Rb", "ルビジウム"],
+    ["Sr", "ストロンチウム"],
+    ["Y", "イットリウム"],
+    ["Zr", "ジルコニウム"],
+    ["Nb", "ニオブ"],
+    ["Mo", "モリブデン"],
+    ["Tc", "テクネチウム"],
+    ["Ru", "ルテニウム"],
+    ["Rh", "ロジウム"],
+    ["Pd", "パラジウム"],
+    ["Ag", "銀"],
+    ["Cd", "カドミウム"],
+    ["In", "インジウム"],
+    ["Sn", "スズ"],
+    ["Sb", "アンチモン"],
+    ["Te", "テルル"],
+    ["I", "ヨウ素"],
+    ["Xe", "キセノン"],
+    ["Cs", "セシウム"],
+    ["Ba", "バリウム"],
+    ["La", "ランタン"],
+    ["Ce", "セリウム"],
+    ["Pr", "プラセオジム"],
+    ["Nd", "ネオジム"],
+    ["Pm", "プロメチウム"],
+    ["Sm", "サマリウム"],
+    ["Eu", "ユウロピウム"],
+    ["Gd", "ガドリニウム"],
+    ["Tb", "テルビウム"],
+    ["Dy", "ジスプロシウム"],
+    ["Ho", "ホルミウム"],
+    ["Er", "エルビウム"],
+    ["Tm", "ツリウム"],
+    ["Yb", "イッテルビウム"],
+    ["Lu", "ルテチウム"],
+    ["Hf", "ハフニウム"],
+    ["Ta", "タンタル"],
+    ["W", "タングステン"],
+    ["Re", "レニウム"],
+    ["Os", "オスミウム"],
+    ["Ir", "イリジウム"],
+    ["Pt", "白金"],
+    ["Au", "金"],
+    ["Hg", "水銀"],
+    ["Tl", "タリウム"],
+    ["Pb", "鉛"],
+    ["Bi", "ビスマス"],
+    ["Po", "ポロニウム"],
+    ["At", "アスタチン"],
+    ["Rn", "ラドン"],
+    ["Fr", "フランシウム"],
+    ["Ra", "ラジウム"],
+    ["Ac", "アクチニウム"],
+    ["Th", "トリウム"],
+    ["Pa", "プロトアクチニウム"],
+    ["U", "ウラン"],
+    ["Np", "ネプツニウム"],
+    ["Pu", "プルトニウム"],
+    ["Am", "アメリシウム"],
+    ["Cm", "キュリウム"],
+    ["Bk", "バークリウム"],
+    ["Cf", "カリホルニウム"],
+    ["Es", "アインスタイニウム"],
+    ["Fm", "フェルミウム"],
+    ["Md", "メンデレビウム"],
+    ["No", "ノーベリウム"],
+    ["Lr", "ローレンシウム"],
+    ["Rf", "ラザホージウム"],
+    ["Db", "ドブニウム"],
+    ["Sg", "シーボーギウム"],
+    ["Bh", "ボーリウム"],
+    ["Hs", "ハッシウム"],
+    ["Mt", "マイトネリウム"],
+    ["Ds", "ダームスタチウム"],
+    ["Rg", "レントゲニウム"],
+    ["Cn", "コペルニシウム"],
+    ["Nh", "ニホニウム"],
+    ["Fl", "フレロビウム"],
+    ["Mc", "モスコビウム"],
+    ["Lv", "リバモリウム"],
+    ["Ts", "テネシン"],
+    ["Og", "オガネソン"]
+];
+
+
+/* =========================
+   状態
+========================= */
+
+let mode = "numberToSymbol";
+
+let rangeStart = 1;
+let rangeEnd = 118;
+
+let mastery = {
+    numberToSymbol: Array(118).fill(0),
+    symbolToNumber: Array(118).fill(0)
+};
+
+let currentIndex = 0;
+let answered = false;
+
+
+/* =========================
+   Cookie
+========================= */
+
+function saveData() {
+
+    const data = {
+        mastery,
+        mode,
+        rangeStart,
+        rangeEnd
+    };
+
+    document.cookie =
+        "elementMastery=" +
+        encodeURIComponent(JSON.stringify(data)) +
+        ";max-age=" +
+        60 * 60 * 24 * 365 * 5 +
+        ";path=/;SameSite=Lax";
+}
+
+
+function loadData() {
+
+    const cookies = document.cookie.split("; ");
+
+    const target = cookies.find(cookie =>
+        cookie.startsWith("elementMastery=")
+    );
+
+    if (!target) return;
+
+    try {
+
+        const data = JSON.parse(
+            decodeURIComponent(
+                target.substring("elementMastery=".length)
+            )
+        );
+
+        if (
+            data.mastery &&
+            data.mastery.numberToSymbol?.length === 118 &&
+            data.mastery.symbolToNumber?.length === 118
+        ) {
+            mastery = data.mastery;
+        }
+
+        if (
+            Number.isInteger(data.rangeStart) &&
+            Number.isInteger(data.rangeEnd) &&
+            data.rangeStart >= 1 &&
+            data.rangeEnd <= 118
+        ) {
+            rangeStart = data.rangeStart;
+            rangeEnd = data.rangeEnd;
+        }
+
+        if (
+            data.mode === "numberToSymbol" ||
+            data.mode === "symbolToNumber"
+        ) {
+            mode = data.mode;
+        }
+
+    } catch (error) {
+
+        console.log("保存データを読み込めませんでした");
+
+    }
+}
+
+
+/* =========================
+   問題選択
+========================= */
+
+function chooseQuestion() {
+
+    const values = mastery[mode];
+
+    const candidates = [];
+
+    for (
+        let i = rangeStart - 1;
+        i < rangeEnd;
+        i++
+    ) {
+
+        const masteryValue = values[i];
+
+        /*
+         * 暗記度が低いほど出題されやすい
+         *
+         * 0%   → 6
+         * 20%  → 5
+         * 40%  → 4
+         * 60%  → 3
+         * 80%  → 2
+         * 100% → 1
+         */
+
+        const weight =
+            1 + (100 - masteryValue) / 20;
+
+        candidates.push({
+            index: i,
+            weight
+        });
+    }
+
+    const totalWeight =
+        candidates.reduce(
+            (sum, item) => sum + item.weight,
+            0
+        );
+
+    let random =
+        Math.random() * totalWeight;
+
+    for (const item of candidates) {
+
+        random -= item.weight;
+
+        if (random <= 0) {
+            return item.index;
+        }
+    }
+
+    return rangeEnd - 1;
+}
+
+
+/* =========================
+   問題表示
+========================= */
+
+function nextQuestion() {
+
+    currentIndex = chooseQuestion();
+
+    answered = false;
+
+    const [symbol] =
+        elements[currentIndex];
+
+    const question =
+        document.getElementById("question");
+
+    const label =
+        document.getElementById("questionLabel");
+
+    const input =
+        document.getElementById("answer");
+
+    const result =
+        document.getElementById("result");
+
+
+    if (mode === "numberToSymbol") {
+
+        label.textContent = "元素番号";
+
+        question.textContent =
+            currentIndex + 1;
+
+    } else {
+
+        label.textContent = "元素記号";
+
+        question.textContent =
+            symbol;
+    }
+
+
+    input.value = "";
+
+    result.textContent = "";
+
+    result.className = "result";
+
+    input.focus();
+}
+
+
+/* =========================
+   回答判定
+========================= */
+
+function checkAnswer() {
+
+    /*
+     * 回答済みなら次の問題へ
+     */
+    if (answered) {
+
+        nextQuestion();
+
+        return;
+    }
+
+
+    const input =
+        document.getElementById("answer");
+
+    const answer =
+        input.value.trim();
+
+    if (!answer) return;
+
+
+    const [symbol] =
+        elements[currentIndex];
+
+
+    if (mode === "numberToSymbol") {
+
+        if (
+            answer.toLowerCase() ===
+            symbol.toLowerCase()
+        ) {
+
+            correct();
+
+        } else {
+
+            wrong(symbol);
+        }
+
+    } else {
+
+        const correctAnswer =
+            String(currentIndex + 1);
+
+        if (answer === correctAnswer) {
+
+            correct();
+
+        } else {
+
+            wrong(correctAnswer);
+        }
+    }
+}
+
+
+/* =========================
+   正解
+========================= */
+
+function correct() {
+
+    mastery[mode][currentIndex] =
+        Math.min(
+            100,
+            mastery[mode][currentIndex] + 10
+        );
+
+    const result =
+        document.getElementById("result");
+
+    result.textContent = "正解";
+
+    result.className =
+        "result correct";
+
+    answered = true;
+
+    saveData();
+
+    updateStats();
+}
+
+
+/* =========================
+   不正解
+========================= */
+
+function wrong(correctAnswer) {
+
+    mastery[mode][currentIndex] =
+        Math.max(
+            0,
+            mastery[mode][currentIndex] - 20
+        );
+
+    const result =
+        document.getElementById("result");
+
+    result.innerHTML =
+        `不正解　正解：<strong>${correctAnswer}</strong>`;
+
+    result.className =
+        "result wrong";
+
+    answered = true;
+
+    saveData();
+
+    updateStats();
+}
+
+
+/* =========================
+   モード変更
+========================= */
+
+function setMode(newMode) {
+
+    mode = newMode;
+
+    document
+        .getElementById("numberToSymbol")
+        .classList.toggle(
+            "active",
+            mode === "numberToSymbol"
+        );
+
+    document
+        .getElementById("symbolToNumber")
+        .classList.toggle(
+            "active",
+            mode === "symbolToNumber"
+        );
+
+    saveData();
+
+    updateStats();
+
+    nextQuestion();
+}
+
+
+/* =========================
+   出題範囲変更
+========================= */
+
+function setRange(start, end) {
+
+    start = Number(start);
+    end = Number(end);
+
+    if (!Number.isInteger(start)) start = 1;
+    if (!Number.isInteger(end)) end = 118;
+
+    start = Math.max(1, Math.min(118, start));
+    end = Math.max(1, Math.min(118, end));
+
+    if (start > end) {
+        [start, end] = [end, start];
+    }
+
+    rangeStart = start;
+    rangeEnd = end;
+
+
+    document.getElementById("rangeStart").value =
+        rangeStart;
+
+    document.getElementById("rangeEnd").value =
+        rangeEnd;
+
+    document.getElementById("rangeText").textContent =
+        `${rangeStart}〜${rangeEnd}`;
+
+
+    /*
+     * プリセットボタンの状態
+     */
+
+    document
+        .querySelectorAll(".range-presets button")
+        .forEach(button => {
+
+            const buttonStart =
+                Number(button.dataset.start);
+
+            const buttonEnd =
+                Number(button.dataset.end);
+
+            button.classList.toggle(
+                "active",
+                buttonStart === rangeStart &&
+                buttonEnd === rangeEnd
+            );
+        });
+
+
+    saveData();
+
+    updateStats();
+
+    nextQuestion();
+}
+
+
+/* =========================
+   暗記度表示
+========================= */
+
+function updateStats() {
+
+    const values =
+        mastery[mode].slice(
+            rangeStart - 1,
+            rangeEnd
+        );
+
+
+    const average =
+        values.reduce(
+            (sum, value) => sum + value,
+            0
+        ) / values.length;
+
+
+    document
+        .getElementById("overallProgress")
+        .style.width =
+        `${average}%`;
+
+
+    document
+        .getElementById("overallText")
+        .textContent =
+        `平均暗記度：${average.toFixed(1)}%`;
+
+
+    updateMasteryList();
+}
+
+
+/* =========================
+   元素ごとの暗記度
+========================= */
+
+function updateMasteryList() {
+
+    const grid =
+        document.getElementById("masteryGrid");
+
+    grid.innerHTML = "";
+
+
+    for (
+        let i = rangeStart - 1;
+        i < rangeEnd;
+        i++
+    ) {
+
+        const [symbol, name] =
+            elements[i];
+
+        const value =
+            mastery[mode][i];
+
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            "element-item";
+
+
+        item.innerHTML = `
+            <div class="element-name">
+                ${i + 1}. ${symbol}
+            </div>
+
+            <div class="element-mastery">
+                ${name}　${value}%
+            </div>
+
+            <div class="mini-progress">
+                <div
+                    class="mini-progress-bar"
+                    style="width:${value}%"
+                ></div>
+            </div>
+        `;
+
+
+        grid.appendChild(item);
+    }
+}
+
+
+/* =========================
+   リセット
+========================= */
+
+function resetMode() {
+
+    if (
+        !confirm(
+            "このモードの暗記度をすべてリセットしますか？"
+        )
+    ) {
+        return;
+    }
+
+
+    mastery[mode] =
+        Array(118).fill(0);
+
+
+    saveData();
+
+    updateStats();
+
+    nextQuestion();
+}
+
+
+function resetAll() {
+
+    if (
+        !confirm(
+            "元素暗記のデータをすべてリセットしますか？"
+        )
+    ) {
+        return;
+    }
+
+
+    mastery = {
+        numberToSymbol:
+            Array(118).fill(0),
+
+        symbolToNumber:
+            Array(118).fill(0)
+    };
+
+
+    saveData();
+
+    updateStats();
+
+    nextQuestion();
+}
+
+
+/* =========================
+   イベント
+========================= */
+
+
+/*
+ * 回答ボタン
+ */
+
+document
+    .getElementById("answerButton")
+    .addEventListener(
+        "click",
+        checkAnswer
+    );
+
+
+/*
+ * Enterキー
+ */
+
+document
+    .getElementById("answer")
+    .addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key === "Enter") {
+
+                event.preventDefault();
+
+                checkAnswer();
+            }
+        }
+    );
+
+
+/*
+ * スペースキー
+ *
+ * 回答欄に入力中は無効。
+ *
+ * それ以外では
+ *
+ * 未回答 → 回答
+ * 回答済み → 次の問題
+ */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (event.code !== "Space") {
+            return;
+        }
+
+
+        if (
+            document.activeElement ===
+            document.getElementById("answer")
+        ) {
+            return;
+        }
+
+
+        event.preventDefault();
+
+        checkAnswer();
+    }
+);
+
+
+/*
+ * モード切替
+ */
+
+document
+    .getElementById("numberToSymbol")
+    .addEventListener(
+        "click",
+        () => setMode("numberToSymbol")
+    );
+
+
+document
+    .getElementById("symbolToNumber")
+    .addEventListener(
+        "click",
+        () => setMode("symbolToNumber")
+    );
+
+
+/*
+ * プリセット範囲
+ */
+
+document
+    .querySelectorAll(".range-presets button")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                setRange(
+                    button.dataset.start,
+                    button.dataset.end
+                );
+            }
+        );
+    });
+
+
+/*
+ * 自由範囲
+ */
+
+document
+    .getElementById("applyRange")
+    .addEventListener(
+        "click",
+        () => {
+
+            const start =
+                document.getElementById(
+                    "rangeStart"
+                ).value;
+
+            const end =
+                document.getElementById(
+                    "rangeEnd"
+                ).value;
+
+            setRange(start, end);
+        }
+    );
+
+
+/*
+ * リセット
+ */
+
+document
+    .getElementById("resetMode")
+    .addEventListener(
+        "click",
+        resetMode
+    );
+
+
+document
+    .getElementById("resetAll")
+    .addEventListener(
+        "click",
+        resetAll
+    );
+
+
+/* =========================
+   起動
+========================= */
+
+loadData();
+
+
+/*
+ * 保存されていたモード・範囲を
+ * UIにも反映
+ */
+
+document
+    .getElementById("numberToSymbol")
+    .classList.toggle(
+        "active",
+        mode === "numberToSymbol"
+    );
+
+document
+    .getElementById("symbolToNumber")
+    .classList.toggle(
+        "active",
+        mode === "symbolToNumber"
+    );
+
+
+document.getElementById("rangeStart").value =
+    rangeStart;
+
+document.getElementById("rangeEnd").value =
+    rangeEnd;
+
+document.getElementById("rangeText").textContent =
+    `${rangeStart}〜${rangeEnd}`;
+
+
+document
+    .querySelectorAll(".range-presets button")
+    .forEach(button => {
+
+        const start =
+            Number(button.dataset.start);
+
+        const end =
+            Number(button.dataset.end);
+
+        button.classList.toggle(
+            "active",
+            start === rangeStart &&
+            end === rangeEnd
+        );
+    });
+
+
+updateStats();
+
+nextQuestion();
+</script>
+
+</body>
+</html>
