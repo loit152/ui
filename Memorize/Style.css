@@ -1,0 +1,156 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f4f4f4;
+    color: #222;
+}
+
+.container {
+    width: min(700px, 92%);
+    margin: 30px auto;
+}
+
+h1 {
+    text-align: center;
+}
+
+.panel {
+    background: #fff;
+    padding: 18px;
+    margin: 14px 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 1.1rem;
+}
+
+.mode-select {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+button {
+    padding: 10px 14px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+button:hover {
+    background: #f0f0f0;
+}
+
+.mode-select button.active {
+    background: #222;
+    color: #fff;
+    border-color: #222;
+}
+
+.quiz {
+    text-align: center;
+}
+
+.question-label {
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.question {
+    font-size: 2.5rem;
+    font-weight: bold;
+    min-height: 60px;
+    margin-bottom: 20px;
+}
+
+#answerInput {
+    width: min(400px, 100%);
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1.1rem;
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+#result {
+    min-height: 28px;
+    margin-top: 12px;
+    font-weight: bold;
+}
+
+.hint {
+    color: #777;
+    font-size: 0.85rem;
+}
+
+.range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.range input {
+    width: 90px;
+    padding: 9px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.average {
+    margin-bottom: 12px;
+}
+
+.mastery-list {
+    display: grid;
+    gap: 6px;
+}
+
+.mastery-item {
+    display: grid;
+    grid-template-columns: 45px 70px 1fr 55px;
+    gap: 8px;
+    align-items: center;
+}
+
+.mastery-bar {
+    height: 10px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.mastery-fill {
+    height: 100%;
+    background: #333;
+}
+
+@media (max-width: 500px) {
+    .mode-select {
+        grid-template-columns: 1fr;
+    }
+
+    .question {
+        font-size: 2rem;
+    }
+
+    .mastery-item {
+        grid-template-columns: 35px 55px 1fr 50px;
+        font-size: 0.9rem;
+    }
+}
