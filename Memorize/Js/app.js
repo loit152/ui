@@ -197,7 +197,6 @@
 
         result.textContent = "";
         answerInput.value = "";
-        answerInput.disabled = false;
         answerButton.disabled = false;
 
         answerInput.focus();
@@ -223,7 +222,6 @@
 
             result.textContent = "正解";
             answered = true;
-            answerInput.disabled = true;
             answerButton.disabled = true;
         } else {
             mastery[mode.id][currentQuestionIndex] =
