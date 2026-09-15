@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Memory</title>
+    <link rel="stylesheet" href="./Style.css">
+</head>
+<body>
+<main class="container">
+    <h1>Element Memory</h1>
+
+    <section class="panel">
+        <h2>出題モード</h2>
+        <div id="modeSelect" class="mode-select"></div>
+    </section>
+
+    <section class="panel quiz">
+        <div id="questionLabel" class="question-label"></div>
+        <div id="question" class="question">---</div>
+
+        <input id="answerInput" type="text" autocomplete="off"
+               autocapitalize="off" spellcheck="false" placeholder="答えを入力">
+
+        <div class="buttons">
+            <button id="answerButton" type="button">回答</button>
+            <button id="nextButton" type="button">次の問題</button>
+        </div>
+
+        <div id="result" aria-live="polite"></div>
+        <p class="hint">Enter：回答　Space：回答 / 次の問題</p>
+    </section>
+
+    <section class="panel">
+        <h2>出題範囲</h2>
+        <div class="range">
+            <input id="rangeStart" type="number" min="1" value="1">
+            <span>〜</span>
+            <input id="rangeEnd" type="number" min="1" value="118">
+            <button id="rangeApplyButton" type="button">適用</button>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>暗記度</h2>
+        <div class="average">
+            平均暗記度：<strong id="averageMastery">0%</strong>
+        </div>
+        <div id="masteryList" class="mastery-list"></div>
+    </section>
+
+    <section class="panel">
+        <h2>リセット</h2>
+        <div class="buttons">
+            <button id="resetModeButton" type="button">現在のモードをリセット</button>
+            <button id="resetAllButton" type="button">すべてリセット</button>
+        </div>
+    </section>
+</main>
+
+<!-- モードを追加するときは、ここにファイルを1つ追加するだけ -->
+<script src="./Mode-Deta/number-to-name.js"></script>
+<script src="./Mode-Deta/number-to-symbol.js"></script>
+<script src="./Mode-Deta/symbol-to-number.js"></script>
+<script src="./Mode-Deta/symbol-to-name.js"></script>
+
+<script src="./Js/storage.js"></script>
+<script src="./Js/app.js"></script>
+</body>
+</html>
