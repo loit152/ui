@@ -9,7 +9,7 @@ Js/
 - app.js
 - storage.js
 
-Mode-Deta/
+Mode-Data/
 - number-to-name.js
 - number-to-symbol.js
 - symbol-to-number.js
@@ -19,10 +19,10 @@ Mode-Deta/
 
 `app.js` is the generic quiz engine.
 `storage.js` handles persistence.
-Each file under `Mode-Deta` is an independent mode definition and owns its mode data.
+Each file under `Mode-Data` is an independent mode definition and owns its mode data.
 
 A new mode should normally require:
-1. Creating one file under `Mode-Deta`.
+1. Creating one file under `Mode-Data`.
 2. Registering that file with one `<script>` line in `Index.html`.
 3. No modification to `app.js`.
 
