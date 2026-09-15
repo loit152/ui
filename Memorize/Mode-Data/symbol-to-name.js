@@ -133,7 +133,7 @@
         { number: 116, symbol: "Lv", name: "リバモリウム" },
         { number: 117, symbol: "Ts", name: "テネシン" },
         { number: 118, symbol: "Og", name: "オガネソン" }
-    ];.map(function (element) {
+    ].map(function (element) {
         return {
             question: element.symbol,
             answer: element.name,
@@ -146,7 +146,7 @@
     window.ElementMemoryModes.push({
         id: "symbol-to-name",
         title: "元素記号 → 元素名",
-        questionLabel: "element.symbol の値",
+        questionLabel: "元素記号    ",
         data: data,
         normalizeAnswer: function (answer) {
             return answer.trim();
