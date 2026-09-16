@@ -27,7 +27,7 @@ yInput.addEventListener("input", calculate);
 
 document.addEventListener("keydown",function(event){
         if (event.key ==="enter"){
-            event.preventdfault();
+            event.preventDfault();
             yInput.value = result.innerHTML;
         }
     }
