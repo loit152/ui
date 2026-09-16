@@ -17,7 +17,6 @@ let n =r;
         r = Math.floor(r / 10);
         s++;
 
-        console.log(i);
     }
 
     result.innerHTML = `n = ${n},r = ${r}, s = ${s}`;
@@ -29,7 +28,7 @@ yInput.addEventListener("input", calculate);
 document.addEventListener("keydown",function(event){
         if (event.key ==="enter"){
             event.preventdfault();
-            calculate();
+            yInput.value = result.innerHTML;
         }
     }
 )
