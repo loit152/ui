@@ -4,7 +4,7 @@ const gl = canvas.getContext("webgl2");
 const xInput = document.querySelector("#coordinatex");
 const yInput = document.querySelector("#coordinatey");
 const result = document.getElementById("result");
-
+let a=0;
 function calculate() {
     const x = Number(xInput.value);
     const y = Number(yInput.value);
@@ -18,7 +18,7 @@ let n =r;
         s++;
 
     }
-
+    a = n;
     result.innerHTML = `n = ${n},r = ${r}, s = ${s}`;
 }
 
@@ -28,7 +28,7 @@ yInput.addEventListener("input", calculate);
 document.addEventListener("keydown",function(event){
         if (event.key ==="enter"){
             event.preventDfault();
-            yInput.value = result.innerHTML;
+            yInput.value = n;
         }
     }
 )
