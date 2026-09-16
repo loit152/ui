@@ -2,16 +2,23 @@
     <html lang="ja">
         <head>
             <meta charset="UTF-8">
-            <link rel="stylesheet" href="style.js">
             <title>hi precision calculation</title>
+            <style>
+                canvas{
+                    display:block;
+                    width: 100vw;
+                    height:100vh;
+                    cursor: grab;
+                    touch-action: none;
+                }
+            </style>
         </head>
         <body>
-            <div id="info">
-                <div id="calculatex">x:</div>
-                <div id="calculatey">y:</div>
-            </div>
-        <script>
-
-        </script>
+            <p>x:</p><input type="number" id="coordinatex" value="100">
+            <p>y:</p><input type="number" id="coordinatey" value="100">
+            <p></p><p id="result">計算結果</p>
+            <canvas id="canvas"></canvas>
+            <div id="info"></div>
+        <script src="script.js"></script>
         </body>
     </html>
