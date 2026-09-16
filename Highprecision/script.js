@@ -26,4 +26,13 @@ let n =r;
 xInput.addEventListener("input", calculate);
 yInput.addEventListener("input", calculate);
 
-calculate();
+document.addEventListener("keydown",function(event){
+        if (event.key ==="enter"){
+            event.preventdfault();
+            calculate();
+        }
+    }
+)
+
+/*first*/
+calculate()
