@@ -1,17 +1,8 @@
-<!DOCTYPE HTML>
+<!DOCTYPE HTML><!--pageurl:https://loit152.github.io/ui/Highprecision/calculation.html-->
     <html lang="ja">
         <head>
             <meta charset="UTF-8">
-            <title>hi precision calculation</title>
-            <style>
-                canvas{
-                    display:block;
-                    width: 100vw;
-                    height:100vh;
-                    cursor: grab;
-                    touch-action: none;
-                }
-            </style>
+            <title>high precision calculation</title>
         </head>
         <body>
             <p>x:</p><input type="number" id="coordinatex" value="100">
@@ -21,4 +12,11 @@
             <div id="info"></div>
         <script src="script.js"></script>
         </body>
+        <!--coding log
+        10**16で大小比較して分岐
+        reference;http://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/BigInt
+        マンデルブロ集合への応用を目的として始めたが、開発していないのでここまで
+        
+        -->
     </html>
+
