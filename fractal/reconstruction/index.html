@@ -2,14 +2,24 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>fractal-MandelbrotViewer-reconstruction</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fractal-MandelbrotViewer-reconstruction<</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<p id="console">コンソール</p>
-<canvas id="canvas">"canvas!"</canvas>
+    <div id="controls">
+    <div id="info">
+        <div id="zoom">zoom:</div>
+        <div id="centerX">X:</div>
+        <div id="centerY">Y:</div>
+    </div>
+    <div id="debuginfo">
+        <div id="iterations">iterarion:</div>
+    </div>
+    <button id="reset">reset</button>
+    </div>
 
-<script src="script.js"></script>
-
+    <canvas id="canvas"></canvas>
+    <script src="script.js"></script>
 </body>
 </html>
