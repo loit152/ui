@@ -9,6 +9,10 @@
     body{
         background-color: black;
         color: aquamarine;
+        overflow: hidden;
+    }
+    canvas{
+        touch-action: none;
     }
     #info{
         position: relative;
@@ -16,6 +20,12 @@
     #zoom ,#X ,#Y ,#it{
         display: inline;
     } 
+    #controls{
+        position: absolute;
+    }
+    #reset.hover{
+        background: aqua;
+    }
 </style>
 <body>
     <div id="html">
@@ -36,14 +46,20 @@
     <script>
 /*初期情報*/
 const canvas = document.querySelector("canvas");
-const gl = canvas.getContext("webgl2",{antialias:false });
+const gl = canvas.getContext("webgl2",{antialias:false });if (!gl) {alert("このブラウザはWebGL2に対応していません。");throw new Error("WebGL2 unavailable");}
 canvas.height = window.innerHeight;
 canvas.width = window.innerWidth;
 gl.viewport(0,0,canvas.width,canvas.height);
+
 /*初期設定*/
-let centerX = -0.75;
-let centerY = 0;
-let zoom = 1;
+let centerX8 = -7500000n;
+let centerX16 = 0n;
+let centerY8 = 0n;
+let centerY16 = 0n;
+let zoom8 = 1n;
+let zoom16 = 0n;
+let iterations = 500
+
 /*info */
 const z = document.getElementById("z");
 const i = document.getElementById("i");
@@ -68,8 +84,16 @@ precision highp float;
 
 out vec4 outColor;
 
+vec2 p = gl_FragCoord.xy;
+uniform float zoom;
+uniform float iteration;
+uniform vec4 centerLocation;
+
 void main() {
-    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    vec2 c = centerLocation / zoom
+    for(int i =0; iteration >= i; ++i;){
+
+    }
 }
 `;
 /*shader compile*/
@@ -103,7 +127,10 @@ gl.useProgram(program);
 const positions = new Float32Array([
     -1.0, -1.0,
      1.0, -1.0,
-     0.0,  1.0
+    -1.0,  1.0,
+     1.0,  1.0,
+     1.0, -1.0,
+    -1.0,  1.0
 ]);
 
 const buffer = gl.createBuffer();
@@ -128,13 +155,19 @@ gl.vertexAttribPointer(
 );
 
 function draw(){
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 function resetView(){
 
 }
+let zoomLocation = gl.getUniformLocation(program,"zoom");
+let iterationLocation = gl.getUniformLocation(program,"iteration");
+gl.uniform4f(centerLocation,center8,centerX16,centerY8,centerX16);
 
+
+/*初期動作*/
 draw()
+
 /*自動更新後で消す*/
 setInterval(() => {
   location.reload();
