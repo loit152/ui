@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>System Diagnostic</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #020202;
+    color: #d0d0d0;
+    font-family: monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+#app {
+    width: min(900px, 92%);
+    margin: 0 auto;
+    padding: 50px 0;
+}
+
+.header {
+    color: #ff3030;
+    font-size: 28px;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+}
+
+.status {
+    color: #888;
+    line-height: 1.8;
+}
+
+#progress-container {
+    margin: 30px 0;
+}
+
+#progress {
+    width: 100%;
+    height: 8px;
+    background: #222;
+}
+
+#bar {
+    width: 0%;
+    height: 100%;
+    background: #ff3030;
+    transition: width .15s;
+}
+
+#percent {
+    margin-top: 8px;
+    color: #ff3030;
+}
+
+#terminal {
+    white-space: pre-wrap;
+    line-height: 1.7;
+    color: #aaa;
+    min-height: 300px;
+}
+
+.info {
+    border: 1px solid #333;
+    padding: 20px;
+    margin-top: 20px;
+    display: none;
+}
+
+.info-title {
+    color: #ff3030;
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    border-bottom: 1px solid #1b1b1b;
+    padding: 7px 0;
+    word-break: break-all;
+}
+
+.key {
+    color: #666;
+}
+
+.value {
+    color: #ddd;
+}
+
+#warning {
+    display: none;
+    color: #ff3030;
+    font-size: 22px;
+    margin-top: 30px;
+}
+
+#final {
+    display: none;
+    text-align: center;
+    padding: 100px 20px;
+}
+
+#final h1 {
+    font-size: clamp(40px, 10vw, 90px);
+    color: white;
+}
+
+#final p {
+    color: #888;
+    font-size: 18px;
+}
+
+.shake {
+    animation: shake .08s infinite;
+}
+
+@keyframes shake {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(2px, -2px); }
+    50%  { transform: translate(-2px, 2px); }
+    75%  { transform: translate(2px, 2px); }
+    100% { transform: translate(-2px, -2px); }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <div class="header">
+        SYSTEM DIAGNOSTIC
+    </div>
+
+    <div class="status" id="status">
+        Initializing diagnostic system...
+    </div>
+
+    <div id="progress-container">
+
+        <div id="progress">
+            <div id="bar"></div>
+        </div>
+
+        <div id="percent">0%</div>
+
+    </div>
+
+    <div id="terminal"></div>
+
+    <div id="warning">
+        ⚠ SYSTEM ANALYSIS COMPLETE
+    </div>
+
+    <div id="information" class="info">
+
+        <div class="info-title">
+            BROWSER ENVIRONMENT
+        </div>
+
+        <div id="data"></div>
+
+    </div>
+
+</div>
+
+
+<div id="final">
+
+    <h1>ドッキリでした。</h1>
+
+    <p>
+        表示した情報は、すべてこのブラウザ自身が公開している情報です。
+    </p>
+
+    <p>
+        外部サーバーへの送信はしていません。
+    </p>
+
+</div>
+
+
+<script>
+
+"use strict";
+
+/* =========================
+   基本情報
+========================= */
+
+const info = {};
+
+info["User Agent"] = navigator.userAgent;
+info["Platform"] = navigator.platform;
+info["Language"] = navigator.language;
+info["Languages"] = navigator.languages?.join(", ") ?? "取得不可";
+info["Timezone"] = Intl.DateTimeFormat().resolvedOptions().timeZone;
+info["Online"] = navigator.onLine ? "YES" : "NO";
+info["Cookies"] = navigator.cookieEnabled ? "ENABLED" : "DISABLED";
+info["JavaScript"] = "ENABLED";
+
+info["Screen"] =
+    `${screen.width} × ${screen.height}`;
+
+info["Available Screen"] =
+    `${screen.availWidth} × ${screen.availHeight}`;
+
+info["Window"] =
+    `${window.innerWidth} × ${window.innerHeight}`;
+
+info["Device Pixel Ratio"] =
+    window.devicePixelRatio;
+
+info["Touch Points"] =
+    navigator.maxTouchPoints;
+
+info["Logical CPU Cores"] =
+    navigator.hardwareConcurrency ?? "取得不可";
+
+info["Device Memory"] =
+    navigator.deviceMemory
+        ? navigator.deviceMemory + " GB"
+        : "取得不可";
+
+info["Color Depth"] =
+    screen.colorDepth + " bit";
+
+info["Pixel Depth"] =
+    screen.pixelDepth + " bit";
+
+info["Dark Mode"] =
+    matchMedia("(prefers-color-scheme: dark)").matches
+        ? "YES"
+        : "NO";
+
+info["Reduced Motion"] =
+    matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "YES"
+        : "NO";
+
+
+/* =========================
+   WebGL
+========================= */
+
+function getWebGLInfo() {
+
+    const canvas = document.createElement("canvas");
+
+    const gl =
+        canvas.getContext("webgl") ||
+        canvas.getContext("experimental-webgl");
+
+    if (!gl) {
+        return {
+            Vendor: "取得不可",
+            Renderer: "取得不可",
+            Version: "取得不可"
+        };
+    }
+
+    const debug =
+        gl.getExtension("WEBGL_debug_renderer_info");
+
+    return {
+        Vendor: debug
+            ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)
+            : gl.getParameter(gl.VENDOR),
+
+        Renderer: debug
+            ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+            : gl.getParameter(gl.RENDERER),
+
+        Version:
+            gl.getParameter(gl.VERSION)
+    };
+}
+
+const gpu = getWebGLInfo();
+
+info["GPU Vendor"] = gpu.Vendor;
+info["GPU Renderer"] = gpu.Renderer;
+info["WebGL"] = gpu.Version;
+
+
+/* =========================
+   Network Information
+========================= */
+
+if (navigator.connection) {
+
+    info["Connection Type"] =
+        navigator.connection.effectiveType ?? "不明";
+
+    info["Downlink"] =
+        navigator.connection.downlink
+            ? navigator.connection.downlink + " Mbps"
+            : "取得不可";
+
+    info["RTT"] =
+        navigator.connection.rtt !== undefined
+            ? navigator.connection.rtt + " ms"
+            : "取得不可";
+}
+
+
+/* =========================
+   Battery
+========================= */
+
+async function getBattery() {
+
+    if (!navigator.getBattery) {
+        return;
+    }
+
+    try {
+
+        const battery =
+            await navigator.getBattery();
+
+        info["Battery Level"] =
+            Math.round(battery.level * 100) + "%";
+
+        info["Charging"] =
+            battery.charging ? "YES" : "NO";
+
+    } catch {
+
+        info["Battery"] = "取得不可";
+
+    }
+}
+
+
+/* =========================
+   API Support
+========================= */
+
+const apis = [
+
+    ["WebGL", !!window.WebGLRenderingContext],
+    ["WebGL2", !!window.WebGL2RenderingContext],
+    ["WebRTC", !!window.RTCPeerConnection],
+    ["WebSocket", !!window.WebSocket],
+    ["Service Worker", "serviceWorker" in navigator],
+    ["IndexedDB", "indexedDB" in window],
+    ["Local Storage", "localStorage" in window],
+    ["Session Storage", "sessionStorage" in window],
+    ["Geolocation API", "geolocation" in navigator],
+    ["Clipboard API", !!navigator.clipboard],
+    ["Notifications API", "Notification" in window],
+    ["Media Devices", !!navigator.mediaDevices],
+    ["Bluetooth API", "bluetooth" in navigator],
+    ["USB API", "usb" in navigator]
+];
+
+for (const [name, supported] of apis) {
+
+    info["API: " + name] =
+        supported ? "SUPPORTED" : "NOT SUPPORTED";
+
+}
+
+
+/* =========================
+   表示
+========================= */
+
+function addTerminal(text) {
+
+    const terminal =
+        document.querySelector("#terminal");
+
+    terminal.textContent += text + "\n";
+
+}
+
+
+/* =========================
+   診断演出
+========================= */
+
+async function diagnostic() {
+
+    await getBattery();
+
+    const messages = [
+
+        "Initializing diagnostic system...",
+        "Reading browser environment...",
+        "Analyzing display configuration...",
+        "Detecting hardware capabilities...",
+        "Inspecting graphics subsystem...",
+        "Checking network interface...",
+        "Checking supported browser APIs...",
+        "Building device profile...",
+        "Finalizing analysis..."
+
+    ];
+
+    const bar =
+        document.querySelector("#bar");
+
+    const percent =
+        document.querySelector("#percent");
+
+    const status =
+        document.querySelector("#status");
+
+    for (let i = 0; i < messages.length; i++) {
+
+        status.textContent = messages[i];
+
+        addTerminal(
+            "> " + messages[i]
+        );
+
+        const progress =
+            Math.round(
+                ((i + 1) / messages.length) * 100
+            );
+
+        bar.style.width =
+            progress + "%";
+
+        percent.textContent =
+            progress + "%";
+
+        await new Promise(
+            resolve =>
+                setTimeout(resolve, 500 + Math.random() * 500)
+        );
+    }
+
+    /* =====================
+       不穏な演出
+    ===================== */
+
+    document
+        .querySelector("#app")
+        .classList.add("shake");
+
+    document
+        .querySelector("#warning")
+        .style.display = "block";
+
+    addTerminal("");
+    addTerminal("> ANALYSIS COMPLETE");
+    addTerminal("> DEVICE PROFILE GENERATED");
+
+    await new Promise(
+        resolve => setTimeout(resolve, 1500)
+    );
+
+    document
+        .querySelector("#app")
+        .classList.remove("shake");
+
+    showInformation();
+}
+
+
+/* =========================
+   情報表示
+========================= */
+
+function showInformation() {
+
+    const container =
+        document.querySelector("#data");
+
+    for (const key in info) {
+
+        const row =
+            document.createElement("div");
+
+        row.className = "row";
+
+        const keyElement =
+            document.createElement("div");
+
+        keyElement.className = "key";
+
+        keyElement.textContent =
+            key;
+
+        const valueElement =
+            document.createElement("div");
+
+        valueElement.className = "value";
+
+        valueElement.textContent =
+            info[key];
+
+        row.appendChild(keyElement);
+        row.appendChild(valueElement);
+
+        container.appendChild(row);
+    }
+
+    document
+        .querySelector("#information")
+        .style.display = "block";
+
+    setTimeout(() => {
+
+        document
+            .querySelector("#app")
+            .style.display = "none";
+
+        document
+            .querySelector("#final")
+            .style.display = "block";
+
+    }, 12000);
+}
+
+
+/* =========================
+   開始
+========================= */
+
+diagnostic();
+
+</script>
+
+</body>
+</html>
