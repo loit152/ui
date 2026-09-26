@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Check</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #050505;
+        color: #eee;
+        font-family: monospace;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    #screen {
+        width: min(700px, 90%);
+    }
+
+    .warning {
+        color: #ff3030;
+        font-size: clamp(24px, 5vw, 42px);
+        font-weight: bold;
+        margin-bottom: 30px;
+        animation: blink 0.8s infinite;
+    }
+
+    .message {
+        font-size: 16px;
+        line-height: 2;
+        color: #aaa;
+    }
+
+    #count {
+        font-size: clamp(60px, 15vw, 120px);
+        text-align: center;
+        margin: 40px 0;
+        color: #ff3030;
+    }
+
+    #progress {
+        height: 8px;
+        background: #222;
+        overflow: hidden;
+        margin-top: 30px;
+    }
+
+    #bar {
+        width: 0%;
+        height: 100%;
+        background: #ff3030;
+        transition: width 0.1s linear;
+    }
+
+    #final {
+        display: none;
+        text-align: center;
+    }
+
+    #final h1 {
+        font-size: clamp(35px, 8vw, 70px);
+        margin-bottom: 20px;
+    }
+
+    #final p {
+        color: #aaa;
+        font-size: 18px;
+    }
+
+    @keyframes blink {
+        50% {
+            opacity: 0.35;
+        }
+    }
+
+    .shake {
+        animation: shake 0.08s infinite;
+    }
+
+    @keyframes shake {
+        0%   { transform: translate(0, 0); }
+        25%  { transform: translate(3px, -2px); }
+        50%  { transform: translate(-3px, 2px); }
+        75%  { transform: translate(2px, 3px); }
+        100% { transform: translate(-2px, -3px); }
+    }
+</style>
+</head>
+
+<body>
+
+<div id="screen">
+
+    <div id="warning" class="warning">
+        ⚠ SYSTEM WARNING
+    </div>
+
+    <div class="message" id="message">
+        不明な操作を検出しました。<br>
+        システム整合性を確認しています……<br>
+        <br>
+        データ検証を開始します。
+    </div>
+
+    <div id="count">10</div>
+
+    <div id="progress">
+        <div id="bar"></div>
+    </div>
+
+</div>
+
+<div id="final">
+    <h1>ドッキリでした。</h1>
+    <p>何も起きていません。</p>
+</div>
+
+
+<script>
+
+const count = document.querySelector("#count");
+const bar = document.querySelector("#bar");
+const screen = document.querySelector("#screen");
+const warning = document.querySelector("#warning");
+const message = document.querySelector("#message");
+const final = document.querySelector("#final");
+
+let time = 10;
+
+const timer = setInterval(() => {
+
+    time--;
+
+    count.textContent = time;
+
+    const progress = ((10 - time) / 10) * 100;
+    bar.style.width = progress + "%";
+
+    // 残り3秒から少し不穏にする
+    if (time <= 3) {
+        screen.classList.add("shake");
+        count.style.fontSize = "clamp(80px, 20vw, 160px)";
+    }
+
+    if (time <= 0) {
+
+        clearInterval(timer);
+
+        screen.style.display = "none";
+        final.style.display = "block";
+
+    }
+
+}, 1000);
+
+</script>
+
+</body>
+</html>
