@@ -7,10 +7,12 @@
         content="width=device-width, initial-scale=1.0"
     >
     <title>English Word Memo</title>
+
     <style>
         * {
             box-sizing: border-box;
         }
+
         body {
             margin: 0;
             font-family:
@@ -21,23 +23,29 @@
             background: #f5f5f5;
             color: #222;
         }
+
         .container {
             width: min(800px, 92%);
             margin: 50px auto;
         }
+
         h1 {
             margin-bottom: 30px;
         }
+
         h2 {
             font-size: 18px;
         }
+
         /* =========================
            検索
         ========================= */
+
         #searchForm {
             display: flex;
             gap: 10px;
         }
+
         #wordInput {
             flex: 1;
             padding: 12px;
@@ -45,6 +53,7 @@
             border: 1px solid #ccc;
             border-radius: 6px;
         }
+
         button {
             padding: 9px 14px;
             border: none;
@@ -53,27 +62,33 @@
             color: white;
             cursor: pointer;
         }
+
         button:hover {
             opacity: 0.8;
         }
+
         /* =========================
            検索結果
         ========================= */
+
         .search-result {
             margin-top: 30px;
             padding: 20px;
             background: white;
             border-radius: 10px;
         }
+
         #currentWord {
             font-size: 24px;
             font-weight: bold;
         }
+
         .dictionary-links {
             display: flex;
             gap: 10px;
             margin-top: 15px;
         }
+
         .dictionary-links a {
             display: inline-block;
             padding: 10px 15px;
@@ -82,64 +97,79 @@
             color: #222;
             text-decoration: none;
         }
+
         .dictionary-links a:hover {
             opacity: 0.7;
         }
+
         /* =========================
            履歴
         ========================= */
+
         .history {
             margin-top: 30px;
             padding: 20px;
             background: white;
             border-radius: 10px;
         }
+
         .history-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
         #clearHistory {
             background: #777;
         }
+
         #historyList {
             padding: 0;
             margin: 20px 0 0;
             list-style: none;
         }
+
         /* =========================
            単語カード
         ========================= */
+
         .history-item {
             padding: 18px 0;
             border-bottom: 1px solid #eee;
         }
+
         .history-item:last-child {
             border-bottom: none;
         }
+
         .word-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 15px;
         }
+
         .word {
             font-weight: bold;
             font-size: 20px;
         }
+
         .date {
             color: #888;
             font-size: 12px;
             margin-top: 4px;
         }
+
         /* =========================
            辞書リンク
         ========================= */
+
         .history-links {
             display: flex;
             gap: 8px;
             margin-top: 12px;
         }
+
         .history-links a {
             padding: 7px 10px;
             background: #eee;
@@ -148,537 +178,843 @@
             text-decoration: none;
             font-size: 13px;
         }
+
         .history-links a:hover {
             opacity: 0.7;
         }
+
         /* =========================
            メモ
         ========================= */
+
         .memo-area {
             margin-top: 15px;
             padding: 15px;
             background: #f8f8f8;
             border-radius: 8px;
         }
+
         .memo-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
         }
+
         .memo-title {
             font-weight: bold;
             font-size: 14px;
         }
+
         .memo-text {
             margin: 0;
+            padding: 0;
             white-space: pre-wrap;
             line-height: 1.6;
             color: #444;
+            text-align: left;
         }
+
         .memo-empty {
             color: #999;
             font-style: italic;
         }
+
         /* =========================
            メモ編集
         ========================= */
-      .memo-editor {
-    display: block;
 
-    width: 100%;
-    min-height: 120px;
+        .memo-editor {
+            display: block;
 
-    padding: 10px;
+            width: 100%;
+            min-height: 120px;
 
-    margin: 0;
+            margin: 0;
+            padding: 10px;
 
-    resize: vertical;
+            resize: vertical;
 
-    border: 1px solid #ccc;
-    border-radius: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
 
-    background: white;
+            background: white;
 
-    font-family: inherit;
-    font-size: 14px;
-    line-height: 1.6;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
 
-    text-align: left;
-    vertical-align: top;
-}
+            text-align: left;
+            vertical-align: top;
+        }
+
         .memo-buttons {
             display: flex;
             gap: 8px;
             margin-top: 10px;
         }
+
         .save-memo {
             background: #222;
         }
+
         .cancel-memo {
             background: #777;
         }
+
         /* =========================
            削除
         ========================= */
+
         .delete-word {
             margin-left: auto;
             background: #b33;
         }
+
         .delete-word:hover {
             background: #922;
         }
+
         /* =========================
            スマートフォン
         ========================= */
+
         @media (max-width: 600px) {
+
             .word-row {
                 align-items: flex-start;
                 flex-direction: column;
             }
+
             .delete-word {
                 margin-left: 0;
             }
+
             .dictionary-links {
                 flex-direction: column;
             }
+
             .dictionary-links a {
                 text-align: center;
             }
+
             .history-links {
                 flex-wrap: wrap;
             }
         }
     </style>
 </head>
+
 <body>
+
     <main class="container">
+
         <h1>
             English Word Memo
         </h1>
+
         <!-- =====================
              検索フォーム
         ====================== -->
+
         <form id="searchForm">
+
             <input
                 type="text"
                 id="wordInput"
                 placeholder="英単語を入力"
                 autocomplete="off"
             >
+
             <button type="submit">
                 検索
             </button>
+
         </form>
+
+
         <!-- =====================
              現在の検索結果
         ====================== -->
+
         <section class="search-result">
+
             <h2>
                 検索
             </h2>
+
             <p id="currentWord">
                 ここに検索した単語が表示されます。
             </p>
+
             <div class="dictionary-links">
+
                 <a
                     id="weblioLink"
                     href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target="_self"
                 >
                     Weblio
                 </a>
+
                 <a
                     id="englishBattleLink"
                     href="#"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    target="_self"
                 >
                     EnglishBattle
                 </a>
+
             </div>
+
         </section>
+
+
         <!-- =====================
              検索履歴
         ====================== -->
+
         <section class="history">
+
             <div class="history-header">
+
                 <h2>
                     検索履歴
                 </h2>
+
                 <button id="clearHistory">
                     履歴を削除
                 </button>
+
             </div>
+
             <ul id="historyList"></ul>
+
         </section>
+
     </main>
+
+
     <script>
+
         // ========================================
         // HTML要素
         // ========================================
+
         const searchForm =
             document.querySelector("#searchForm");
+
         const wordInput =
             document.querySelector("#wordInput");
+
         const currentWord =
             document.querySelector("#currentWord");
+
         const weblioLink =
             document.querySelector("#weblioLink");
+
         const englishBattleLink =
             document.querySelector("#englishBattleLink");
+
         const historyList =
             document.querySelector("#historyList");
+
         const clearHistoryButton =
             document.querySelector("#clearHistory");
+
+
         // ========================================
         // 履歴を読み込む
         // ========================================
+
         let history =
             JSON.parse(
                 localStorage.getItem("wordHistory")
             ) || [];
+
+
         // ========================================
         // 古いデータにmemoがない場合に対応
         // ========================================
+
         history = history.map(function(item) {
+
             return {
                 ...item,
                 memo: item.memo || ""
             };
+
         });
+
+
         // ========================================
-        // 保存
+        // 履歴を保存
         // ========================================
+
         function saveHistory() {
+
             localStorage.setItem(
                 "wordHistory",
                 JSON.stringify(history)
             );
+
         }
+
+
         // ========================================
-        // 辞書URL
+        // 辞書URLを作成
         // ========================================
+
         function createDictionaryURLs(word) {
+
             return {
+
                 weblio:
                     "https://ejje.weblio.jp/content/" +
                     encodeURIComponent(word),
+
                 englishBattle:
                     "https://english-battle.com/word/" +
                     encodeURIComponent(word)
+
             };
+
         }
+
+
+        // ========================================
+        // HTMLエスケープ
+        // ========================================
+
+        function escapeHTML(text) {
+
+            const div =
+                document.createElement("div");
+
+            div.textContent = text;
+
+            return div.innerHTML;
+
+        }
+
+
         // ========================================
         // 履歴を表示
         // ========================================
+
         function displayHistory() {
+
             historyList.innerHTML = "";
+
+
             history.forEach(function(item, index) {
+
                 const li =
                     document.createElement("li");
+
                 li.className =
                     "history-item";
+
+
                 li.innerHTML = `
+
                     <div class="word-row">
+
                         <div>
+
                             <div class="word">
                                 ${escapeHTML(item.word)}
                             </div>
+
                             <div class="date">
                                 ${escapeHTML(item.date)}
                             </div>
+
                         </div>
+
+
                         <button
                             class="delete-word"
                             data-index="${index}"
                         >
                             削除
                         </button>
+
                     </div>
+
+
                     <div class="history-links">
+
                         <a
                             href="${item.weblio}"
                             target="_self"
-                            rel="noopener noreferrer"
                         >
                             Weblio
                         </a>
+
                         <a
                             href="${item.englishBattle}"
                             target="_self"
-                            rel="noopener noreferrer"
                         >
                             EnglishBattle
                         </a>
+
                     </div>
+
+
                     <div class="memo-area">
+
                         <div class="memo-header">
+
                             <span class="memo-title">
                                 Memo
                             </span>
+
                             <button
                                 class="edit-memo"
                                 data-index="${index}"
                             >
                                 Edit
                             </button>
+
                         </div>
+
+
                         <div class="memo-view">
+
                             ${
                                 item.memo
+
                                 ? `
+
                                     <div class="memo-text">
                                         ${escapeHTML(item.memo)}
                                     </div>
+
                                 `
+
                                 : `
+
                                     <div class="memo-text memo-empty">
                                         メモはありません。
                                     </div>
+
                                 `
                             }
+
                         </div>
+
                     </div>
+
                 `;
+
+
                 historyList.appendChild(li);
+
             });
+
         }
-        // ========================================
-        // HTMLエスケープ
-        // ========================================
-        function escapeHTML(text) {
-            const div =
-                document.createElement("div");
-            div.textContent =
-                text;
-            return div.innerHTML;
-        }
+
+
         // ========================================
         // 検索
         // ========================================
+
         searchForm.addEventListener(
             "submit",
             function(event) {
+
                 event.preventDefault();
+
+
                 const word =
                     wordInput.value.trim();
+
+
                 if (word === "") {
                     return;
                 }
+
+
+                // ================================
+                // URL作成
+                // ================================
+
                 const urls =
                     createDictionaryURLs(word);
-                // 現在の単語
+
+
+                // ================================
+                // 現在の単語を表示
+                // ================================
+
                 currentWord.textContent =
                     word;
+
+
+                // ================================
                 // Weblio
+                // ================================
+
                 weblioLink.href =
                     urls.weblio;
+
+
+                // ================================
                 // EnglishBattle
+                // ================================
+
                 englishBattleLink.href =
                     urls.englishBattle;
-                // ====================================
+
+
+                // ================================
                 // 同じ単語があるか探す
-                // ====================================
+                // ================================
+
                 const existingIndex =
                     history.findIndex(
                         function(item) {
+
                             return (
                                 item.word.toLowerCase()
                                 ===
                                 word.toLowerCase()
                             );
+
                         }
                     );
+
+
+                // ================================
+                // 既に存在する場合
+                // ================================
+
                 if (existingIndex !== -1) {
-                    // 既存の単語を先頭へ移動
+
                     const existing =
                         history.splice(
                             existingIndex,
                             1
                         )[0];
-                    // URLなどを更新
+
+
+                    // 単語情報を更新
+
                     existing.word =
                         word;
+
                     existing.date =
                         new Date().toLocaleString(
                             "ja-JP"
                         );
+
                     existing.weblio =
                         urls.weblio;
+
                     existing.englishBattle =
                         urls.englishBattle;
+
+
+                    // 先頭へ移動
+
                     history.unshift(existing);
-                } else {
-                    // 新しい単語
+
+                }
+
+
+                // ================================
+                // 新しい単語の場合
+                // ================================
+
+                else {
+
                     history.unshift({
+
                         word: word,
+
                         date:
                             new Date().toLocaleString(
                                 "ja-JP"
                             ),
+
                         weblio:
                             urls.weblio,
+
                         englishBattle:
                             urls.englishBattle,
+
                         memo: ""
+
                     });
+
                 }
+
+
+                // ================================
                 // 保存
+                // ================================
+
                 saveHistory();
+
+
+                // ================================
                 // 表示
+                // ================================
+
                 displayHistory();
+
+
+                // ================================
                 // 入力欄を空にする
+                // ================================
+
                 wordInput.value = "";
+
             }
         );
+
+
         // ========================================
         // 履歴内部のボタン
         // ========================================
+
         historyList.addEventListener(
             "click",
             function(event) {
+
                 const target =
                     event.target;
+
+
                 // ====================================
-                // 削除
+                // 単語削除
                 // ====================================
+
                 if (
                     target.classList.contains(
                         "delete-word"
                     )
                 ) {
+
                     const index =
                         Number(
                             target.dataset.index
                         );
+
+
                     const word =
                         history[index].word;
+
+
                     const result =
                         confirm(
                             `"${word}" を削除しますか？`
                         );
+
+
                     if (!result) {
                         return;
                     }
+
+
                     history.splice(
                         index,
                         1
                     );
+
+
                     saveHistory();
+
                     displayHistory();
+
                     return;
+
                 }
+
+
                 // ====================================
                 // Edit
                 // ====================================
+
                 if (
                     target.classList.contains(
                         "edit-memo"
                     )
                 ) {
+
                     const index =
                         Number(
                             target.dataset.index
                         );
+
+
                     const item =
                         history[index];
+
+
                     const memoArea =
                         target.closest(
                             ".memo-area"
                         );
+
+
                     memoArea.innerHTML = `
+
                         <div class="memo-header">
+
                             <span class="memo-title">
                                 Memo
                             </span>
+
                         </div>
+
+
                         <textarea
                             class="memo-editor"
                             placeholder="この単語についてメモを書く..."
                         >${escapeHTML(item.memo)}</textarea>
+
+
                         <div class="memo-buttons">
+
                             <button
                                 class="save-memo"
                                 data-index="${index}"
                             >
                                 Save
                             </button>
+
                             <button
                                 class="cancel-memo"
                                 data-index="${index}"
                             >
                                 Cancel
                             </button>
+
                         </div>
+
                     `;
+
+
+                    // textareaにカーソルを移動
+
+                    const textarea =
+                        memoArea.querySelector(
+                            ".memo-editor"
+                        );
+
+                    textarea.focus();
+
+
                     return;
+
                 }
+
+
                 // ====================================
                 // Save
                 // ====================================
+
                 if (
                     target.classList.contains(
                         "save-memo"
                     )
                 ) {
+
                     const index =
                         Number(
                             target.dataset.index
                         );
+
+
                     const memoArea =
                         target.closest(
                             ".memo-area"
                         );
+
+
                     const textarea =
                         memoArea.querySelector(
                             ".memo-editor"
                         );
+
+
                     history[index].memo =
                         textarea.value;
+
+
                     saveHistory();
+
                     displayHistory();
+
                     return;
+
                 }
+
+
                 // ====================================
                 // Cancel
                 // ====================================
+
                 if (
                     target.classList.contains(
                         "cancel-memo"
                     )
                 ) {
+
                     displayHistory();
+
                     return;
+
                 }
+
             }
         );
+
+
         // ========================================
         // 履歴全削除
         // ========================================
+
         clearHistoryButton.addEventListener(
             "click",
             function() {
+
                 if (history.length === 0) {
                     return;
                 }
+
+
                 const result =
                     confirm(
                         "検索履歴をすべて削除しますか？"
                     );
+
+
                 if (!result) {
                     return;
                 }
+
+
                 history = [];
+
+
                 saveHistory();
+
                 displayHistory();
+
             }
         );
+
+
         // ========================================
         // 初期表示
         // ========================================
+
         displayHistory();
+
     </script>
+
 </body>
 </html>
