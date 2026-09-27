@@ -2,13 +2,16 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
     <title>English Word Memo</title>
 
     <style>
+
         * {
             box-sizing: border-box;
         }
@@ -20,6 +23,7 @@
                 BlinkMacSystemFont,
                 "Segoe UI",
                 sans-serif;
+
             background: #f5f5f5;
             color: #222;
         }
@@ -37,6 +41,7 @@
             font-size: 18px;
         }
 
+
         /* =========================
            検索
         ========================= */
@@ -48,24 +53,31 @@
 
         #wordInput {
             flex: 1;
+
             padding: 12px;
+
             font-size: 16px;
+
             border: 1px solid #ccc;
             border-radius: 6px;
         }
 
         button {
             padding: 9px 14px;
+
             border: none;
             border-radius: 6px;
+
             background: #222;
             color: white;
+
             cursor: pointer;
         }
 
         button:hover {
             opacity: 0.8;
         }
+
 
         /* =========================
            検索結果
@@ -74,6 +86,7 @@
         .search-result {
             margin-top: 30px;
             padding: 20px;
+
             background: white;
             border-radius: 10px;
         }
@@ -86,21 +99,27 @@
         .dictionary-links {
             display: flex;
             gap: 10px;
+
             margin-top: 15px;
         }
 
         .dictionary-links a {
             display: inline-block;
+
             padding: 10px 15px;
+
             border-radius: 6px;
+
             background: #eee;
             color: #222;
+
             text-decoration: none;
         }
 
         .dictionary-links a:hover {
             opacity: 0.7;
         }
+
 
         /* =========================
            履歴
@@ -109,12 +128,14 @@
         .history {
             margin-top: 30px;
             padding: 20px;
+
             background: white;
             border-radius: 10px;
         }
 
         .history-header {
             display: flex;
+
             justify-content: space-between;
             align-items: center;
         }
@@ -126,8 +147,10 @@
         #historyList {
             padding: 0;
             margin: 20px 0 0;
+
             list-style: none;
         }
+
 
         /* =========================
            単語カード
@@ -135,6 +158,7 @@
 
         .history-item {
             padding: 18px 0;
+
             border-bottom: 1px solid #eee;
         }
 
@@ -144,8 +168,10 @@
 
         .word-row {
             display: flex;
+
             justify-content: space-between;
             align-items: center;
+
             gap: 15px;
         }
 
@@ -157,8 +183,10 @@
         .date {
             color: #888;
             font-size: 12px;
+
             margin-top: 4px;
         }
+
 
         /* =========================
            辞書リンク
@@ -167,21 +195,28 @@
         .history-links {
             display: flex;
             gap: 8px;
+
             margin-top: 12px;
         }
 
         .history-links a {
             padding: 7px 10px;
+
             background: #eee;
+
             border-radius: 5px;
+
             color: #222;
+
             text-decoration: none;
+
             font-size: 13px;
         }
 
         .history-links a:hover {
             opacity: 0.7;
         }
+
 
         /* =========================
            メモ
@@ -190,14 +225,18 @@
         .memo-area {
             margin-top: 15px;
             padding: 15px;
+
             background: #f8f8f8;
+
             border-radius: 8px;
         }
 
         .memo-header {
             display: flex;
+
             justify-content: space-between;
             align-items: center;
+
             margin-bottom: 10px;
         }
 
@@ -209,9 +248,13 @@
         .memo-text {
             margin: 0;
             padding: 0;
+
             white-space: pre-wrap;
+
             line-height: 1.6;
+
             color: #444;
+
             text-align: left;
         }
 
@@ -219,6 +262,7 @@
             color: #999;
             font-style: italic;
         }
+
 
         /* =========================
            メモ編集
@@ -242,15 +286,19 @@
 
             font-family: inherit;
             font-size: 14px;
+
             line-height: 1.6;
 
             text-align: left;
+
+            /* textarea固有の初期位置を明示 */
             vertical-align: top;
         }
 
         .memo-buttons {
             display: flex;
             gap: 8px;
+
             margin-top: 10px;
         }
 
@@ -262,18 +310,21 @@
             background: #777;
         }
 
+
         /* =========================
            削除
         ========================= */
 
         .delete-word {
             margin-left: auto;
+
             background: #b33;
         }
 
         .delete-word:hover {
             background: #922;
         }
+
 
         /* =========================
            スマートフォン
@@ -301,9 +352,12 @@
             .history-links {
                 flex-wrap: wrap;
             }
+
         }
+
     </style>
 </head>
+
 
 <body>
 
@@ -312,6 +366,7 @@
         <h1>
             English Word Memo
         </h1>
+
 
         <!-- =====================
              検索フォーム
@@ -382,7 +437,10 @@
                     検索履歴
                 </h2>
 
-                <button id="clearHistory">
+                <button
+                    id="clearHistory"
+                    type="button"
+                >
                     履歴を削除
                 </button>
 
@@ -434,7 +492,7 @@
 
 
         // ========================================
-        // 古いデータにmemoがない場合に対応
+        // 古いデータにmemoがない場合
         // ========================================
 
         history = history.map(function(item) {
@@ -448,7 +506,7 @@
 
 
         // ========================================
-        // 履歴を保存
+        // 保存
         // ========================================
 
         function saveHistory() {
@@ -462,7 +520,7 @@
 
 
         // ========================================
-        // 辞書URLを作成
+        // 辞書URL
         // ========================================
 
         function createDictionaryURLs(word) {
@@ -534,6 +592,7 @@
 
 
                         <button
+                            type="button"
                             class="delete-word"
                             data-index="${index}"
                         >
@@ -571,6 +630,7 @@
                             </span>
 
                             <button
+                                type="button"
                                 class="edit-memo"
                                 data-index="${index}"
                             >
@@ -584,21 +644,15 @@
 
                             ${
                                 item.memo
-
                                 ? `
-
                                     <div class="memo-text">
                                         ${escapeHTML(item.memo)}
                                     </div>
-
                                 `
-
                                 : `
-
                                     <div class="memo-text memo-empty">
                                         メモはありません。
                                     </div>
-
                                 `
                             }
 
@@ -636,41 +690,31 @@
                 }
 
 
-                // ================================
-                // URL作成
-                // ================================
-
                 const urls =
                     createDictionaryURLs(word);
 
 
-                // ================================
-                // 現在の単語を表示
-                // ================================
+                // 現在の単語
 
                 currentWord.textContent =
                     word;
 
 
-                // ================================
                 // Weblio
-                // ================================
 
                 weblioLink.href =
                     urls.weblio;
 
 
-                // ================================
                 // EnglishBattle
-                // ================================
 
                 englishBattleLink.href =
                     urls.englishBattle;
 
 
-                // ================================
-                // 同じ単語があるか探す
-                // ================================
+                // ====================================
+                // 同じ単語があるか
+                // ====================================
 
                 const existingIndex =
                     history.findIndex(
@@ -686,9 +730,9 @@
                     );
 
 
-                // ================================
-                // 既に存在する場合
-                // ================================
+                // ====================================
+                // 既存単語
+                // ====================================
 
                 if (existingIndex !== -1) {
 
@@ -698,8 +742,6 @@
                             1
                         )[0];
 
-
-                    // 単語情報を更新
 
                     existing.word =
                         word;
@@ -716,16 +758,14 @@
                         urls.englishBattle;
 
 
-                    // 先頭へ移動
-
                     history.unshift(existing);
 
                 }
 
 
-                // ================================
-                // 新しい単語の場合
-                // ================================
+                // ====================================
+                // 新しい単語
+                // ====================================
 
                 else {
 
@@ -751,23 +791,9 @@
                 }
 
 
-                // ================================
-                // 保存
-                // ================================
-
                 saveHistory();
 
-
-                // ================================
-                // 表示
-                // ================================
-
                 displayHistory();
-
-
-                // ================================
-                // 入力欄を空にする
-                // ================================
 
                 wordInput.value = "";
 
@@ -788,7 +814,7 @@
 
 
                 // ====================================
-                // 単語削除
+                // 削除
                 // ====================================
 
                 if (
@@ -859,6 +885,17 @@
                         );
 
 
+                    /*
+                     * ここが今回の重要な修正部分。
+                     *
+                     * textareaの中に
+                     * ${item.memo}
+                     * を直接書かない。
+                     *
+                     * そうするとHTMLの改行・
+                     * インデントまでメモに入る。
+                     */
+
                     memoArea.innerHTML = `
 
                         <div class="memo-header">
@@ -873,12 +910,13 @@
                         <textarea
                             class="memo-editor"
                             placeholder="この単語についてメモを書く..."
-                        >${escapeHTML(item.memo)}</textarea>
+                        ></textarea>
 
 
                         <div class="memo-buttons">
 
                             <button
+                                type="button"
                                 class="save-memo"
                                 data-index="${index}"
                             >
@@ -886,6 +924,7 @@
                             </button>
 
                             <button
+                                type="button"
                                 class="cancel-memo"
                                 data-index="${index}"
                             >
@@ -897,14 +936,28 @@
                     `;
 
 
-                    // textareaにカーソルを移動
+                    // ====================================
+                    // textareaへ値を直接セット
+                    // ====================================
 
                     const textarea =
                         memoArea.querySelector(
                             ".memo-editor"
                         );
 
+
+                    textarea.value =
+                        item.memo;
+
+
+                    // カーソルを先頭へ
+
                     textarea.focus();
+
+                    textarea.setSelectionRange(
+                        0,
+                        0
+                    );
 
 
                     return;
