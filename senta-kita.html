@@ -387,14 +387,14 @@
                     <div class="history-links">
                         <a
                             href="${item.weblio}"
-                            target="_blank"
+                            target="_self"
                             rel="noopener noreferrer"
                         >
                             Weblio
                         </a>
                         <a
                             href="${item.englishBattle}"
-                            target="_blank"
+                            target="_self"
                             rel="noopener noreferrer"
                         >
                             EnglishBattle
@@ -416,14 +416,14 @@
                             ${
                                 item.memo
                                 ? `
-                                    <p class="memo-text">
+                                    <div class="memo-text">
                                         ${escapeHTML(item.memo)}
-                                    </p>
+                                    </div>
                                 `
                                 : `
-                                    <p class="memo-text memo-empty">
+                                    <div class="memo-text memo-empty">
                                         メモはありません。
-                                    </p>
+                                    </div>
                                 `
                             }
                         </div>
