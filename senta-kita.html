@@ -22,7 +22,7 @@
             color: #222;
         }
         .container {
-            width: min(700px, 90%);
+            width: min(800px, 92%);
             margin: 50px auto;
         }
         h1 {
@@ -32,7 +32,7 @@
             font-size: 18px;
         }
         /* =========================
-           検索欄
+           検索
         ========================= */
         #searchForm {
             display: flex;
@@ -46,7 +46,7 @@
             border-radius: 6px;
         }
         button {
-            padding: 10px 16px;
+            padding: 9px 14px;
             border: none;
             border-radius: 6px;
             background: #222;
@@ -107,25 +107,38 @@
             margin: 20px 0 0;
             list-style: none;
         }
+        /* =========================
+           単語カード
+        ========================= */
         .history-item {
+            padding: 18px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .word-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 14px 0;
-            border-bottom: 1px solid #eee;
+            gap: 15px;
         }
         .word {
             font-weight: bold;
-            font-size: 18px;
+            font-size: 20px;
         }
         .date {
             color: #888;
             font-size: 12px;
             margin-top: 4px;
         }
+        /* =========================
+           辞書リンク
+        ========================= */
         .history-links {
             display: flex;
             gap: 8px;
+            margin-top: 12px;
         }
         .history-links a {
             padding: 7px 10px;
@@ -139,19 +152,88 @@
             opacity: 0.7;
         }
         /* =========================
+           メモ
+        ========================= */
+        .memo-area {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 8px;
+        }
+        .memo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .memo-title {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .memo-text {
+            margin: 0;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #444;
+        }
+        .memo-empty {
+            color: #999;
+            font-style: italic;
+        }
+        /* =========================
+           メモ編集
+        ========================= */
+        .memo-editor {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            resize: vertical;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .memo-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .save-memo {
+            background: #222;
+        }
+        .cancel-memo {
+            background: #777;
+        }
+        /* =========================
+           削除
+        ========================= */
+        .delete-word {
+            margin-left: auto;
+            background: #b33;
+        }
+        .delete-word:hover {
+            background: #922;
+        }
+        /* =========================
            スマートフォン
         ========================= */
         @media (max-width: 600px) {
-            .history-item {
+            .word-row {
                 align-items: flex-start;
-                gap: 10px;
                 flex-direction: column;
+            }
+            .delete-word {
+                margin-left: 0;
             }
             .dictionary-links {
                 flex-direction: column;
             }
             .dictionary-links a {
                 text-align: center;
+            }
+            .history-links {
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -176,7 +258,7 @@
             </button>
         </form>
         <!-- =====================
-             現在の単語
+             現在の検索結果
         ====================== -->
         <section class="search-result">
             <h2>
@@ -186,20 +268,18 @@
                 ここに検索した単語が表示されます。
             </p>
             <div class="dictionary-links">
-                <!-- Weblio -->
                 <a
                     id="weblioLink"
                     href="#"
-                    target="_self"
+                    target="_blank"
                     rel="noopener noreferrer"
                 >
                     Weblio
                 </a>
-                <!-- EnglishBattle -->
                 <a
                     id="englishBattleLink"
                     href="#"
-                    target="_self"
+                    target="_blank"
                     rel="noopener noreferrer"
                 >
                     EnglishBattle
@@ -207,7 +287,7 @@
             </div>
         </section>
         <!-- =====================
-             履歴
+             検索履歴
         ====================== -->
         <section class="history">
             <div class="history-header">
@@ -223,7 +303,7 @@
     </main>
     <script>
         // ========================================
-        // HTML要素を取得
+        // HTML要素
         // ========================================
         const searchForm =
             document.querySelector("#searchForm");
@@ -240,14 +320,23 @@
         const clearHistoryButton =
             document.querySelector("#clearHistory");
         // ========================================
-        // localStorageから履歴を読み込む
+        // 履歴を読み込む
         // ========================================
         let history =
             JSON.parse(
                 localStorage.getItem("wordHistory")
             ) || [];
         // ========================================
-        // 履歴を保存
+        // 古いデータにmemoがない場合に対応
+        // ========================================
+        history = history.map(function(item) {
+            return {
+                ...item,
+                memo: item.memo || ""
+            };
+        });
+        // ========================================
+        // 保存
         // ========================================
         function saveHistory() {
             localStorage.setItem(
@@ -256,7 +345,7 @@
             );
         }
         // ========================================
-        // 辞書URLを作る
+        // 辞書URL
         // ========================================
         function createDictionaryURLs(word) {
             return {
@@ -272,22 +361,28 @@
         // 履歴を表示
         // ========================================
         function displayHistory() {
-            // 一度画面を空にする
             historyList.innerHTML = "";
-            // 履歴を1件ずつ処理
-            history.forEach(function(item) {
+            history.forEach(function(item, index) {
                 const li =
                     document.createElement("li");
                 li.className =
                     "history-item";
                 li.innerHTML = `
-                    <div>
-                        <div class="word">
-                            ${item.word}
+                    <div class="word-row">
+                        <div>
+                            <div class="word">
+                                ${escapeHTML(item.word)}
+                            </div>
+                            <div class="date">
+                                ${escapeHTML(item.date)}
+                            </div>
                         </div>
-                        <div class="date">
-                            ${item.date}
-                        </div>
+                        <button
+                            class="delete-word"
+                            data-index="${index}"
+                        >
+                            削除
+                        </button>
                     </div>
                     <div class="history-links">
                         <a
@@ -305,9 +400,47 @@
                             EnglishBattle
                         </a>
                     </div>
+                    <div class="memo-area">
+                        <div class="memo-header">
+                            <span class="memo-title">
+                                Memo
+                            </span>
+                            <button
+                                class="edit-memo"
+                                data-index="${index}"
+                            >
+                                Edit
+                            </button>
+                        </div>
+                        <div class="memo-view">
+                            ${
+                                item.memo
+                                ? `
+                                    <p class="memo-text">
+                                        ${escapeHTML(item.memo)}
+                                    </p>
+                                `
+                                : `
+                                    <p class="memo-text memo-empty">
+                                        メモはありません。
+                                    </p>
+                                `
+                            }
+                        </div>
+                    </div>
                 `;
                 historyList.appendChild(li);
             });
+        }
+        // ========================================
+        // HTMLエスケープ
+        // ========================================
+        function escapeHTML(text) {
+            const div =
+                document.createElement("div");
+            div.textContent =
+                text;
+            return div.innerHTML;
         }
         // ========================================
         // 検索
@@ -315,21 +448,15 @@
         searchForm.addEventListener(
             "submit",
             function(event) {
-                // フォームのページ遷移を止める
                 event.preventDefault();
-                // 入力された単語を取得
                 const word =
                     wordInput.value.trim();
-                // 空欄なら終了
                 if (word === "") {
                     return;
                 }
-                // 辞書URLを作成
                 const urls =
                     createDictionaryURLs(word);
-                // ====================================
-                // 現在の単語を表示
-                // ====================================
+                // 現在の単語
                 currentWord.textContent =
                     word;
                 // Weblio
@@ -339,68 +466,190 @@
                 englishBattleLink.href =
                     urls.englishBattle;
                 // ====================================
-                // 履歴に追加
+                // 同じ単語があるか探す
                 // ====================================
-                const newItem = {
-                    word: word,
-                    date:
-                        new Date().toLocaleString(
-                            "ja-JP"
-                        ),
-                    weblio:
-                        urls.weblio,
-                    englishBattle:
-                        urls.englishBattle
-                };
-                // 最新の検索を先頭に追加
-                history.unshift(newItem);
-                // ====================================
-                // 同じ単語を削除
-                // ====================================
-                history =
-                    history.filter(
-                        function(item, index, array) {
+                const existingIndex =
+                    history.findIndex(
+                        function(item) {
                             return (
-                                index ===
-                                array.findIndex(
-                                    function(other) {
-                                        return (
-                                            other.word
-                                                .toLowerCase()
-                                            ===
-                                            item.word
-                                                .toLowerCase()
-                                        );
-                                    }
-                                )
+                                item.word.toLowerCase()
+                                ===
+                                word.toLowerCase()
                             );
                         }
                     );
-                // ====================================
+                if (existingIndex !== -1) {
+                    // 既存の単語を先頭へ移動
+                    const existing =
+                        history.splice(
+                            existingIndex,
+                            1
+                        )[0];
+                    // URLなどを更新
+                    existing.word =
+                        word;
+                    existing.date =
+                        new Date().toLocaleString(
+                            "ja-JP"
+                        );
+                    existing.weblio =
+                        urls.weblio;
+                    existing.englishBattle =
+                        urls.englishBattle;
+                    history.unshift(existing);
+                } else {
+                    // 新しい単語
+                    history.unshift({
+                        word: word,
+                        date:
+                            new Date().toLocaleString(
+                                "ja-JP"
+                            ),
+                        weblio:
+                            urls.weblio,
+                        englishBattle:
+                            urls.englishBattle,
+                        memo: ""
+                    });
+                }
                 // 保存
-                // ====================================
                 saveHistory();
-                // ====================================
-                // 画面更新
-                // ====================================
+                // 表示
                 displayHistory();
-                // ====================================
                 // 入力欄を空にする
-                // ====================================
                 wordInput.value = "";
             }
         );
         // ========================================
-        // 履歴を全削除
+        // 履歴内部のボタン
+        // ========================================
+        historyList.addEventListener(
+            "click",
+            function(event) {
+                const target =
+                    event.target;
+                // ====================================
+                // 削除
+                // ====================================
+                if (
+                    target.classList.contains(
+                        "delete-word"
+                    )
+                ) {
+                    const index =
+                        Number(
+                            target.dataset.index
+                        );
+                    const word =
+                        history[index].word;
+                    const result =
+                        confirm(
+                            `"${word}" を削除しますか？`
+                        );
+                    if (!result) {
+                        return;
+                    }
+                    history.splice(
+                        index,
+                        1
+                    );
+                    saveHistory();
+                    displayHistory();
+                    return;
+                }
+                // ====================================
+                // Edit
+                // ====================================
+                if (
+                    target.classList.contains(
+                        "edit-memo"
+                    )
+                ) {
+                    const index =
+                        Number(
+                            target.dataset.index
+                        );
+                    const item =
+                        history[index];
+                    const memoArea =
+                        target.closest(
+                            ".memo-area"
+                        );
+                    memoArea.innerHTML = `
+                        <div class="memo-header">
+                            <span class="memo-title">
+                                Memo
+                            </span>
+                        </div>
+                        <textarea
+                            class="memo-editor"
+                            placeholder="この単語についてメモを書く..."
+                        >${escapeHTML(item.memo)}</textarea>
+                        <div class="memo-buttons">
+                            <button
+                                class="save-memo"
+                                data-index="${index}"
+                            >
+                                Save
+                            </button>
+                            <button
+                                class="cancel-memo"
+                                data-index="${index}"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                // ====================================
+                // Save
+                // ====================================
+                if (
+                    target.classList.contains(
+                        "save-memo"
+                    )
+                ) {
+                    const index =
+                        Number(
+                            target.dataset.index
+                        );
+                    const memoArea =
+                        target.closest(
+                            ".memo-area"
+                        );
+                    const textarea =
+                        memoArea.querySelector(
+                            ".memo-editor"
+                        );
+                    history[index].memo =
+                        textarea.value;
+                    saveHistory();
+                    displayHistory();
+                    return;
+                }
+                // ====================================
+                // Cancel
+                // ====================================
+                if (
+                    target.classList.contains(
+                        "cancel-memo"
+                    )
+                ) {
+                    displayHistory();
+                    return;
+                }
+            }
+        );
+        // ========================================
+        // 履歴全削除
         // ========================================
         clearHistoryButton.addEventListener(
             "click",
             function() {
-                // 履歴がなければ何もしない
                 if (history.length === 0) {
                     return;
                 }
-                // 確認
                 const result =
                     confirm(
                         "検索履歴をすべて削除しますか？"
@@ -408,16 +657,13 @@
                 if (!result) {
                     return;
                 }
-                // 履歴を空にする
                 history = [];
-                // 保存
                 saveHistory();
-                // 表示更新
                 displayHistory();
             }
         );
         // ========================================
-        // ページを開いたときに履歴を表示
+        // 初期表示
         // ========================================
         displayHistory();
     </script>
