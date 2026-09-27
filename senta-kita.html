@@ -1,294 +1,292 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diagnostics</title>
-<style>
-    * {
-        box-sizing: border-box;
-    }
-    body {
-        margin: 0;
-        background: #f4f4f4;
-        color: #222;
-        font-family:
-            -apple-system,
-            BlinkMacSystemFont,
-            "Helvetica Neue",
-            Arial,
-            sans-serif;
-        min-height: 100vh;
-    }
-    #app {
-        width: min(720px, 90%);
-        margin: 0 auto;
-        padding: 70px 0;
-    }
-    .top {
-        font-size: 13px;
-        color: #777;
-        letter-spacing: .08em;
-        margin-bottom: 45px;
-    }
-    h1 {
-        font-size: clamp(30px, 7vw, 54px);
-        font-weight: 500;
-        margin: 0 0 15px;
-    }
-    #message {
-        color: #666;
-        line-height: 1.8;
-    }
-    #progress {
-        width: 100%;
-        height: 3px;
-        background: #ddd;
-        margin: 45px 0 12px;
-    }
-    #bar {
-        width: 0%;
-        height: 100%;
-        background: #222;
-        transition: width .3s;
-    }
-    #percent {
-        font-size: 12px;
-        color: #888;
-    }
-    #result {
-        display: none;
-        margin-top: 50px;
-    }
-    .item {
-        display: flex;
-        justify-content: space-between;
-        gap: 30px;
-        padding: 14px 0;
-        border-bottom: 1px solid #ddd;
-        font-size: 14px;
-    }
-    .label {
-        color: #888;
-    }
-    .value {
-        text-align: right;
-        word-break: break-all;
-        max-width: 65%;
-    }
-    #notice {
-        display: none;
-        margin-top: 40px;
-        padding: 20px;
-        background: #fff;
-        border: 1px solid #ccc;
-        line-height: 1.8;
-    }
-    #countdown {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: #111;
-        color: white;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
-    #countdown strong {
-        font-size: clamp(60px, 18vw, 150px);
-        font-weight: 400;
-    }
-    #countdown span {
-        color: #777;
-        margin-top: 15px;
-        font-size: 13px;
-    }
-    #prank {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: #111;
-        color: white;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        text-align: center;
-    }
-    #prank h2 {
-        font-size: clamp(35px, 10vw, 80px);
-        font-weight: 400;
-        margin: 0;
-    }
-    #prank p {
-        color: #777;
-        margin-top: 20px;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>English Word Memo</title>
+        <style>
+        * {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    background: #f5f5f5;
+    color: #222;
+}
+.container {
+    width: min(700px, 90%);
+    margin: 50px auto;
+}
+h1 {
+    margin-bottom: 30px;
+}
+h2 {
+    font-size: 18px;
+}
+/* 検索欄 */
+#searchForm {
+    display: flex;
+    gap: 10px;
+}
+#wordInput {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: #222;
+    color: white;
+    cursor: pointer;
+}
+button:hover {
+    opacity: 0.8;
+}
+/* 検索結果 */
+.search-result {
+    margin-top: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+}
+#currentWord {
+    font-size: 24px;
+    font-weight: bold;
+}
+#weblioLink {
+    display: inline-block;
+    margin-top: 10px;
+    color: #0066cc;
+}
+/* 履歴 */
+.history {
+    margin-top: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+}
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+#clearHistory {
+    background: #777;
+}
+#historyList {
+    padding: 0;
+    margin: 20px 0 0;
+    list-style: none;
+}
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+}
+.word {
+    font-weight: bold;
+}
+.date {
+    color: #888;
+    font-size: 12px;
+}
+.history-link {
+    margin-left: 15px;
+    color: #0066cc;
+}
+
+        </style>
 </head>
+
 <body>
-<div id="app">
-    <div class="top">
-        BROWSER / DIAGNOSTICS
-    </div>
-    <h1>環境を確認しています。</h1>
-    <div id="message">
-        このページを表示している環境を確認しています。
-    </div>
-    <div id="progress">
-        <div id="bar"></div>
-    </div>
-    <div id="percent">0%</div>
-    <div id="result">
-        <div class="item">
-            <span class="label">端末</span>
-            <span class="value" id="device"></span>
-        </div>
-        <div class="item">
-            <span class="label">画面</span>
-            <span class="value" id="screen"></span>
-        </div>
-        <div class="item">
-            <span class="label">言語</span>
-            <span class="value" id="language"></span>
-        </div>
-        <div class="item">
-            <span class="label">タイムゾーン</span>
-            <span class="value" id="timezone"></span>
-        </div>
-        <div class="item">
-            <span class="label">CPU</span>
-            <span class="value" id="cpu"></span>
-        </div>
-        <div class="item">
-            <span class="label">タッチ入力</span>
-            <span class="value" id="touch"></span>
-        </div>
-        <div class="item">
-            <span class="label">ブラウザ識別情報</span>
-            <span class="value" id="ua"></span>
-        </div>
-        <div id="notice">
-            この環境では、いくつかの情報を取得できます。<br>
-            解析を終了しています……
-        </div>
-    </div>
-</div>
-<div id="countdown">
-    <strong id="number">3</strong>
-    <span>
-        解析結果を確認しています
-    </span>
-</div>
-<div id="prank">
-    <h2>……。</h2>
-    <p>びっくりしました？</p>
-</div>
-<script>
-const $ = id => document.getElementById(id);
-const ua = navigator.userAgent;
-/* -------------------------
-   端末をそれっぽく判定
-------------------------- */
-function detectDevice() {
-    if (/iPhone/.test(ua))
-        return "iPhone";
-    if (/iPad/.test(ua))
-        return "iPad";
-    if (/Macintosh/.test(ua))
-        return "Mac";
-    if (/Android/.test(ua))
-        return "Android";
-    if (/Windows/.test(ua))
-        return "Windows";
-    if (/Linux/.test(ua))
-        return "Linux";
-    return "Unknown";
+
+    <main class="container">
+
+        <h1>English Word Memo</h1>
+
+        <form id="searchForm">
+
+            <input
+                type="text"
+                id="wordInput"
+                placeholder="英単語を入力"
+                autocomplete="off"
+            >
+
+            <button type="submit">
+                検索
+            </button>
+
+        </form>
+
+        <section class="search-result">
+
+            <h2>検索</h2>
+
+            <p id="currentWord">
+                ここに検索した単語が表示されます。
+            </p>
+
+            <a
+                id="weblioLink"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Weblioで意味を見る
+            </a>
+
+        </section>
+
+        <section class="history">
+
+            <div class="history-header">
+                <h2>検索履歴</h2>
+
+                <button id="clearHistory">
+                    履歴を削除
+                </button>
+            </div>
+
+            <ul id="historyList"></ul>
+
+        </section>
+
+    </main>
+
+    <script>
+    const searchForm = document.querySelector("#searchForm");
+const wordInput = document.querySelector("#wordInput");
+const currentWord = document.querySelector("#currentWord");
+const weblioLink = document.querySelector("#weblioLink");
+const historyList = document.querySelector("#historyList");
+const clearHistoryButton = document.querySelector("#clearHistory");
+// ==============================
+// 履歴の読み込み
+// ==============================
+let history = JSON.parse(
+    localStorage.getItem("wordHistory")
+) || [];
+// ==============================
+// 履歴を保存
+// ==============================
+function saveHistory() {
+    localStorage.setItem(
+        "wordHistory",
+        JSON.stringify(history)
+    );
 }
-/* -------------------------
-   情報をセット
-------------------------- */
-$("device").textContent =
-    detectDevice();
-$("screen").textContent =
-    `${screen.width} × ${screen.height}`;
-$("language").textContent =
-    navigator.language;
-$("timezone").textContent =
-    Intl.DateTimeFormat()
-        .resolvedOptions()
-        .timeZone;
-$("cpu").textContent =
-    navigator.hardwareConcurrency
-        ? `${navigator.hardwareConcurrency} cores`
-        : "unknown";
-$("touch").textContent =
-    navigator.maxTouchPoints > 0
-        ? "対応"
-        : "非対応";
-$("ua").textContent =
-    ua;
-/* -------------------------
-   解析演出
-------------------------- */
-const messages = [
-    "環境を確認しています。",
-    "ブラウザを確認しています。",
-    "端末情報を確認しています。",
-    "表示環境を確認しています。",
-    "解析結果を整理しています。"
-];
-let i = 0;
-const timer = setInterval(() => {
-    i++;
-    const percent =
-        Math.min(
-            100,
-            Math.round(
-                i / messages.length * 100
-            )
+// ==============================
+// 履歴を画面に表示
+// ==============================
+function displayHistory() {
+    historyList.innerHTML = "";
+    history.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "history-item";
+        li.innerHTML = `
+            <div>
+                <div class="word">
+                    ${item.word}
+                </div>
+                <div class="date">
+                    ${item.date}
+                </div>
+            </div>
+            <a
+                class="history-link"
+                href="${item.url}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Weblio
+            </a>
+        `;
+        historyList.appendChild(li);
+    });
+}
+// ==============================
+// 単語を検索
+// ==============================
+searchForm.addEventListener("submit", function(event) {
+    event.preventDefault();
+    const word = wordInput.value.trim();
+    // 空欄なら何もしない
+    if (word === "") {
+        return;
+    }
+    // Weblioの検索URL
+    const url =
+        "https://ejje.weblio.jp/content/" +
+        encodeURIComponent(word);
+    // 現在の単語を表示
+    currentWord.textContent = word;
+    // Weblioリンクを設定
+    weblioLink.href = url;
+    // 履歴に追加
+    const newItem = {
+        word: word,
+        date: new Date().toLocaleString(
+            "ja-JP"
+        ),
+        url: url
+    };
+    history.unshift(newItem);
+    // 同じ単語が大量に並ぶのを防ぐ
+    history = history.filter(
+        (item, index, array) => {
+            return index === array.findIndex(
+                other =>
+                    other.word.toLowerCase() ===
+                    item.word.toLowerCase()
+            );
+        }
+    );
+    // 保存
+    saveHistory();
+    // 表示更新
+    displayHistory();
+    // 入力欄を空にする
+    wordInput.value = "";
+});
+// ==============================
+// 履歴を全削除
+// ==============================
+clearHistoryButton.addEventListener(
+    "click",
+    function() {
+        if (history.length === 0) {
+            return;
+        }
+        const result = confirm(
+            "検索履歴をすべて削除しますか？"
         );
-    $("bar").style.width =
-        percent + "%";
-    $("percent").textContent =
-        percent + "%";
-    if (messages[i]) {
-        $("message").textContent =
-            messages[i];
+        if (!result) {
+            return;
+        }
+        history = [];
+        saveHistory();
+        displayHistory();
     }
-    if (i >= messages.length) {
-        clearInterval(timer);
-        setTimeout(startCountdown, 1000);
-    }
-}, 900);
-/* -------------------------
-   カウントダウン
-------------------------- */
-function startCountdown() {
-    $("app").style.display = "none";
-    $("countdown").style.display =
-        "flex";
-    let n = 3;
-    $("number").textContent = n;
-    const timer =
-        setInterval(() => {
-            n--;
-            $("number").textContent =
-                n;
-            if (n <= 0) {
-                clearInterval(timer);
-                setTimeout(showPrank, 500);
-            }
-        }, 900);
-}
-/* -------------------------
-   ネタばらし
-------------------------- 
-function showPrank() {
-    $("countdown").style.display =
-        "none";
-    $("prank").style.display =
-        "flex";
-}*/
-</script>
+);
+// ==============================
+// 初期表示
+// ==============================
+displayHistory();
+
+    </script>
+
 </body>
 </html>
