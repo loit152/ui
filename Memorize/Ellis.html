@@ -3,19 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Problem Repeater</title>
+<title>Ellis - Problem Repeater</title>
 <style>
 :root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
     --bg-color: #f8fafc;
     --card-bg: #ffffff;
     --text-color: #0f172a;
     --text-muted: #64748b;
     --border-color: #e2e8f0;
     --danger: #ef4444;
-    --danger-hover: #dc2626;
+    --danger-bg: #fef2f2;
     --success: #10b981;
+    --success-hover: #059669;
     --radius: 12px;
 }
 
@@ -37,17 +38,17 @@ button, input, textarea {
 
 button {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 #app {
-    max-width: 640px;
+    max-width: 600px;
     margin: 0 auto;
     min-height: 100vh;
     background: var(--card-bg);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
 }
 
 /* =========================
@@ -55,7 +56,7 @@ button {
 ========================= */
 
 header {
-    height: 64px;
+    height: 60px;
     padding: 0 20px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
@@ -67,12 +68,27 @@ header {
     z-index: 10;
 }
 
-header h1 {
-    margin: 0;
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
     font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
     color: var(--text-color);
+    letter-spacing: -0.03em;
+}
+
+.brand-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
 }
 
 .screen {
@@ -91,9 +107,9 @@ header h1 {
     border-radius: var(--radius);
     background: var(--primary);
     color: white;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1rem;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.25);
 }
 
 .primary-button:hover {
@@ -101,12 +117,13 @@ header h1 {
 }
 
 .secondary-button {
-    padding: 8px 16px;
+    padding: 8px 14px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    border-radius: 8px;
     background: white;
     color: var(--text-color);
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .secondary-button:hover {
@@ -117,10 +134,10 @@ header h1 {
     padding: 6px 12px;
     border: 1px solid #fca5a5;
     border-radius: 8px;
-    background: #fef2f2;
+    background: var(--danger-bg);
     color: var(--danger);
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .danger-button:hover {
@@ -158,7 +175,7 @@ header h1 {
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     background: #fff;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .set-item:hover {
@@ -232,8 +249,8 @@ header h1 {
 
 .range-label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     color: var(--text-muted);
     margin-bottom: 8px;
 }
@@ -245,12 +262,12 @@ header h1 {
 }
 
 .range-row input {
-    width: 100px;
-    padding: 10px;
+    width: 90px;
+    padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     text-align: center;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 #startButton {
@@ -269,8 +286,8 @@ header h1 {
 .form-label {
     display: block;
     margin: 20px 0 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.875rem;
 }
 
 #editName {
@@ -282,7 +299,7 @@ header h1 {
 
 #problemInput {
     width: 100%;
-    min-height: 260px;
+    min-height: 240px;
     resize: vertical;
     padding: 12px;
     border: 1px solid var(--border-color);
@@ -295,6 +312,9 @@ header h1 {
     margin-top: 8px;
     color: var(--text-muted);
     font-size: 0.85rem;
+    background: #f1f5f9;
+    padding: 10px 12px;
+    border-radius: 8px;
 }
 
 .edit-buttons {
@@ -308,14 +328,20 @@ header h1 {
 }
 
 /* =========================
-   問題 & 答え画面
+   クイズ / 解答画面
 ========================= */
 
 #quizScreen, #answerScreen {
-    min-height: calc(100vh - 64px);
+    min-height: calc(100vh - 60px);
     padding: 24px 20px;
     display: flex;
     flex-direction: column;
+}
+
+.quiz-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .quiz-top {
@@ -324,7 +350,21 @@ header h1 {
     align-items: center;
     color: var(--text-muted);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 700;
+}
+
+.progress-bar-bg {
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    width: 0%;
+    transition: width 0.2s ease;
 }
 
 .card-container {
@@ -335,9 +375,9 @@ header h1 {
     margin: 20px 0;
     padding: 32px 20px;
     background: #fff;
-    border: 2px solid var(--border-color);
+    border: 1px solid var(--border-color);
     border-radius: 16px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
 #question, #answer {
@@ -354,13 +394,15 @@ header h1 {
     cursor: pointer;
 }
 
-.answer-label {
-    text-align: center;
+.answer-badge {
+    align-self: center;
+    background: #eff6ff;
     color: var(--primary);
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 800;
+    font-size: 0.75rem;
     letter-spacing: 0.05em;
-    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
 }
 
 .answer-next {
@@ -385,15 +427,19 @@ header h1 {
     border-radius: var(--radius);
     font-weight: 700;
     font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 #knowButton {
-    background: var(--primary);
+    background: var(--success);
     color: white;
 }
 
 #knowButton:hover {
-    background: var(--primary-hover);
+    background: var(--success-hover);
 }
 
 #unknownButton {
@@ -406,10 +452,9 @@ header h1 {
 }
 
 .key-hint {
-    display: block;
     font-size: 0.75rem;
-    font-weight: normal;
-    opacity: 0.7;
+    font-weight: 400;
+    opacity: 0.75;
     margin-top: 2px;
 }
 
@@ -456,7 +501,10 @@ footer a:hover {
 
     <!-- ヘッダー -->
     <header>
-        <h1>Problem Repeater</h1>
+        <div class="brand">
+            <span class="brand-icon">E</span>
+            <span>Ellis</span>
+        </div>
         <button id="editButton" class="secondary-button">編集</button>
     </header>
 
@@ -464,7 +512,7 @@ footer a:hover {
     <main id="mainScreen" class="screen">
         <div class="set-header">
             <h2>問題セット</h2>
-            <button id="newSetButton" class="secondary-button">＋ 新規</button>
+            <button id="newSetButton" class="secondary-button">＋ 新規作成</button>
         </div>
 
         <div id="setList"></div>
@@ -479,7 +527,7 @@ footer a:hover {
                     <input id="rangeEnd" type="number" min="1" value="1">
                 </div>
             </div>
-            <button id="startButton" class="primary-button">問題を開始</button>
+            <button id="startButton" class="primary-button">学習を開始する</button>
         </section>
     </main>
 
@@ -488,13 +536,13 @@ footer a:hover {
         <h2 id="editTitle">問題セットを編集</h2>
 
         <label class="form-label" for="editName">セット名</label>
-        <input id="editName" type="text" placeholder="例：英単語">
+        <input id="editName" type="text" placeholder="例：英単語 / 資格試験">
 
         <label class="form-label" for="problemInput">問題と答え</label>
         <textarea id="problemInput" placeholder="apple / りんご&#10;obtain / 得る&#10;velocity / 速度"></textarea>
 
         <div class="format-help">
-            1行につき1問。<br>
+            💡 1行につき1問。<br>
             「問題 / 答え」の形式で入力してください。
         </div>
 
@@ -506,9 +554,14 @@ footer a:hover {
 
     <!-- 問題画面 -->
     <section id="quizScreen" class="hidden">
-        <div class="quiz-top">
-            <span id="quizSetName"></span>
-            <span id="progress"></span>
+        <div class="quiz-header">
+            <div class="quiz-top">
+                <span id="quizSetName"></span>
+                <span id="progress"></span>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progressBar" class="progress-bar-fill"></div>
+            </div>
         </div>
 
         <div class="card-container">
@@ -529,22 +582,22 @@ footer a:hover {
 
     <!-- 答え画面 -->
     <section id="answerScreen" class="hidden">
-        <div class="answer-label">Answer</div>
+        <div class="answer-badge">ANSWER</div>
 
         <div class="card-container">
             <div id="answer"></div>
         </div>
 
         <div class="answer-next">
-            画面をタップ または 何らかのキーを押して次へ
+            タップ または キー入力で次の問題へ
         </div>
     </section>
 
     <!-- 完了画面 -->
     <section id="completeScreen" class="screen hidden">
-        <h2>🎉 完了！</h2>
-        <p>この範囲の問題をすべて「わかる」にしました。</p>
-        <button id="backButton" class="primary-button">問題セットへ戻る</button>
+        <h2>🎉 Complete!</h2>
+        <p>指定した範囲の問題をすべてマスターしました。</p>
+        <button id="backButton" class="primary-button">問題セット一覧へ戻る</button>
     </section>
 
     <footer>
@@ -556,10 +609,10 @@ footer a:hover {
 "use strict";
 
 /* ==================================================
-   定数・DOM要素
+   定数・DOM
 ================================================== */
-const STORAGE_KEY = "problem-repeater-sets-v1";
-const SELECTED_SET_KEY = "problem-repeater-selected-set-v1";
+const STORAGE_KEY = "ellis-problem-sets-v1";
+const SELECTED_SET_KEY = "ellis-selected-set-v1";
 
 const mainScreen = document.getElementById("mainScreen");
 const editScreen = document.getElementById("editScreen");
@@ -584,6 +637,7 @@ const saveEditButton = document.getElementById("saveEditButton");
 
 const quizSetName = document.getElementById("quizSetName");
 const progress = document.getElementById("progress");
+const progressBar = document.getElementById("progressBar");
 const question = document.getElementById("question");
 const answer = document.getElementById("answer");
 const knowButton = document.getElementById("knowButton");
@@ -598,10 +652,11 @@ let selectedSetName = null;
 let editingSetName = null;
 
 let quizProblems = [];
+let quizTotalCount = 0;
 let quizIndex = 0;
 
 /* ==================================================
-   初期化 & データ保存
+   初期化
 ================================================== */
 loadData();
 renderSetList();
@@ -618,7 +673,7 @@ function loadData() {
                 problemSets = parsed;
             }
         } catch (error) {
-            console.error("問題セットの読み込みに失敗しました。", error);
+            console.error("データの読み込みに失敗しました。", error);
             problemSets = {};
         }
     }
@@ -652,7 +707,7 @@ function showScreen(screen) {
 }
 
 /* ==================================================
-   リスト表示・セット選択
+   リスト表示 & 選択
 ================================================== */
 function renderSetList() {
     setList.innerHTML = "";
@@ -660,7 +715,7 @@ function renderSetList() {
 
     if (names.length === 0) {
         const emptyMessage = document.createElement("p");
-        emptyMessage.textContent = "問題セットがありません。新規作成してください。";
+        emptyMessage.textContent = "問題セットがありません。「＋ 新規作成」から問題を追加してください。";
         emptyMessage.style.color = "#64748b";
         setList.appendChild(emptyMessage);
         selectedPanel.classList.add("hidden");
@@ -737,7 +792,7 @@ function openEditor(name = null) {
     editingSetName = name;
 
     if (name === null) {
-        editTitle.textContent = "新しい問題セット";
+        editTitle.textContent = "新規問題セット";
         editName.value = "";
         problemInput.value = "";
     } else {
@@ -782,7 +837,7 @@ function saveEditor() {
     }
 
     if (problems.length === 0) {
-        alert("問題データが正しくありません。\n「問題 / 答え」の形式で入力してください。");
+        alert("「問題 / 答え」の形式で有効な問題を入力してください。");
         return;
     }
 
@@ -835,6 +890,7 @@ function startQuiz() {
     }
 
     quizProblems = problemSets[selectedSetName].slice(start - 1, end).map(item => ({ ...item }));
+    quizTotalCount = quizProblems.length;
     shuffle(quizProblems);
     quizIndex = 0;
     quizSetName.textContent = selectedSetName;
@@ -855,7 +911,11 @@ function showQuestion() {
 
     const current = quizProblems[quizIndex];
     question.textContent = current.question;
-    progress.textContent = `${quizIndex + 1} / ${quizProblems.length}`;
+    progress.textContent = `残り ${quizProblems.length} 問`;
+    
+    // プログレスバー計算
+    const progressPercent = ((quizTotalCount - quizProblems.length) / quizTotalCount) * 100;
+    progressBar.style.width = `${progressPercent}%`;
 
     showScreen(quizScreen);
 }
@@ -907,9 +967,9 @@ unknownButton.addEventListener("click", markUnknown);
 answerScreen.addEventListener("click", showQuestion);
 backButton.addEventListener("click", () => showScreen(mainScreen));
 
-// キーボード操作の集約・正規化
+// キーボードナビゲーション
 document.addEventListener("keydown", function(event) {
-    // 入力フォーム操作中はショートカットを無効化
+    // フォーム入力中のショートカット無効化
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
         return;
     }
