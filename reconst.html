@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eris</title>
+    <style>
+        body{
+            background-color: #000;
+        }
+        #searching{
+            width: 90vw;
+            height: 200px;
+            background-color: #333;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        #box{
+            color: #333;
+            width: 90%;
+            height: 20%;
+            border: solid 1px #ddd;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="searching">
+        <input id="box" type="text">
+    </div>
+    <div id="wordsList">
+        <p>Searched Words List</p>
+    </div>
+    <script>
+        /*connect HTML to JS*/
+        const box = document.getElemrntById("box");
+        const wordsList = document.getElemrntById("wordsList");
+
+        /*history*/
+        let history = JSON.parse(localStorage.wordsHistory) || [];
+
+        function save(){
+            localStorage.setItem("wordsHistory",JSON.stringify(history));
+        }
+
+        /*function*/
+        function createURLs(word){
+            return{
+                weblio:"https://ejje.weblio.jp/content/" + encodeURIcomponent(word),
+                englishbattle:"https://english-battle.com/word/" + encodeURIcomponent(word)
+            }
+        }
+        function displayHistory(){
+            wordsList.innerHMTL = "";
+            history.forEach(function(item,index){
+                const li = document.createElement("li");
+                li.className = "";
+                li.innerHTML = `
+                <h2>${item.word}</h2>
+                <a href="${item.weblio}" target="_self">weblio</a>
+                <a href="${item.englishbattle}" target="_self">EnglishBattle</a>
+                <button class="delete">delete</button>
+                <button class="edit">edit</button>
+                <div id="memo"></div>   
+                `;
+                wordList.appendChild(li);
+            });
+        }
+        /*system*/
+        wordsList.addEventListener("click", function(event){
+            const target = event.target;
+
+            if(target.classList.contains("delete")){
+                const index =Number(target.dataset.index);
+                const word = history[index].word;
+                history.splice(index,1);
+                save();
+                displayHistory();
+                return;
+            }
+        });
+</script>
+</body>
+</html>

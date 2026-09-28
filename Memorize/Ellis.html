@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>Problem Repeater</title>
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+
+    margin: 0;
+
+    background: #f5f5f5;
+
+    color: #222;
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+
+button,
+textarea,
+input {
+
+    font: inherit;
+}
+
+
+button {
+
+    cursor: pointer;
+}
+
+
+#app {
+
+    max-width: 700px;
+
+    min-height: 100vh;
+
+    margin: auto;
+
+    background: white;
+}
+
+
+/* =================================
+   Header
+================================= */
+
+header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 16px 20px;
+
+    border-bottom: 1px solid #ddd;
+}
+
+
+header h1 {
+
+    margin: 0;
+
+    font-size: 20px;
+}
+
+
+#editButton {
+
+    padding: 8px 14px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    background: white;
+}
+
+
+/* =================================
+   Main
+================================= */
+
+#mainScreen {
+
+    padding: 25px 20px;
+}
+
+
+/* =================================
+   Problem Sets
+================================= */
+
+.set-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 12px;
+}
+
+
+.set-header h2 {
+
+    margin: 0;
+
+    font-size: 18px;
+}
+
+
+#newSetButton {
+
+    padding: 8px 12px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    background: white;
+}
+
+
+#setList {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+
+.set-item {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 14px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    background: white;
+}
+
+
+.set-item.selected {
+
+    border: 2px solid #222;
+}
+
+
+.set-info {
+
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.set-name {
+
+    font-weight: 600;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.set-count {
+
+    margin-top: 4px;
+
+    color: #777;
+
+    font-size: 13px;
+}
+
+
+.set-actions {
+
+    display: flex;
+
+    gap: 6px;
+
+    margin-left: 10px;
+}
+
+
+.set-actions button {
+
+    padding: 7px 10px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 7px;
+
+    background: white;
+}
+
+
+.delete-set {
+
+    color: #c33;
+}
+
+
+/* =================================
+   Selected Set
+================================= */
+
+.selected-set {
+
+    margin-top: 30px;
+
+    padding-top: 25px;
+
+    border-top: 1px solid #ddd;
+}
+
+
+.selected-set-name {
+
+    font-size: 22px;
+
+    font-weight: 600;
+}
+
+
+.selected-set-count {
+
+    margin-top: 5px;
+
+    color: #777;
+}
+
+
+/* =================================
+   Range
+================================= */
+
+.range-box {
+
+    margin-top: 25px;
+}
+
+
+.range-box input {
+
+    width: 80px;
+
+    padding: 8px;
+
+    text-align: center;
+
+    border: 1px solid #ccc;
+
+    border-radius: 6px;
+}
+
+
+/* =================================
+   Start
+================================= */
+
+#startButton {
+
+    width: 100%;
+
+    margin-top: 25px;
+
+    padding: 15px;
+
+    border: none;
+
+    border-radius: 9px;
+
+    background: #222;
+
+    color: white;
+}
+
+
+/* =================================
+   Edit Screen
+================================= */
+
+#editScreen {
+
+    display: none;
+
+    padding: 25px 20px;
+}
+
+
+#editScreen h2 {
+
+    margin-top: 0;
+}
+
+
+#editName {
+
+    width: 100%;
+
+    padding: 12px;
+
+    margin-bottom: 15px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+}
+
+
+#dataInput {
+
+    width: 100%;
+
+    min-height: 400px;
+
+    padding: 15px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 10px;
+
+    resize: vertical;
+
+    line-height: 1.7;
+}
+
+
+.format-help {
+
+    margin-top: 15px;
+
+    padding: 15px;
+
+    background: #f5f5f5;
+
+    border-radius: 10px;
+
+    font-size: 14px;
+
+    line-height: 1.7;
+}
+
+
+.edit-buttons {
+
+    display: flex;
+
+    gap: 10px;
+
+    margin-top: 15px;
+}
+
+
+.edit-buttons button {
+
+    flex: 1;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 8px;
+}
+
+
+#saveButton {
+
+    background: #222;
+
+    color: white;
+}
+
+
+#cancelButton {
+
+    background: #eee;
+}
+
+
+/* =================================
+   Quiz
+================================= */
+
+#quizScreen {
+
+    display: none;
+
+    min-height: calc(100vh - 65px);
+
+    padding: 25px 20px;
+}
+
+
+.progress {
+
+    text-align: center;
+
+    color: #777;
+
+    margin-bottom: 35px;
+}
+
+
+.question {
+
+    min-height: 220px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 20px;
+
+    text-align: center;
+
+    font-size: 28px;
+
+    font-weight: 600;
+}
+
+
+.answer-buttons {
+
+    display: flex;
+
+    gap: 12px;
+
+    margin-top: 30px;
+}
+
+
+.answer-buttons button {
+
+    flex: 1;
+
+    padding: 16px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    color: white;
+}
+
+
+#knowButton {
+
+    background: #16834b;
+}
+
+
+#unknownButton {
+
+    background: #c43d3d;
+}
+
+
+/* =================================
+   Answer
+================================= */
+
+#answerScreen {
+
+    display: none;
+
+    min-height: calc(100vh - 65px);
+
+    padding: 25px 20px;
+}
+
+
+.answer {
+
+    min-height: 350px;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    padding: 30px;
+
+    text-align: center;
+
+    font-size: 28px;
+}
+
+
+.next-hint {
+
+    text-align: center;
+
+    color: #777;
+
+    font-size: 14px;
+}
+
+
+/* =================================
+   Complete
+================================= */
+
+#completeScreen {
+
+    display: none;
+
+    padding: 80px 20px;
+
+    text-align: center;
+}
+
+
+#completeScreen h2 {
+
+    font-size: 28px;
+}
+
+
+#restartButton {
+
+    margin-top: 30px;
+
+    padding: 14px 30px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #222;
+
+    color: white;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div id="app">
+
+
+<header>
+
+    <h1>Problem Repeater</h1>
+
+    <button id="editButton">
+        Edit
+    </button>
+
+</header>
+
+
+<!-- =================================
+     Main
+================================= -->
+
+<section id="mainScreen">
+
+
+    <div class="set-header">
+
+        <h2>
+            問題セット
+        </h2>
+
+        <button id="newSetButton">
+            ＋ 新規
+        </button>
+
+    </div>
+
+
+    <div id="setList"></div>
+
+
+    <div
+        id="selectedSet"
+        class="selected-set"
+        style="display:none;"
+    >
+
+        <div
+            id="selectedSetName"
+            class="selected-set-name"
+        >
+        </div>
+
+
+        <div
+            id="selectedSetCount"
+            class="selected-set-count"
+        >
+        </div>
+
+
+        <div class="range-box">
+
+            <strong>
+                問題範囲
+            </strong>
+
+            <br><br>
+
+            <input
+                id="rangeStart"
+                type="number"
+                min="1"
+                value="1"
+            >
+
+            ～
+
+            <input
+                id="rangeEnd"
+                type="number"
+                min="1"
+                value="1"
+            >
+
+        </div>
+
+
+        <button id="startButton">
+            問題を開始
+        </button>
+
+    </div>
+
+
+</section>
+
+
+<!-- =================================
+     Edit
+================================= -->
+
+<section id="editScreen">
+
+
+    <h2>
+        問題セットを編集
+    </h2>
+
+
+    <input
+        id="editName"
+        type="text"
+        placeholder="問題セット名"
+    >
+
+
+    <textarea
+        id="dataInput"
+        placeholder="問題 / 答え
+
+apple / りんご
+book / 本
+computer / コンピューター"
+    ></textarea>
+
+
+    <div class="format-help">
+
+        <strong>
+            入力形式
+        </strong>
+
+        <br><br>
+
+        1行につき1問。
+
+        <br><br>
+
+        <code>
+            問題 / 答え
+        </code>
+
+        <br><br>
+
+        例：
+
+        <br>
+
+        <code>
+            apple / りんご
+        </code>
+
+        <br>
+
+        <code>
+            abandon / 捨てる、放棄する
+        </code>
+
+        <br>
+
+        <code>
+            obtain / 得る
+        </code>
+
+    </div>
+
+
+    <div class="edit-buttons">
+
+        <button id="cancelButton">
+            キャンセル
+        </button>
+
+        <button id="saveButton">
+            保存
+        </button>
+
+    </div>
+
+
+</section>
+
+
+<!-- =================================
+     Quiz
+================================= -->
+
+<section id="quizScreen">
+
+
+    <div
+        class="progress"
+        id="progress"
+    >
+    </div>
+
+
+    <div
+        class="question"
+        id="question"
+    >
+    </div>
+
+
+    <div class="answer-buttons">
+
+        <button id="knowButton">
+            わかる
+        </button>
+
+        <button id="unknownButton">
+            わからない
+        </button>
+
+    </div>
+
+
+</section>
+
+
+<!-- =================================
+     Answer
+================================= -->
+
+<section id="answerScreen">
+
+
+    <div
+        class="answer"
+        id="answer"
+    >
+    </div>
+
+
+    <div class="next-hint">
+
+        画面のどこでもタップして次の問題
+
+    </div>
+
+
+</section>
+
+
+<!-- =================================
+     Complete
+================================= -->
+
+<section id="completeScreen">
+
+
+    <h2>
+        全問終了
+    </h2>
+
+
+    <p>
+        すべて「わかる」になりました。
+    </p>
+
+
+    <button id="restartButton">
+        もう一度
+    </button>
+
+
+</section>
+
+
+</div>
+
+
+<script>
+
+/* ==================================================
+   Storage
+================================================== */
+
+const STORAGE_KEY =
+    "problem-repeater-sets";
+
+
+/*
+    保存データの形式
+
+    {
+        "英単語": [
+            {
+                question: "apple",
+                answer: "りんご"
+            }
+        ],
+
+        "物理公式": [
+            {
+                question: "F = ?",
+                answer: "ma"
+            }
+        ]
+    }
+*/
+
+
+let problemSets = {};
+
+let selectedSetName = null;
+
+
+/* ==================================================
+   学習用データ
+================================================== */
+
+let currentProblems = [];
+
+let currentIndex = 0;
+
+let currentProblem = null;
+
+
+/* ==================================================
+   HTML
+================================================== */
+
+const mainScreen =
+    document.getElementById("mainScreen");
+
+const editScreen =
+    document.getElementById("editScreen");
+
+const quizScreen =
+    document.getElementById("quizScreen");
+
+const answerScreen =
+    document.getElementById("answerScreen");
+
+const completeScreen =
+    document.getElementById("completeScreen");
+
+
+const setList =
+    document.getElementById("setList");
+
+const selectedSet =
+    document.getElementById("selectedSet");
+
+const selectedSetName =
+    document.getElementById("selectedSetName");
+
+const selectedSetCount =
+    document.getElementById("selectedSetCount");
+
+
+const editName =
+    document.getElementById("editName");
+
+const dataInput =
+    document.getElementById("dataInput");
+
+
+const rangeStart =
+    document.getElementById("rangeStart");
+
+const rangeEnd =
+    document.getElementById("rangeEnd");
+
+
+const progress =
+    document.getElementById("progress");
+
+const question =
+    document.getElementById("question");
+
+const answer =
+    document.getElementById("answer");
+
+
+/* ==================================================
+   Screen
+================================================== */
+
+function showScreen(screen) {
+
+    mainScreen.style.display = "none";
+
+    editScreen.style.display = "none";
+
+    quizScreen.style.display = "none";
+
+    answerScreen.style.display = "none";
+
+    completeScreen.style.display = "none";
+
+
+    screen.style.display = "block";
+}
+
+
+/* ==================================================
+   Save
+================================================== */
+
+function saveAllSets() {
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(problemSets)
+    );
+}
+
+
+/* ==================================================
+   Load
+================================================== */
+
+function loadAllSets() {
+
+    const saved =
+        localStorage.getItem(STORAGE_KEY);
+
+
+    if (!saved) {
+
+        /*
+         * 初回データ
+         */
+
+        problemSets = {
+
+            "英単語": [
+
+                {
+                    question: "apple",
+                    answer: "りんご"
+                },
+
+                {
+                    question: "book",
+                    answer: "本"
+                },
+
+                {
+                    question: "computer",
+                    answer: "コンピューター"
+                }
+
+            ]
+
+        };
+
+
+        saveAllSets();
+
+    } else {
+
+        try {
+
+            problemSets =
+                JSON.parse(saved);
+
+
+            if (
+                typeof problemSets !== "object" ||
+                problemSets === null ||
+                Array.isArray(problemSets)
+            ) {
+
+                problemSets = {};
+
+            }
+
+        } catch {
+
+            problemSets = {};
+
+        }
+
+    }
+
+
+    renderSetList();
+
+}
+
+
+/* ==================================================
+   問題セット一覧
+================================================== */
+
+function renderSetList() {
+
+    setList.innerHTML = "";
+
+
+    const names =
+        Object.keys(problemSets);
+
+
+    if (names.length === 0) {
+
+        setList.innerHTML =
+            `
+            <div style="color:#777;">
+                問題セットがありません。
+            </div>
+            `;
+
+        selectedSet.style.display = "none";
+
+        return;
+    }
+
+
+    names.forEach(name => {
+
+        const item =
+            document.createElement("div");
+
+
+        item.className =
+            "set-item";
+
+
+        if (name === selectedSetNameValue()) {
+
+            item.classList.add("selected");
+
+        }
+
+
+        const info =
+            document.createElement("div");
+
+
+        info.className =
+            "set-info";
+
+
+        const title =
+            document.createElement("div");
+
+
+        title.className =
+            "set-name";
+
+
+        title.textContent =
+            name;
+
+
+        const count =
+            document.createElement("div");
+
+
+        count.className =
+            "set-count";
+
+
+        count.textContent =
+            `${problemSets[name].length}問`;
+
+
+        info.appendChild(title);
+
+        info.appendChild(count);
+
+
+        const actions =
+            document.createElement("div");
+
+
+        actions.className =
+            "set-actions";
+
+
+        const selectButton =
+            document.createElement("button");
+
+
+        selectButton.textContent =
+            "選択";
+
+
+        selectButton.addEventListener(
+            "click",
+            () => {
+
+                selectSet(name);
+
+            }
+        );
+
+
+        const deleteButton =
+            document.createElement("button");
+
+
+        deleteButton.textContent =
+            "削除";
+
+
+        deleteButton.className =
+            "delete-set";
+
+
+        deleteButton.addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+                deleteSet(name);
+
+            }
+        );
+
+
+        actions.appendChild(selectButton);
+
+        actions.appendChild(deleteButton);
+
+
+        item.appendChild(info);
+
+        item.appendChild(actions);
+
+
+        setList.appendChild(item);
+
+    });
+
+
+    /*
+     * 選択状態の表示
+     */
+
+    if (
+        selectedSetName &&
+        problemSets[selectedSetName]
+    ) {
+
+        selectedSet.style.display =
+            "block";
+
+
+        selectedSetName.textContent =
+            selectedSetName;
+
+
+        selectedSetCount.textContent =
+            `${problemSets[selectedSetName].length}問`;
+
+
+        rangeStart.value = 1;
+
+        rangeEnd.value =
+            problemSets[selectedSetName].length;
+
+    } else {
+
+        selectedSet.style.display =
+            "none";
+
+    }
+
+}
+
+
+/*
+ * 変数名とDOMの名前が衝突しないようにするための関数
+ */
+
+function selectedSetNameValue() {
+
+    return selectedSetName;
+}
+
+
+/* ==================================================
+   Set Select
+================================================== */
+
+function selectSet(name) {
+
+    selectedSetName =
+        name;
+
+
+    renderSetList();
+
+}
+
+
+/* ==================================================
+   New Set
+================================================== */
+
+document
+    .getElementById("newSetButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            selectedSetName = null;
+
+            editName.value = "";
+
+            dataInput.value = "";
+
+            showScreen(editScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Edit
+================================================== */
+
+document
+    .getElementById("editButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (!selectedSetName) {
+
+                /*
+                 * セットが選択されていない場合は
+                 * 新規作成
+                 */
+
+                editName.value = "";
+
+                dataInput.value = "";
+
+            } else {
+
+                editName.value =
+                    selectedSetName;
+
+
+                dataInput.value =
+                    problemsToText(
+                        problemSets[selectedSetName]
+                    );
+
+            }
+
+
+            showScreen(editScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Parse
+================================================== */
+
+function parseText(text) {
+
+    const lines =
+        text.split(/\r?\n/);
+
+
+    const result = [];
+
+
+    for (const line of lines) {
+
+        const trimmed =
+            line.trim();
+
+
+        if (!trimmed) {
+            continue;
+        }
+
+
+        const separator =
+            trimmed.indexOf("/");
+
+
+        if (separator === -1) {
+            continue;
+        }
+
+
+        const q =
+            trimmed
+                .slice(0, separator)
+                .trim();
+
+
+        const a =
+            trimmed
+                .slice(separator + 1)
+                .trim();
+
+
+        if (!q || !a) {
+            continue;
+        }
+
+
+        result.push({
+
+            question: q,
+
+            answer: a
+
+        });
+
+    }
+
+
+    return result;
+}
+
+
+/* ==================================================
+   To Text
+================================================== */
+
+function problemsToText(problems) {
+
+    return problems
+        .map(problem => {
+
+            return (
+                problem.question +
+                " / " +
+                problem.answer
+            );
+
+        })
+        .join("\n");
+}
+
+
+/* ==================================================
+   Save Set
+================================================== */
+
+document
+    .getElementById("saveButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            const name =
+                editName.value.trim();
+
+
+            if (!name) {
+
+                alert(
+                    "問題セット名を入力してください。"
+                );
+
+                return;
+            }
+
+
+            const parsed =
+                parseText(dataInput.value);
+
+
+            if (parsed.length === 0) {
+
+                alert(
+                    "問題を1問以上入力してください。"
+                );
+
+                return;
+            }
+
+
+            /*
+             * 名前変更の場合
+             */
+
+            if (
+                selectedSetName &&
+                selectedSetName !== name
+            ) {
+
+                delete problemSets[
+                    selectedSetName
+                ];
+
+            }
+
+
+            /*
+             * 保存
+             */
+
+            problemSets[name] =
+                parsed;
+
+
+            /*
+             * 現在のセットを変更
+             */
+
+            selectedSetName =
+                name;
+
+
+            /*
+             * localStorage
+             */
+
+            saveAllSets();
+
+
+            /*
+             * 一覧を更新
+             */
+
+            renderSetList();
+
+
+            /*
+             * メイン画面
+             */
+
+            showScreen(mainScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Cancel
+================================================== */
+
+document
+    .getElementById("cancelButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            showScreen(mainScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Delete
+================================================== */
+
+function deleteSet(name) {
+
+    const result =
+        confirm(
+            `「${name}」を削除しますか？`
+        );
+
+
+    if (!result) {
+        return;
+    }
+
+
+    delete problemSets[name];
+
+
+    if (selectedSetName === name) {
+
+        selectedSetName = null;
+
+    }
+
+
+    saveAllSets();
+
+    renderSetList();
+
+}
+
+
+/* ==================================================
+   Start
+================================================== */
+
+document
+    .getElementById("startButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            if (!selectedSetName) {
+
+                return;
+
+            }
+
+
+            const problems =
+                problemSets[selectedSetName];
+
+
+            let start =
+                Number(rangeStart.value);
+
+
+            let end =
+                Number(rangeEnd.value);
+
+
+            if (start < 1) {
+
+                start = 1;
+
+            }
+
+
+            if (end > problems.length) {
+
+                end = problems.length;
+
+            }
+
+
+            if (start > end) {
+
+                alert(
+                    "問題範囲が正しくありません。"
+                );
+
+                return;
+
+            }
+
+
+            /*
+             * 学習用コピー
+             */
+
+            currentProblems =
+                problems
+                    .slice(start - 1, end)
+                    .map(problem => ({
+                        ...problem
+                    }));
+
+
+            shuffle(currentProblems);
+
+
+            currentIndex = 0;
+
+
+            showNextQuestion();
+
+        }
+    );
+
+
+/* ==================================================
+   Shuffle
+================================================== */
+
+function shuffle(array) {
+
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+
+        const j =
+            Math.floor(
+                Math.random() * (i + 1)
+            );
+
+
+        [
+            array[i],
+            array[j]
+        ] =
+        [
+            array[j],
+            array[i]
+        ];
+
+    }
+
+}
+
+
+/* ==================================================
+   Next Question
+================================================== */
+
+function showNextQuestion() {
+
+    /*
+     * 全問終了
+     */
+
+    if (
+        currentProblems.length === 0
+    ) {
+
+        showScreen(
+            completeScreen
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * 一周したら再シャッフル
+     */
+
+    if (
+        currentIndex >=
+        currentProblems.length
+    ) {
+
+        currentIndex = 0;
+
+        shuffle(currentProblems);
+
+    }
+
+
+    currentProblem =
+        currentProblems[currentIndex];
+
+
+    question.textContent =
+        currentProblem.question;
+
+
+    progress.textContent =
+        `${currentIndex + 1} / ${currentProblems.length}`;
+
+
+    showScreen(quizScreen);
+
+}
+
+
+/* ==================================================
+   Know
+================================================== */
+
+document
+    .getElementById("knowButton")
+    .addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+
+            /*
+             * 「わかる」
+             * → 今回の学習リストから削除
+             */
+
+            currentProblems.splice(
+                currentIndex,
+                1
+            );
+
+
+            answer.textContent =
+                currentProblem.answer;
+
+
+            showScreen(answerScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Unknown
+================================================== */
+
+document
+    .getElementById("unknownButton")
+    .addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+
+            /*
+             * 「わからない」
+             * → リストに残す
+             */
+
+            currentIndex++;
+
+
+            answer.textContent =
+                currentProblem.answer;
+
+
+            showScreen(answerScreen);
+
+        }
+    );
+
+
+/* ==================================================
+   Answer → Next
+================================================== */
+
+answerScreen.addEventListener(
+    "click",
+    () => {
+
+        showNextQuestion();
+
+    }
+);
+
+
+/* ==================================================
+   Restart
+================================================== */
+
+document
+    .getElementById("restartButton")
+    .addEventListener(
+        "click",
+        () => {
+
+            const problems =
+                problemSets[selectedSetName];
+
+
+            const start =
+                Number(rangeStart.value);
+
+
+            const end =
+                Math.min(
+                    Number(rangeEnd.value),
+                    problems.length
+                );
+
+
+            currentProblems =
+                problems
+                    .slice(start - 1, end)
+                    .map(problem => ({
+                        ...problem
+                    }));
+
+
+            shuffle(currentProblems);
+
+
+            currentIndex = 0;
+
+
+            showNextQuestion();
+
+        }
+    );
+
+
+/* ==================================================
+   初期化
+================================================== */
+
+loadAllSets();
+
+</script>
+
+</body>
+
+</html>
