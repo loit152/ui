@@ -1546,11 +1546,19 @@ unknownButton.addEventListener(
     答え画面はどこをタップしても次へ。
 */
 
-answerScreen.addEventListener(
-    "click",
-    nextQuestion
-);
-
+answerScreen.addEventListener("click",nextQuestion);
+/*keybord*/
+document.addEventListener(
+    "keydown", function(event){
+    if(event.key === "ArrowRight"){
+        markKnown()
+    }else if(event.key==="ArrowLeft"){
+        markUnknown()
+    }else if(answerScrean.classList.conatains("hidden")){
+        nextQuestion()
+    }
+    
+});
 
 /* 完了 → 問題セットへ */
 
