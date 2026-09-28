@@ -1547,7 +1547,41 @@ unknownButton.addEventListener(
 */
 
 answerScreen.addEventListener("click",nextQuestion);
-/*keybord*/
+/* =========================
+   キーボード操作
+========================= */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        /*
+            答え画面なら
+            どのキーを押しても次の問題へ
+        */
+
+        if (!answerScreen.classList.contains("hidden")) {
+
+            nextQuestion();
+
+            return;
+        }
+
+
+        /*
+            問題画面での操作
+        */
+
+        if (event.key === "ArrowRight") {
+
+            markKnown();
+
+        } else if (event.key === "ArrowLeft") {
+
+            markUnknown();
+        }
+    }
+);
 document.addEventListener(
     "keydown", function(event){
     if(event.key === "ArrowRight"){
@@ -1559,7 +1593,41 @@ document.addEventListener(
     }
     
 });
+/* =========================
+   キーボード操作
+========================= */
 
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        /*
+            答え画面なら
+            どのキーを押しても次の問題へ
+        */
+
+        if (!answerScreen.classList.contains("hidden")) {
+
+            nextQuestion();
+
+            return;
+        }
+
+
+        /*
+            問題画面での操作
+        */
+
+        if (event.key === "ArrowRight") {
+
+            markKnown();
+
+        } else if (event.key === "ArrowLeft") {
+
+            markUnknown();
+        }
+    }
+);
 /* 完了 → 問題セットへ */
 
 backButton.addEventListener(
