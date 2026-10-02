@@ -1,992 +1,328 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ellis - Problem Repeater</title>
-<style>
-:root {
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --bg-color: #f8fafc;
-    --card-bg: #ffffff;
-    --text-color: #0f172a;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --danger: #ef4444;
-    --danger-bg: #fef2f2;
-    --success: #10b981;
-    --success-hover: #059669;
-    --radius: 12px;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    background: var(--bg-color);
-    color: var(--text-color);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    line-height: 1.5;
-}
-
-button, input, textarea {
-    font: inherit;
-}
-
-button {
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-#app {
-    max-width: 600px;
-    margin: 0 auto;
-    min-height: 100vh;
-    background: var(--card-bg);
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-}
-
-/* =========================
-   共通パーツ
-========================= */
-
-header {
-    height: 60px;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #fff;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 800;
-    font-size: 1.25rem;
-    color: var(--text-color);
-    letter-spacing: -0.03em;
-}
-
-.brand-icon {
-    width: 28px;
-    height: 28px;
-    background: var(--primary);
-    color: #fff;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 800;
-}
-
-.screen {
-    padding: 24px 20px;
-    flex: 1;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.primary-button {
-    width: 100%;
-    padding: 14px 20px;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--primary);
-    color: white;
-    font-weight: 700;
-    font-size: 1rem;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.25);
-}
-
-.primary-button:hover {
-    background: var(--primary-hover);
-}
-
-.secondary-button {
-    padding: 8px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: white;
-    color: var(--text-color);
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.secondary-button:hover {
-    background: var(--bg-color);
-}
-
-.danger-button {
-    padding: 6px 12px;
-    border: 1px solid #fca5a5;
-    border-radius: 8px;
-    background: var(--danger-bg);
-    color: var(--danger);
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.danger-button:hover {
-    background: #fee2e2;
-}
-
-/* =========================
-   問題セット一覧
-========================= */
-
-.set-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-}
-
-.set-header h2 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-#setList {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.set-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    background: #fff;
-    transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.set-item:hover {
-    border-color: #cbd5e1;
-}
-
-.set-select {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    background: transparent;
-    text-align: left;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.set-select.selected .set-name {
-    color: var(--primary);
-    font-weight: 700;
-}
-
-.set-name {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 1rem;
-    color: var(--text-color);
-}
-
-.set-count {
-    display: block;
-    margin-top: 2px;
-    color: var(--text-muted);
-    font-size: 0.8rem;
-}
-
-.set-action {
-    flex-shrink: 0;
-    padding: 6px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background: #fff;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.set-action:hover {
-    background: var(--bg-color);
-    color: var(--text-color);
-}
-
-/* =========================
-   選択中パネル
-========================= */
-
-#selectedPanel {
-    margin-top: 24px;
-    padding: 20px;
-    border-radius: var(--radius);
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-}
-
-#selectedSetName {
-    margin: 0 0 16px;
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-.range-label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-}
-
-.range-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.range-row input {
-    width: 90px;
-    padding: 8px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-}
-
-#startButton {
-    margin-top: 20px;
-}
-
-/* =========================
-   編集画面
-========================= */
-
-#editScreen h2 {
-    margin-top: 0;
-    font-size: 1.25rem;
-}
-
-.form-label {
-    display: block;
-    margin: 20px 0 8px;
-    font-weight: 700;
-    font-size: 0.875rem;
-}
-
-#editName {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-}
-
-#problemInput {
-    width: 100%;
-    min-height: 240px;
-    resize: vertical;
-    padding: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    line-height: 1.6;
-    font-family: monospace;
-}
-
-.format-help {
-    margin-top: 8px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    background: #f1f5f9;
-    padding: 10px 12px;
-    border-radius: 8px;
-}
-
-.edit-buttons {
-    display: flex;
-    gap: 12px;
-    margin-top: 24px;
-}
-
-.edit-buttons button {
-    flex: 1;
-}
-
-/* =========================
-   クイズ / 解答画面
-========================= */
-
-#quizScreen, #answerScreen {
-    min-height: calc(100vh - 60px);
-    padding: 24px 20px;
-    display: flex;
-    flex-direction: column;
-}
-
-.quiz-header {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.quiz-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    font-weight: 700;
-}
-
-.progress-bar-bg {
-    height: 6px;
-    background: var(--border-color);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    background: var(--primary);
-    width: 0%;
-    transition: width 0.2s ease;
-}
-
-.card-container {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 20px 0;
-    padding: 32px 20px;
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-}
-
-#question, #answer {
-    width: 100%;
-    text-align: center;
-    font-size: 1.75rem;
-    font-weight: 700;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-#answerScreen {
-    cursor: pointer;
-}
-
-.answer-badge {
-    align-self: center;
-    background: #eff6ff;
-    color: var(--primary);
-    font-weight: 800;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding: 4px 12px;
-    border-radius: 20px;
-}
-
-.answer-next {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-    margin-top: auto;
-    padding: 12px;
-    background: var(--bg-color);
-    border-radius: 8px;
-}
-
-.answer-buttons {
-    display: flex;
-    gap: 12px;
-}
-
-.answer-buttons button {
-    flex: 1;
-    padding: 16px;
-    border: none;
-    border-radius: var(--radius);
-    font-weight: 700;
-    font-size: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-#knowButton {
-    background: var(--success);
-    color: white;
-}
-
-#knowButton:hover {
-    background: var(--success-hover);
-}
-
-#unknownButton {
-    background: #f1f5f9;
-    color: var(--text-color);
-}
-
-#unknownButton:hover {
-    background: #e2e8f0;
-}
-
-.key-hint {
-    font-size: 0.75rem;
-    font-weight: 400;
-    opacity: 0.75;
-    margin-top: 2px;
-}
-
-/* =========================
-   完了画面
-========================= */
-
-#completeScreen {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-#completeScreen h2 {
-    font-size: 1.75rem;
-    margin-bottom: 12px;
-}
-
-#completeScreen p {
-    color: var(--text-muted);
-    margin-bottom: 32px;
-}
-
-footer {
-    padding: 16px;
-    text-align: center;
-    border-top: 1px solid var(--border-color);
-    font-size: 0.85rem;
-}
-
-footer a {
-    color: var(--text-muted);
-    text-decoration: none;
-}
-
-footer a:hover {
-    text-decoration: underline;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Problem Repeater</title>
+
+    <link rel="stylesheet" href="./Style.css">
 </head>
 
 <body>
 
-<div id="app">
+<main class="container">
 
-    <!-- ヘッダー -->
-    <header>
-        <div class="brand">
-            <span class="brand-icon">E</span>
-            <span>Ellis</span>
-        </div>
-        <button id="editButton" class="secondary-button">編集</button>
-    </header>
+    <h1>Problem Repeater</h1>
 
-    <!-- メイン画面 -->
-    <main id="mainScreen" class="screen">
-        <div class="set-header">
+
+    <!-- =========================
+         問題セット
+    ========================== -->
+
+    <section class="panel">
+
+        <div class="section-header">
             <h2>問題セット</h2>
-            <button id="newSetButton" class="secondary-button">＋ 新規作成</button>
+
+            <button
+                id="newSetButton"
+                type="button"
+            >
+                ＋ 新規
+            </button>
         </div>
 
-        <div id="setList"></div>
+        <div id="setList" class="set-list"></div>
 
-        <section id="selectedPanel" class="hidden">
-            <h2 id="selectedSetName"></h2>
-            <div>
-                <span class="range-label">出題範囲</span>
-                <div class="range-row">
-                    <input id="rangeStart" type="number" min="1" value="1">
-                    <span>～</span>
-                    <input id="rangeEnd" type="number" min="1" value="1">
-                </div>
-            </div>
-            <button id="startButton" class="primary-button">学習を開始する</button>
-        </section>
-    </main>
-
-    <!-- 編集画面 -->
-    <section id="editScreen" class="screen hidden">
-        <h2 id="editTitle">問題セットを編集</h2>
-
-        <label class="form-label" for="editName">セット名</label>
-        <input id="editName" type="text" placeholder="例：英単語 / 資格試験">
-
-        <label class="form-label" for="problemInput">問題と答え</label>
-        <textarea id="problemInput" placeholder="apple / りんご&#10;obtain / 得る&#10;velocity / 速度"></textarea>
-
-        <div class="format-help">
-            💡 1行につき1問。<br>
-            「問題 / 答え」の形式で入力してください。
-        </div>
-
-        <div class="edit-buttons">
-            <button id="cancelEditButton" class="secondary-button">キャンセル</button>
-            <button id="saveEditButton" class="primary-button">保存</button>
-        </div>
     </section>
 
-    <!-- 問題画面 -->
-    <section id="quizScreen" class="hidden">
-        <div class="quiz-header">
-            <div class="quiz-top">
-                <span id="quizSetName"></span>
-                <span id="progress"></span>
-            </div>
-            <div class="progress-bar-bg">
-                <div id="progressBar" class="progress-bar-fill"></div>
-            </div>
+
+    <!-- =========================
+         選択中のセット
+    ========================== -->
+
+    <section
+        id="selectedPanel"
+        class="panel hidden"
+    >
+
+        <h2 id="selectedSetName"></h2>
+
+        <div class="range">
+
+            <input
+                id="rangeStart"
+                type="number"
+                min="1"
+                value="1"
+            >
+
+            <span>〜</span>
+
+            <input
+                id="rangeEnd"
+                type="number"
+                min="1"
+                value="1"
+            >
+
+            <button
+                id="startButton"
+                type="button"
+            >
+                問題を開始
+            </button>
+
         </div>
 
-        <div class="card-container">
-            <div id="question"></div>
+    </section>
+
+
+    <!-- =========================
+         暗記度
+    ========================== -->
+
+    <section
+        id="masteryPanel"
+        class="panel hidden"
+    >
+
+        <h2>暗記度</h2>
+
+        <div class="average">
+            平均暗記度：
+            <strong id="averageMastery">0%</strong>
         </div>
+
+        <div
+            id="masteryList"
+            class="mastery-list"
+        ></div>
+
+    </section>
+
+
+    <!-- =========================
+         編集画面
+    ========================== -->
+
+    <section
+        id="editScreen"
+        class="panel hidden"
+    >
+
+        <h2 id="editTitle">
+            問題セットを編集
+        </h2>
+
+
+        <label
+            class="form-label"
+            for="editName"
+        >
+            セット名
+        </label>
+
+        <input
+            id="editName"
+            type="text"
+            placeholder="例：英単語"
+        >
+
+
+        <label
+            class="form-label"
+            for="problemInput"
+        >
+            問題と答え
+        </label>
+
+        <textarea
+            id="problemInput"
+            placeholder="apple / りんご
+obtain / 得る
+velocity / 速度"
+        ></textarea>
+
+        <p class="format-help">
+            1行につき1問。<br>
+            「問題 / 答え」の形式で入力してください。
+        </p>
+
+
+        <div class="buttons">
+
+            <button
+                id="cancelEditButton"
+                type="button"
+            >
+                キャンセル
+            </button>
+
+            <button
+                id="saveEditButton"
+                type="button"
+            >
+                保存
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         クイズ画面
+    ========================== -->
+
+    <section
+        id="quizScreen"
+        class="panel quiz hidden"
+    >
+
+        <div class="quiz-info">
+
+            <span id="quizSetName"></span>
+
+            <span id="progress"></span>
+
+        </div>
+
+
+        <div
+            id="questionLabel"
+            class="question-label"
+        >
+            問題
+        </div>
+
+
+        <div
+            id="question"
+            class="question"
+        >
+            ---
+        </div>
+
 
         <div class="answer-buttons">
-            <button id="unknownButton">
+
+            <button
+                id="unknownButton"
+                type="button"
+            >
                 わからない
-                <span class="key-hint">[←] キー</span>
             </button>
-            <button id="knowButton">
+
+            <button
+                id="knowButton"
+                type="button"
+            >
                 わかる
-                <span class="key-hint">[→] キー</span>
             </button>
-        </div>
-    </section>
 
-    <!-- 答え画面 -->
-    <section id="answerScreen" class="hidden">
-        <div class="answer-badge">ANSWER</div>
-
-        <div class="card-container">
-            <div id="answer"></div>
         </div>
 
-        <div class="answer-next">
-            タップ または キー入力で次の問題へ
+
+        <p class="hint">
+            ←：わからない　→：わかる
+        </p>
+
+    </section>
+
+
+    <!-- =========================
+         答え画面
+    ========================== -->
+
+    <section
+        id="answerScreen"
+        class="panel answer-screen hidden"
+    >
+
+        <div class="question-label">
+            答え
         </div>
+
+
+        <div
+            id="answer"
+            class="answer"
+        ></div>
+
+
+        <p class="hint">
+            Space またはどこでもタップして次へ
+        </p>
+
     </section>
 
-    <!-- 完了画面 -->
-    <section id="completeScreen" class="screen hidden">
-        <h2>🎉 Complete!</h2>
-        <p>指定した範囲の問題をすべてマスターしました。</p>
-        <button id="backButton" class="primary-button">問題セット一覧へ戻る</button>
+
+    <!-- =========================
+         完了画面
+    ========================== -->
+
+    <section
+        id="completeScreen"
+        class="panel complete hidden"
+    >
+
+        <h2>完了</h2>
+
+        <p>
+            この範囲の問題をすべて
+            「わかる」にしました。
+        </p>
+
+        <button
+            id="backButton"
+            type="button"
+        >
+            問題セットへ戻る
+        </button>
+
     </section>
 
-    <footer>
-        <a href="../senta-kita.html">センター北</a>
-    </footer>
-</div>
 
-<script>
-"use strict";
+    <!-- =========================
+         リセット
+    ========================== -->
 
-/* ==================================================
-   定数・DOM
-================================================== */
-const STORAGE_KEY = "ellis-problem-sets-v1";
-const SELECTED_SET_KEY = "ellis-selected-set-v1";
+    <section
+        id="resetPanel"
+        class="panel hidden"
+    >
 
-const mainScreen = document.getElementById("mainScreen");
-const editScreen = document.getElementById("editScreen");
-const quizScreen = document.getElementById("quizScreen");
-const answerScreen = document.getElementById("answerScreen");
-const completeScreen = document.getElementById("completeScreen");
+        <h2>リセット</h2>
 
-const editButton = document.getElementById("editButton");
-const newSetButton = document.getElementById("newSetButton");
-const setList = document.getElementById("setList");
-const selectedPanel = document.getElementById("selectedPanel");
-const selectedSetNameElement = document.getElementById("selectedSetName");
-const rangeStart = document.getElementById("rangeStart");
-const rangeEnd = document.getElementById("rangeEnd");
-const startButton = document.getElementById("startButton");
+        <div class="buttons">
 
-const editTitle = document.getElementById("editTitle");
-const editName = document.getElementById("editName");
-const problemInput = document.getElementById("problemInput");
-const cancelEditButton = document.getElementById("cancelEditButton");
-const saveEditButton = document.getElementById("saveEditButton");
+            <button
+                id="resetMasteryButton"
+                type="button"
+            >
+                このセットの暗記度をリセット
+            </button>
 
-const quizSetName = document.getElementById("quizSetName");
-const progress = document.getElementById("progress");
-const progressBar = document.getElementById("progressBar");
-const question = document.getElementById("question");
-const answer = document.getElementById("answer");
-const knowButton = document.getElementById("knowButton");
-const unknownButton = document.getElementById("unknownButton");
-const backButton = document.getElementById("backButton");
+            <button
+                id="resetAllButton"
+                type="button"
+            >
+                すべてリセット
+            </button>
 
-/* ==================================================
-   状態管理
-================================================== */
-let problemSets = {};
-let selectedSetName = null;
-let editingSetName = null;
+        </div>
 
-let quizProblems = [];
-let quizTotalCount = 0;
-let quizIndex = 0;
+    </section>
 
-/* ==================================================
-   初期化
-================================================== */
-loadData();
-renderSetList();
-if (selectedSetName) {
-    selectSet(selectedSetName);
-}
+</main>
 
-function loadData() {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-        try {
-            const parsed = JSON.parse(savedData);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                problemSets = parsed;
-            }
-        } catch (error) {
-            console.error("データの読み込みに失敗しました。", error);
-            problemSets = {};
-        }
-    }
 
-    const savedSelected = localStorage.getItem(SELECTED_SET_KEY);
-    if (savedSelected && problemSets[savedSelected]) {
-        selectedSetName = savedSelected;
-    }
-}
+<script src="./Js/app.js"></script>
 
-function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(problemSets));
-    if (selectedSetName) {
-        localStorage.setItem(SELECTED_SET_KEY, selectedSetName);
-    } else {
-        localStorage.removeItem(SELECTED_SET_KEY);
-    }
-}
-
-/* ==================================================
-   画面制御
-================================================== */
-function showScreen(screen) {
-    mainScreen.classList.add("hidden");
-    editScreen.classList.add("hidden");
-    quizScreen.classList.add("hidden");
-    answerScreen.classList.add("hidden");
-    completeScreen.classList.add("hidden");
-
-    screen.classList.remove("hidden");
-}
-
-/* ==================================================
-   リスト表示 & 選択
-================================================== */
-function renderSetList() {
-    setList.innerHTML = "";
-    const names = Object.keys(problemSets);
-
-    if (names.length === 0) {
-        const emptyMessage = document.createElement("p");
-        emptyMessage.textContent = "問題セットがありません。「＋ 新規作成」から問題を追加してください。";
-        emptyMessage.style.color = "#64748b";
-        setList.appendChild(emptyMessage);
-        selectedPanel.classList.add("hidden");
-        return;
-    }
-
-    for (const name of names) {
-        const item = document.createElement("div");
-        item.className = "set-item";
-
-        const select = document.createElement("button");
-        select.className = "set-select";
-        if (name === selectedSetName) select.classList.add("selected");
-
-        const nameElement = document.createElement("span");
-        nameElement.className = "set-name";
-        nameElement.textContent = name;
-
-        const countElement = document.createElement("span");
-        countElement.className = "set-count";
-        countElement.textContent = `${problemSets[name].length}問`;
-
-        select.appendChild(nameElement);
-        select.appendChild(countElement);
-        select.addEventListener("click", () => selectSet(name));
-
-        const edit = document.createElement("button");
-        edit.className = "set-action";
-        edit.textContent = "編集";
-        edit.addEventListener("click", () => openEditor(name));
-
-        const remove = document.createElement("button");
-        remove.className = "danger-button";
-        remove.textContent = "削除";
-        remove.addEventListener("click", () => deleteSet(name));
-
-        item.appendChild(select);
-        item.appendChild(edit);
-        item.appendChild(remove);
-        setList.appendChild(item);
-    }
-
-    updateSelectedPanel();
-}
-
-function selectSet(name) {
-    if (!problemSets[name]) return;
-    selectedSetName = name;
-    saveData();
-    updateSelectedPanel();
-    renderSetList();
-}
-
-function updateSelectedPanel() {
-    if (!selectedSetName || !problemSets[selectedSetName]) {
-        selectedPanel.classList.add("hidden");
-        return;
-    }
-
-    selectedPanel.classList.remove("hidden");
-    selectedSetNameElement.textContent = selectedSetName;
-
-    const count = problemSets[selectedSetName].length;
-    rangeStart.max = count;
-    rangeEnd.max = count;
-    rangeStart.value = 1;
-    rangeEnd.value = count;
-}
-
-/* ==================================================
-   編集画面
-================================================== */
-function openEditor(name = null) {
-    editingSetName = name;
-
-    if (name === null) {
-        editTitle.textContent = "新規問題セット";
-        editName.value = "";
-        problemInput.value = "";
-    } else {
-        editTitle.textContent = "問題セットを編集";
-        editName.value = name;
-        const problems = problemSets[name];
-        problemInput.value = problems.map(item => `${item.question} / ${item.answer}`).join("\n");
-    }
-
-    showScreen(editScreen);
-    editName.focus();
-}
-
-function parseProblems(text) {
-    const lines = text.split(/\r?\n/);
-    const problems = [];
-
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-
-        const separatorIndex = trimmed.indexOf("/");
-        if (separatorIndex === -1) continue;
-
-        const questionText = trimmed.slice(0, separatorIndex).trim();
-        const answerText = trimmed.slice(separatorIndex + 1).trim();
-
-        if (questionText && answerText) {
-            problems.push({ question: questionText, answer: answerText });
-        }
-    }
-    return problems;
-}
-
-function saveEditor() {
-    const name = editName.value.trim();
-    const problems = parseProblems(problemInput.value);
-
-    if (!name) {
-        alert("セット名を入力してください。");
-        return;
-    }
-
-    if (problems.length === 0) {
-        alert("「問題 / 答え」の形式で有効な問題を入力してください。");
-        return;
-    }
-
-    if (name !== editingSetName && problemSets[name]) {
-        alert("同名の問題セットが既に存在します。");
-        return;
-    }
-
-    if (editingSetName !== null && editingSetName !== name) {
-        delete problemSets[editingSetName];
-    }
-
-    problemSets[name] = problems;
-    selectedSetName = name;
-
-    saveData();
-    renderSetList();
-    selectSet(name);
-    showScreen(mainScreen);
-}
-
-function deleteSet(name) {
-    const count = problemSets[name].length;
-    if (!confirm(`「${name}」（${count}問）を削除しますか？`)) return;
-
-    delete problemSets[name];
-
-    if (selectedSetName === name) {
-        const remaining = Object.keys(problemSets);
-        selectedSetName = remaining.length > 0 ? remaining[0] : null;
-    }
-
-    saveData();
-    renderSetList();
-}
-
-/* ==================================================
-   クイズ処理
-================================================== */
-function startQuiz() {
-    if (!selectedSetName || !problemSets[selectedSetName]) return;
-
-    const total = problemSets[selectedSetName].length;
-    let start = Number(rangeStart.value);
-    let end = Number(rangeEnd.value);
-
-    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end > total || start > end) {
-        alert("出題範囲を正しく設定してください。");
-        return;
-    }
-
-    quizProblems = problemSets[selectedSetName].slice(start - 1, end).map(item => ({ ...item }));
-    quizTotalCount = quizProblems.length;
-    shuffle(quizProblems);
-    quizIndex = 0;
-    quizSetName.textContent = selectedSetName;
-
-    showQuestion();
-}
-
-function showQuestion() {
-    if (quizProblems.length === 0) {
-        showScreen(completeScreen);
-        return;
-    }
-
-    if (quizIndex >= quizProblems.length) {
-        quizIndex = 0;
-        shuffle(quizProblems);
-    }
-
-    const current = quizProblems[quizIndex];
-    question.textContent = current.question;
-    progress.textContent = `残り ${quizProblems.length} 問`;
-    
-    // プログレスバー計算
-    const progressPercent = ((quizTotalCount - quizProblems.length) / quizTotalCount) * 100;
-    progressBar.style.width = `${progressPercent}%`;
-
-    showScreen(quizScreen);
-}
-
-function markKnown() {
-    if (!quizProblems[quizIndex]) return;
-    const current = quizProblems[quizIndex];
-    quizProblems.splice(quizIndex, 1);
-    showAnswer(current.answer);
-}
-
-function markUnknown() {
-    if (!quizProblems[quizIndex]) return;
-    const current = quizProblems[quizIndex];
-    quizIndex++;
-    showAnswer(current.answer);
-}
-
-function showAnswer(answerText) {
-    answer.textContent = answerText;
-    showScreen(answerScreen);
-}
-
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
-/* ==================================================
-   イベントリスナー
-================================================== */
-newSetButton.addEventListener("click", () => openEditor());
-
-editButton.addEventListener("click", () => {
-    if (!selectedSetName) {
-        alert("編集する問題セットを選択してください。");
-        return;
-    }
-    openEditor(selectedSetName);
-});
-
-cancelEditButton.addEventListener("click", () => showScreen(mainScreen));
-saveEditButton.addEventListener("click", saveEditor);
-startButton.addEventListener("click", startQuiz);
-knowButton.addEventListener("click", markKnown);
-unknownButton.addEventListener("click", markUnknown);
-answerScreen.addEventListener("click", showQuestion);
-backButton.addEventListener("click", () => showScreen(mainScreen));
-
-// キーボードナビゲーション
-document.addEventListener("keydown", function(event) {
-    // フォーム入力中のショートカット無効化
-    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
-        return;
-    }
-
-    if (!answerScreen.classList.contains("hidden")) {
-        showQuestion();
-        return;
-    }
-
-    if (!quizScreen.classList.contains("hidden")) {
-        if (event.key === "ArrowRight") {
-            markKnown();
-        } else if (event.key === "ArrowLeft") {
-            markUnknown();
-        }
-    }
-});
-</script>
 </body>
 </html>
