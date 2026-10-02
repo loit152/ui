@@ -6,6 +6,7 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
     <title>Ellis</title>
 
     <link rel="stylesheet" href="style.css">
@@ -15,15 +16,13 @@
 
 <main>
 
-    <h1>Ellis</h1>
-
     <!-- =========================
          メイン画面
-    ========================= -->
+    ========================== -->
     <section id="mainScreen">
 
-        <div class="section-header">
-            <h2>問題セット</h2>
+        <header class="section-header">
+            <h1>Ellis</h1>
 
             <button
                 id="newSetButton"
@@ -31,18 +30,27 @@
             >
                 ＋ 新規
             </button>
-        </div>
-
-        <div id="setList"></div>
+        </header>
 
 
-        <!-- 選択中セット -->
+        <!-- 問題セット一覧 -->
+        <section class="panel">
+
+            <h2>問題セット</h2>
+
+            <div id="setList"></div>
+
+        </section>
+
+
+        <!-- 選択中のセット -->
         <section
             id="selectedPanel"
-            class="panel hidden"
+            class="panel"
+            hidden
         >
 
-            <div class="section-header">
+            <header class="section-header">
 
                 <h2 id="selectedSetName"></h2>
 
@@ -53,14 +61,13 @@
                     編集
                 </button>
 
-            </div>
+            </header>
 
 
             <div class="range">
 
                 <label>
                     開始
-
                     <input
                         id="rangeStart"
                         type="number"
@@ -73,7 +80,6 @@
 
                 <label>
                     終了
-
                     <input
                         id="rangeEnd"
                         type="number"
@@ -84,7 +90,6 @@
 
                 <label>
                     問題数
-
                     <input
                         id="questionCount"
                         type="number"
@@ -107,13 +112,14 @@
         </section>
 
 
-        <!-- 暗記度 -->
+        <!-- 習熟度 -->
         <section
             id="masteryPanel"
-            class="panel hidden"
+            class="panel"
+            hidden
         >
 
-            <div class="section-header">
+            <header class="section-header">
 
                 <h2>暗記度</h2>
 
@@ -121,7 +127,7 @@
                     0%
                 </strong>
 
-            </div>
+            </header>
 
             <div id="masteryList"></div>
 
@@ -131,7 +137,8 @@
         <!-- リセット -->
         <section
             id="resetPanel"
-            class="panel hidden"
+            class="panel"
+            hidden
         >
 
             <button
@@ -143,8 +150,8 @@
 
             <button
                 id="resetAllButton"
-                type="button"
                 class="danger-button"
+                type="button"
             >
                 すべて削除
             </button>
@@ -156,15 +163,15 @@
 
     <!-- =========================
          編集画面
-    ========================= -->
+    ========================== -->
     <section
         id="editScreen"
-        class="screen hidden"
+        hidden
     >
 
-        <h2 id="editTitle">
-            問題セットを作成
-        </h2>
+        <h1 id="editTitle">
+            新しい問題セット
+        </h1>
 
 
         <label>
@@ -184,7 +191,7 @@
             <textarea
                 id="problemInput"
                 rows="15"
-                placeholder="campaign * 名詞 / 運動、キャンペーン&#10;recall * 動詞 / ～を思い出す&#10;explore * 動詞 / ～を探検する&#10;pretend * 動詞 / ～のふりをする"
+                placeholder="campaign * 名詞 / 運動、キャンペーン&#10;recall * 動詞 / ～を思い出す&#10;explore * 動詞 / ～を探検する"
             ></textarea>
 
         </label>
@@ -214,19 +221,19 @@
 
     <!-- =========================
          問題画面
-    ========================= -->
+    ========================== -->
     <section
         id="quizScreen"
-        class="screen hidden"
+        hidden
     >
 
-        <div class="quiz-header">
+        <header class="quiz-header">
 
             <span id="quizSetName"></span>
 
             <span id="progress"></span>
 
-        </div>
+        </header>
 
 
         <div class="quiz-card">
@@ -245,6 +252,7 @@
             <div
                 id="questionExplanation"
                 class="question-explanation"
+                hidden
             ></div>
 
 
@@ -268,10 +276,10 @@
 
     <!-- =========================
          答え画面
-    ========================= -->
+    ========================== -->
     <section
         id="answerScreen"
-        class="screen hidden"
+        hidden
     >
 
         <div class="quiz-card">
@@ -308,8 +316,7 @@
 
 
             <div class="keyboard-help">
-                ←：わからない　
-                →：わかる
+                ←：わからない　→：わかる
             </div>
 
         </div>
@@ -319,17 +326,15 @@
 
     <!-- =========================
          完了画面
-    ========================= -->
+    ========================== -->
     <section
         id="completeScreen"
-        class="screen hidden"
+        hidden
     >
 
         <div class="quiz-card">
 
-            <h2>
-                完了
-            </h2>
+            <h2>完了</h2>
 
             <p>
                 すべての問題が終了しました。
@@ -352,9 +357,6 @@
 
 <script src="app.js"></script>
 
-<div id="version">
-    1.0.1
-</div>
 <a href="../senta-kita.html">センター北</a>
 </body>
 </html>
