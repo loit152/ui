@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Problem Memorize</title>
-
     <link rel="stylesheet" href="./style.css">
 </head>
 
@@ -15,95 +13,52 @@
 
     <h1>Problem Memorize</h1>
 
-    <!-- =========================
-         問題セット
-    ========================== -->
+    <!-- 問題セット -->
     <section class="panel">
-
         <div class="section-header">
             <h2>問題セット</h2>
-
-            <button id="newSetButton" type="button">
-                ＋ 新規
-            </button>
+            <button id="newSetButton" type="button">＋ 新規</button>
         </div>
 
         <div id="setList" class="set-list"></div>
-
     </section>
 
 
-    <!-- =========================
-         選択中のセット
-    ========================== -->
+    <!-- 選択中 -->
     <section id="selectedPanel" class="panel hidden">
 
         <div class="selected-header">
-
             <div>
-                <div class="small-label">
-                    選択中
-                </div>
-
-                <h2 id="selectedSetName">
-                    ---
-                </h2>
+                <div class="small-label">選択中</div>
+                <h2 id="selectedSetName">---</h2>
             </div>
 
             <button id="editSelectedButton" type="button">
                 編集
             </button>
-
         </div>
 
-
-        <div class="range-title">
-            出題範囲
-        </div>
+        <div class="range-title">出題範囲</div>
 
         <div class="range">
-
-            <input
-                id="rangeStart"
-                type="number"
-                min="1"
-                value="1"
-            >
-
+            <input id="rangeStart" type="number" min="1" value="1">
             <span>〜</span>
+            <input id="rangeEnd" type="number" min="1" value="1">
 
-            <input
-                id="rangeEnd"
-                type="number"
-                min="1"
-                value="1"
-            >
-
-            <button
-                id="startButton"
-                type="button"
-            >
+            <button id="startButton" type="button">
                 問題を開始
             </button>
-
         </div>
 
     </section>
 
 
-    <!-- =========================
-         暗記度
-    ========================== -->
+    <!-- 暗記度 -->
     <section id="masteryPanel" class="panel hidden">
 
         <div class="section-header">
-
             <h2>暗記度</h2>
-
-            <strong id="averageMastery">
-                0%
-            </strong>
-
+            <strong id="averageMastery">0%</strong>
         </div>
 
         <div id="masteryList" class="mastery-list"></div>
@@ -111,88 +66,53 @@
     </section>
 
 
-    <!-- =========================
-         問題
-    ========================== -->
-    <section
-        id="quizScreen"
-        class="panel quiz hidden"
-    >
+    <!-- 問題 -->
+    <section id="quizScreen" class="panel quiz hidden">
 
         <div class="quiz-info">
-
             <span id="quizSetName"></span>
-
             <span id="progress"></span>
-
         </div>
 
+        <div class="question-label">問題</div>
 
-        <div class="question-label">
-            問題
-        </div>
+        <div id="question" class="question">---</div>
 
-
-        <div id="question" class="question">
-            ---
-        </div>
-
-
-        <button
-            id="showAnswerButton"
-            class="show-answer-button"
-            type="button"
-        >
+        <button id="showAnswerButton"
+                class="show-answer-button"
+                type="button">
             答えを見る
         </button>
 
-
-        <p class="hint">
-            Enter：答えを見る
-        </p>
+        <p class="hint">Enter：答えを見る</p>
 
     </section>
 
 
-    <!-- =========================
-         答え
-    ========================== -->
-    <section
-        id="answerScreen"
-        class="panel answer-screen hidden"
-    >
+    <!-- 答え -->
+    <section id="answerScreen" class="panel answer-screen hidden">
 
-        <div class="question-label">
-            答え
-        </div>
+        <div class="question-label">答え</div>
 
+        <div id="explanation" class="explanation"></div>
 
-        <div id="answer" class="answer">
-            ---
-        </div>
-
+        <div id="answer" class="answer">---</div>
 
         <div class="self-assessment">
 
-            <button
-                id="unknownButton"
-                class="unknown-button"
-                type="button"
-            >
+            <button id="unknownButton"
+                    class="unknown-button"
+                    type="button">
                 わからない
             </button>
 
-
-            <button
-                id="knowButton"
-                class="know-button"
-                type="button"
-            >
+            <button id="knowButton"
+                    class="know-button"
+                    type="button">
                 わかる
             </button>
 
         </div>
-
 
         <p class="hint">
             ←：わからない　→：わかる
@@ -201,96 +121,56 @@
     </section>
 
 
-    <!-- =========================
-         完了
-    ========================== -->
-    <section
-        id="completeScreen"
-        class="panel complete hidden"
-    >
+    <!-- 完了 -->
+    <section id="completeScreen" class="panel complete hidden">
 
-        <h2>
-            完了
-        </h2>
+        <h2>完了</h2>
 
         <p>
             この範囲の問題をすべて「わかる」にしました。
         </p>
 
-        <button
-            id="backButton"
-            type="button"
-        >
+        <button id="backButton" type="button">
             問題セットへ戻る
         </button>
 
     </section>
 
 
-    <!-- =========================
-         編集
-    ========================== -->
-    <section
-        id="editScreen"
-        class="panel hidden"
-    >
+    <!-- 編集 -->
+    <section id="editScreen" class="panel hidden">
 
-        <h2 id="editTitle">
-            問題セットを編集
-        </h2>
+        <h2 id="editTitle">問題セットを編集</h2>
 
-
-        <label
-            class="form-label"
-            for="editName"
-        >
+        <label class="form-label" for="editName">
             セット名
         </label>
 
+        <input id="editName"
+               type="text"
+               placeholder="例：英単語">
 
-        <input
-            id="editName"
-            type="text"
-            placeholder="例：英単語"
-        >
-
-
-        <label
-            class="form-label"
-            for="problemInput"
-        >
-            問題と答え
+        <label class="form-label" for="problemInput">
+            問題・説明・答え
         </label>
 
-
-        <textarea
-            id="problemInput"
-            placeholder="apple / りんご
-obtain / 得る
-velocity / 速度"
-        ></textarea>
-
+        <textarea id="problemInput"
+placeholder="obtain * 動詞 / ～を得る
+beneath * 前置詞 / ～の下で
+velocity * 名詞 / 速度"></textarea>
 
         <p class="format-help">
             1行につき1問。<br>
-            「問題 / 答え」の形式で入力してください。
+            「問題 * 説明 / 答え」の形式で入力してください。
         </p>
-
 
         <div class="buttons">
 
-            <button
-                id="cancelEditButton"
-                type="button"
-            >
+            <button id="cancelEditButton" type="button">
                 キャンセル
             </button>
 
-
-            <button
-                id="saveEditButton"
-                type="button"
-            >
+            <button id="saveEditButton" type="button">
                 保存
             </button>
 
@@ -299,33 +179,18 @@ velocity / 速度"
     </section>
 
 
-    <!-- =========================
-         リセット
-    ========================== -->
-    <section
-        id="resetPanel"
-        class="panel hidden"
-    >
+    <!-- リセット -->
+    <section id="resetPanel" class="panel hidden">
 
-        <h2>
-            リセット
-        </h2>
-
+        <h2>リセット</h2>
 
         <div class="buttons">
 
-            <button
-                id="resetMasteryButton"
-                type="button"
-            >
+            <button id="resetMasteryButton" type="button">
                 このセットの暗記度をリセット
             </button>
 
-
-            <button
-                id="resetAllButton"
-                type="button"
-            >
+            <button id="resetAllButton" type="button">
                 すべてリセット
             </button>
 
@@ -335,8 +200,7 @@ velocity / 速度"
 
 </main>
 
-
 <script src="./app.js"></script>
-<a href="../senta-kita.html">センター北</a>
+
 </body>
 </html>
