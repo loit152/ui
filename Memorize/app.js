@@ -868,7 +868,7 @@ document.onkeydown =
             !quizScreen.classList.contains(
                 "hidden"
             ) &&
-            event.key === "Enter"
+            event.key === "Space"
         ) {
             event.preventDefault();
             showAnswer();
