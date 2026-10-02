@@ -109,14 +109,33 @@ let editingSetId = null;
 let quizProblems = [];
 let currentProblem = null;
 
-let currentNumber = 0;
+/*
+    現在何問目を表示しているかではなく、
+    「何問クリアしたか」を管理する。
+*/
+let clearedCount = 0;
 
 /*
-    最初に出題する問題数。
-    「わからない」で問題が再追加されても
-    この値は変化しない。
+    クイズ開始時の問題数。
+    「わからない」で再追加されても変化しない。
 */
 let quizTotal = 0;
+
+
+/* =========================
+   ID
+========================= */
+
+function createId() {
+
+    return (
+        Date.now().toString(36) +
+        Math.random()
+            .toString(36)
+            .slice(2)
+    );
+
+}
 
 
 /* =========================
@@ -127,16 +146,105 @@ function load() {
 
     try {
 
-        const data =
-            JSON.parse(
-                localStorage.getItem(
-                    STORAGE_KEY
-                )
+        const raw =
+            localStorage.getItem(
+                STORAGE_KEY
             );
 
-        if (Array.isArray(data)) {
-            sets = data;
+        if (!raw) {
+            sets = [];
+            return;
         }
+
+
+        const data =
+            JSON.parse(raw);
+
+
+        if (!Array.isArray(data)) {
+
+            sets = [];
+            return;
+
+        }
+
+
+        sets = data;
+
+
+        /*
+            古いデータに problem.id が存在しない場合に
+            IDを追加する。
+        */
+        let changed = false;
+
+
+        sets.forEach(set => {
+
+            if (!Array.isArray(set.problems)) {
+
+                set.problems = [];
+                changed = true;
+
+            }
+
+
+            set.problems.forEach(problem => {
+
+                if (!problem.id) {
+
+                    problem.id = createId();
+                    changed = true;
+
+                }
+
+
+                const mastery =
+                    Number(problem.mastery);
+
+
+                if (
+                    !Number.isFinite(mastery)
+                ) {
+
+                    problem.mastery = 0;
+                    changed = true;
+
+                } else {
+
+                    const normalized =
+                        Math.max(
+                            0,
+                            Math.min(
+                                100,
+                                mastery
+                            )
+                        );
+
+
+                    if (
+                        problem.mastery !==
+                        normalized
+                    ) {
+
+                        problem.mastery =
+                            normalized;
+
+                        changed = true;
+
+                    }
+
+                }
+
+            });
+
+        });
+
+
+        if (changed) {
+            save();
+        }
+
 
     } catch {
 
@@ -144,21 +252,25 @@ function load() {
 
     }
 
-
-    selectedSetId =
-        localStorage.getItem(
-            SELECTED_KEY
-        );
-
 }
 
 
 function save() {
 
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(sets)
-    );
+    try {
+
+        localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify(sets)
+        );
+
+    } catch {
+
+        alert(
+            "データを保存できませんでした。"
+        );
+
+    }
 
 }
 
@@ -179,18 +291,6 @@ function saveSelected() {
         );
 
     }
-
-}
-
-
-function createId() {
-
-    return (
-        Date.now().toString(36) +
-        Math.random()
-            .toString(36)
-            .slice(2)
-    );
 
 }
 
@@ -248,36 +348,25 @@ function showEditScreen() {
 
 function showQuizScreen() {
 
-    quizScreen.classList.remove(
-        "hidden"
-    );
-
-    answerScreen.classList.add(
-        "hidden"
-    );
-
-    completeScreen.classList.add(
-        "hidden"
-    );
+    mainScreen.classList.add("hidden");
+    editScreen.classList.add("hidden");
+    quizScreen.classList.remove("hidden");
+    answerScreen.classList.add("hidden");
+    completeScreen.classList.add("hidden");
 
 }
 
 
 function showAnswerScreen() {
 
-    quizScreen.classList.add(
-        "hidden"
-    );
-
-    answerScreen.classList.remove(
-        "hidden"
-    );
+    quizScreen.classList.add("hidden");
+    answerScreen.classList.remove("hidden");
 
 }
 
 
 /* =========================
-   問題作成
+   クイズ問題作成
 ========================= */
 
 function createQuizProblems(
@@ -289,17 +378,17 @@ function createQuizProblems(
     const set =
         getSelectedSet();
 
+
     if (!set) {
         return [];
     }
 
 
-    const remaining = [
-        ...set.problems.slice(
+    const remaining =
+        set.problems.slice(
             start - 1,
             end
-        )
-    ];
+        );
 
 
     const result = [];
@@ -312,15 +401,15 @@ function createQuizProblems(
 
 
     while (
-        result.length < count
+        result.length < count &&
+        remaining.length > 0
     ) {
 
         const total =
             remaining.reduce(
                 (sum, problem) =>
                     sum +
-                    101 -
-                    problem.mastery,
+                    (101 - problem.mastery),
                 0
             );
 
@@ -328,7 +417,9 @@ function createQuizProblems(
         let random =
             Math.random() * total;
 
-        let index = 0;
+
+        let index =
+            remaining.length - 1;
 
 
         for (
@@ -393,6 +484,7 @@ function renderSets() {
         const item =
             document.createElement("div");
 
+
         item.className =
             "set-item";
 
@@ -401,9 +493,7 @@ function renderSets() {
             set.id === selectedSetId
         ) {
 
-            item.classList.add(
-                "active"
-            );
+            item.classList.add("active");
 
         }
 
@@ -451,6 +541,7 @@ function renderSets() {
                 selectedSetId =
                     set.id;
 
+
                 saveSelected();
 
                 renderSets();
@@ -486,7 +577,7 @@ function renderSets() {
 
 
 /* =========================
-   選択中セット更新
+   選択中セット
 ========================= */
 
 function updateSelected() {
@@ -533,8 +624,10 @@ function updateSelected() {
 
     rangeStart.value = 1;
 
+
     rangeEnd.value =
         set.problems.length;
+
 
     questionCount.value =
         Math.min(
@@ -549,7 +642,7 @@ function updateSelected() {
 
 
 /* =========================
-   暗記度表示
+   暗記度
 ========================= */
 
 function renderMastery() {
@@ -573,8 +666,10 @@ function renderMastery() {
                 問題がありません。
             </div>`;
 
+
         averageMastery.textContent =
             "0%";
+
 
         return;
 
@@ -587,14 +682,14 @@ function renderMastery() {
     set.problems.forEach(
         (problem, index) => {
 
-            total +=
-                problem.mastery;
+            total += problem.mastery;
 
 
             const item =
                 document.createElement(
                     "div"
                 );
+
 
             item.className =
                 "mastery-item";
@@ -629,9 +724,7 @@ function renderMastery() {
             `;
 
 
-            masteryList.appendChild(
-                item
-            );
+            masteryList.appendChild(item);
 
         }
     );
@@ -674,12 +767,14 @@ function openNewSet() {
 
     editingSetId = null;
 
+
     editTitle.textContent =
         "問題セットを作成";
 
-    editName.value = "";
 
+    editName.value = "";
     problemInput.value = "";
+
 
     showEditScreen();
 
@@ -729,6 +824,263 @@ function openEditSet(id) {
 
 
 /* =========================
+   問題解析
+========================= */
+
+function parseProblemLine(line) {
+
+    let separator =
+        line.indexOf("*");
+
+
+    if (separator === -1) {
+
+        separator =
+            line.indexOf("＊");
+
+    }
+
+
+    /*
+        *
+        を使う形式
+
+        question * explanation / answer
+    */
+
+    if (separator !== -1) {
+
+        const question =
+            line
+                .slice(0, separator)
+                .trim();
+
+
+        const rest =
+            line
+                .slice(separator + 1)
+                .trim();
+
+
+        let slash =
+            rest.indexOf("/");
+
+
+        if (slash === -1) {
+
+            slash =
+                rest.indexOf("／");
+
+        }
+
+
+        if (slash !== -1) {
+
+            return {
+                id: createId(),
+
+                question,
+
+                explanation:
+                    rest
+                        .slice(0, slash)
+                        .trim(),
+
+                answer:
+                    rest
+                        .slice(slash + 1)
+                        .trim(),
+
+                mastery: 0
+            };
+
+        }
+
+
+        /*
+            *
+            はあるが / がない場合。
+            従来の仕様を維持し、
+            説明・答えを空にする。
+        */
+
+        return {
+            id: createId(),
+
+            question,
+
+            explanation: "",
+
+            answer: "",
+
+            mastery: 0
+        };
+
+    }
+
+
+    /*
+        *
+        がない場合
+
+        question / answer
+    */
+
+    let slash =
+        line.indexOf("/");
+
+
+    if (slash === -1) {
+
+        slash =
+            line.indexOf("／");
+
+    }
+
+
+    if (slash !== -1) {
+
+        return {
+            id: createId(),
+
+            question:
+                line
+                    .slice(0, slash)
+                    .trim(),
+
+            explanation: "",
+
+            answer:
+                line
+                    .slice(slash + 1)
+                    .trim(),
+
+            mastery: 0
+        };
+
+    }
+
+
+    /*
+        区切りなし
+    */
+
+    return {
+        id: createId(),
+
+        question: line,
+
+        explanation: "",
+
+        answer: "",
+
+        mastery: 0
+    };
+
+}
+
+
+/* =========================
+   問題キー
+========================= */
+
+function getProblemKey(problem) {
+
+    return [
+        problem.question,
+        problem.explanation,
+        problem.answer
+    ].join("\u0000");
+
+}
+
+
+/* =========================
+   暗記度引き継ぎ
+========================= */
+
+function preserveMastery(
+    oldProblems,
+    newProblems
+) {
+
+    /*
+        同じ内容の問題が複数存在しても
+        1問目、2問目……を別々に扱う。
+    */
+
+    const oldMap =
+        new Map();
+
+
+    oldProblems.forEach(problem => {
+
+        const key =
+            getProblemKey(problem);
+
+
+        if (!oldMap.has(key)) {
+
+            oldMap.set(
+                key,
+                []
+            );
+
+        }
+
+
+        oldMap.get(key).push(problem);
+
+    });
+
+
+    newProblems.forEach(problem => {
+
+        const key =
+            getProblemKey(problem);
+
+
+        const candidates =
+            oldMap.get(key);
+
+
+        if (
+            candidates &&
+            candidates.length
+        ) {
+
+            const old =
+                candidates.shift();
+
+
+            problem.id =
+                old.id || createId();
+
+
+            problem.mastery =
+                Number.isFinite(
+                    Number(old.mastery)
+                )
+                    ? Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            Number(old.mastery)
+                        )
+                    )
+                    : 0;
+
+        }
+
+    });
+
+
+    return newProblems;
+
+}
+
+
+/* =========================
    編集保存
 ========================= */
 
@@ -757,106 +1109,7 @@ function saveEditor() {
 
 
     const problems =
-        lines.map(line => {
-
-            let separator =
-                line.indexOf("*");
-
-
-            if (separator === -1) {
-
-                separator =
-                    line.indexOf("＊");
-
-            }
-
-
-            let left = line;
-            let answerText = "";
-
-
-            if (separator !== -1) {
-
-                left =
-                    line.slice(
-                        0,
-                        separator
-                    ).trim();
-
-                const rest =
-                    line.slice(
-                        separator + 1
-                    );
-
-
-                const slash =
-                    rest.indexOf("/");
-
-
-                if (slash !== -1) {
-
-                    const explanation =
-                        rest
-                            .slice(
-                                0,
-                                slash
-                            )
-                            .trim();
-
-                    answerText =
-                        rest
-                            .slice(
-                                slash + 1
-                            )
-                            .trim();
-
-
-                    return {
-                        question: left,
-                        explanation,
-                        answer: answerText
-                    };
-
-                }
-
-            }
-
-
-            const slash =
-                left.indexOf("/");
-
-
-            if (slash !== -1) {
-
-                return {
-                    question:
-                        left
-                            .slice(
-                                0,
-                                slash
-                            )
-                            .trim(),
-
-                    explanation: "",
-
-                    answer:
-                        left
-                            .slice(
-                                slash + 1
-                            )
-                            .trim()
-                };
-
-            }
-
-
-            return {
-                question: left,
-                explanation: "",
-                answer: ""
-            };
-
-        });
+        lines.map(parseProblemLine);
 
 
     if (!problems.length) {
@@ -880,47 +1133,32 @@ function saveEditor() {
             );
 
 
-        if (set) {
-
-            problems.forEach(
-                problem => {
-
-                    const old =
-                        set.problems.find(
-                            oldProblem =>
-                                oldProblem.question ===
-                                    problem.question &&
-                                oldProblem.explanation ===
-                                    problem.explanation &&
-                                oldProblem.answer ===
-                                    problem.answer
-                        );
+        if (!set) {
+            return;
+        }
 
 
-                    problem.mastery =
-                        old?.mastery ?? 0;
-
-                }
+        set.problems =
+            preserveMastery(
+                set.problems,
+                problems
             );
 
 
-            set.name = name;
-            set.problems = problems;
+        set.name =
+            name;
 
-        }
 
     } else {
 
         sets.push({
+
             id: createId(),
+
             name,
-            problems:
-                problems.map(
-                    problem => ({
-                        ...problem,
-                        mastery: 0
-                    })
-                )
+
+            problems
+
         });
 
     }
@@ -935,6 +1173,7 @@ function saveEditor() {
 
         selectedSetId =
             sets[sets.length - 1].id;
+
 
         saveSelected();
 
@@ -1020,19 +1259,15 @@ function startQuiz() {
 
 
     const start =
-        Number(
-            rangeStart.value
-        );
+        Number(rangeStart.value);
+
 
     const end =
-        Number(
-            rangeEnd.value
-        );
+        Number(rangeEnd.value);
+
 
     const count =
-        Number(
-            questionCount.value
-        );
+        Number(questionCount.value);
 
 
     if (
@@ -1064,18 +1299,11 @@ function startQuiz() {
         );
 
 
-    /*
-        ここで最初の問題数を保存する。
-
-        例えば5問なら quizTotal は5。
-        「わからない」で問題が再追加されても
-        quizTotal は5のまま。
-    */
     quizTotal =
         quizProblems.length;
 
 
-    currentNumber = 0;
+    clearedCount = 0;
 
 
     quizSetName.textContent =
@@ -1106,15 +1334,14 @@ function nextQuestion() {
         quizProblems.shift();
 
 
-    currentNumber++;
-
-
     /*
-        分母は quizProblems.length ではなく
-        最初に決めた quizTotal を使う。
+        「わからない」で同じ問題が
+        再追加されても clearedCount は
+        増加しない。
     */
+
     progress.textContent =
-        `${currentNumber} / ${quizTotal}`;
+        `${clearedCount + 1} / ${quizTotal}`;
 
 
     question.textContent =
@@ -1163,15 +1390,16 @@ function updateMastery(
     }
 
 
+    /*
+        問題内容ではなくIDで検索する。
+        同じ問題が複数あっても正しい問題だけ
+        更新できる。
+    */
+
     const target =
         set.problems.find(
             item =>
-                item.question ===
-                    problem.question &&
-                item.explanation ===
-                    problem.explanation &&
-                item.answer ===
-                    problem.answer
+                item.id === problem.id
         );
 
 
@@ -1185,7 +1413,8 @@ function updateMastery(
             0,
             Math.min(
                 100,
-                target.mastery + amount
+                Number(target.mastery) +
+                amount
             )
         );
 
@@ -1207,6 +1436,9 @@ function markKnown() {
     );
 
 
+    clearedCount++;
+
+
     nextQuestion();
 
 }
@@ -1225,11 +1457,10 @@ function markUnknown() {
 
 
     /*
-        問題を末尾に戻す。
-
-        quizTotal は変更しないため、
-        分母は最初の問題数のまま。
+        再出題する。
+        clearedCount は増やさない。
     */
+
     quizProblems.push(
         currentProblem
     );
@@ -1370,11 +1601,7 @@ saveEditButton.addEventListener(
 
 cancelEditButton.addEventListener(
     "click",
-    () => {
-
-        showMainScreen();
-
-    }
+    showMainScreen
 );
 
 
@@ -1404,11 +1631,7 @@ knowButton.addEventListener(
 
 backButton.addEventListener(
     "click",
-    () => {
-
-        showMainScreen();
-
-    }
+    showMainScreen
 );
 
 
@@ -1482,6 +1705,12 @@ document.addEventListener(
 ========================= */
 
 load();
+
+
+selectedSetId =
+    localStorage.getItem(
+        SELECTED_KEY
+    );
 
 
 if (
