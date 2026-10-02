@@ -660,7 +660,17 @@ function createQuizProblems(
 /* =========================
    クイズ開始
 ========================= */
-function startQuiz() {const end =
+function startQuiz() {
+    const set =
+        getSelectedSet();
+    if (!set) {
+        return;
+    }
+    const start =
+        Number(
+            rangeStart.value
+        );
+const end =
     Number(
         rangeEnd.value
     );
@@ -692,6 +702,10 @@ quizProblems =
         end,
         count
     );
+    currentNumber = 0;
+    quizSetName.textContent =
+        set.name;
+    nextQuestion();
 }
 /* =========================
    次の問題
