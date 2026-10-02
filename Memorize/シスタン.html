@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html>
+<body>
+<button id="copy">コピー</button>
+<p id="content">
+
 follow*動詞/～の後に続く、～に従う
 consider*動詞/～を考慮する
 increase*動詞/増える、～を増やす
@@ -1698,3 +1704,14 @@ namely*副詞/すなわち
 hence*副詞/だから
 via*前置詞/経由で
 owing*前置詞/のために
+</p>
+</body>
+<script>
+const copy = document.getElementById("copy");
+const content = document.getElementById("content");
+
+copy.addEventListener("click",function(){
+    navigator.clipboard.writeText(content.textContent);
+})
+</script>
+</html>
