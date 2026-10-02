@@ -8,6 +8,7 @@ const WRONG = 15;
    DOM
 ========================= */
 const [
+    questionCount,
     setList,
     selectedPanel,
     selectedSetName,
@@ -41,6 +42,7 @@ const [
     resetMasteryButton,
     resetAllButton
 ] = [
+    "questionCount",
     "setList",
     "selectedPanel",
     "selectedSetName",
@@ -178,18 +180,74 @@ function showEditScreen() {
             element.classList.add("hidden")
     );
     editScreen.classList.remove("hidden");
-}
-function showQuizScreen() {
-    hideScreens();
-    [
-        selectedPanel,
-        masteryPanel,
-        resetPanel
-    ].forEach(
-        element =>
-            element.classList.add("hidden")
+}function createQuizProblems(
+    start,
+    end,
+    count
+) {
+    const set =
+        getSelectedSet();
+
+    if (!set) {
+        return [];
+    }
+
+    const remaining =
+        [
+            ...set.problems.slice(
+                start - 1,
+                end
+            )
+        ];
+
+    const result = [];
+
+    count = Math.min(
+        count,
+        remaining.length
     );
-    quizScreen.classList.remove("hidden");
+
+    while (
+        result.length < count
+    ) {
+        const total =
+            remaining.reduce(
+                (sum, problem) =>
+                    sum +
+                    101 -
+                    problem.mastery,
+                0
+            );
+
+        let random =
+            Math.random() * total;
+
+        let index = 0;
+
+        for (
+            let i = 0;
+            i < remaining.length;
+            i++
+        ) {
+            random -=
+                101 -
+                remaining[i].mastery;
+
+            if (random <= 0) {
+                index = i;
+                break;
+            }
+        }
+
+        result.push(
+            remaining.splice(
+                index,
+                1
+            )[0]
+        );
+    }
+
+    return result;
 }
 function showAnswerScreen() {
     quizScreen.classList.add("hidden");
@@ -602,41 +660,38 @@ function createQuizProblems(
 /* =========================
    クイズ開始
 ========================= */
-function startQuiz() {
-    const set =
-        getSelectedSet();
-    if (!set) {
-        return;
-    }
-    const start =
-        Number(
-            rangeStart.value
-        );
-    const end =
-        Number(
-            rangeEnd.value
-        );
-    if (
-        !Number.isInteger(start) ||
-        !Number.isInteger(end) ||
-        start < 1 ||
-        end > set.problems.length ||
-        start > end
-    ) {
-        alert(
-            "出題範囲が正しくありません。"
-        );
-        return;
-    }
-    quizProblems =
-        createQuizProblems(
-            start,
-            end
-        );
-    currentNumber = 0;
-    quizSetName.textContent =
-        set.name;
-    nextQuestion();
+function startQuiz() {const end =
+    Number(
+        rangeEnd.value
+    );
+
+const count =
+    Number(
+        questionCount.value
+    );
+
+if (
+    !Number.isInteger(start) ||
+    !Number.isInteger(end) ||
+    !Number.isInteger(count) ||
+    start < 1 ||
+    end > set.problems.length ||
+    start > end ||
+    count < 1 ||
+    count > end - start + 1
+) {
+    alert(
+        "出題範囲または問題数が正しくありません。"
+    );
+    return;
+}
+
+quizProblems =
+    createQuizProblems(
+        start,
+        end,
+        count
+    );
 }
 /* =========================
    次の問題
