@@ -609,7 +609,7 @@ function saveEditor() {
          * * で問題と説明を分ける
          */
         const star =
-            left.indexOf("*");
+            left.search(/[*＊]/);
 
 
         let questionText;
