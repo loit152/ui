@@ -604,60 +604,6 @@ function deleteSet(id) {
     showMainScreen();
 }
 /* =========================
-   出題順作成
-========================= */
-function createQuizProblems(
-    start,
-    end
-) {
-    const set =
-        getSelectedSet();
-    if (!set) {
-        return [];
-    }
-    const remaining =
-        [
-            ...set.problems.slice(
-                start - 1,
-                end
-            )
-        ];
-    const result = [];
-    while (remaining.length) {
-        const total =
-            remaining.reduce(
-                (sum, problem) =>
-                    sum +
-                    101 -
-                    problem.mastery,
-                0
-            );
-        let random =
-            Math.random() * total;
-        let index = 0;
-        for (
-            let i = 0;
-            i < remaining.length;
-            i++
-        ) {
-            random -=
-                101 -
-                remaining[i].mastery;
-            if (random <= 0) {
-                index = i;
-                break;
-            }
-        }
-        result.push(
-            remaining.splice(
-                index,
-                1
-            )[0]
-        );
-    }
-    return result;
-}
-/* =========================
    クイズ開始
 ========================= */
 function startQuiz() {
