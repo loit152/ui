@@ -2,11 +2,13 @@
     box-sizing: border-box;
 }
 
+
 html,
 body {
     margin: 0;
     min-height: 100%;
 }
+
 
 body {
     font-family:
@@ -19,10 +21,10 @@ body {
     color: #ddd;
 }
 
+
 main {
-    width: min(720px, 94%);
-    margin: 0 auto;
-    padding: 28px 0 60px;
+    width: min(700px, 94%);
+    margin: 20px auto 60px;
 }
 
 
@@ -31,20 +33,28 @@ main {
 ========================= */
 
 h1 {
-    margin: 0 0 28px;
+    margin: 0 0 22px;
+
     text-align: center;
+
     font-size: 1.8rem;
     font-weight: 650;
+
     letter-spacing: .04em;
+
     color: #eee;
 }
 
+
 h2 {
     margin: 0;
+
     font-size: 1.05rem;
     font-weight: 600;
+
     color: #eee;
 }
+
 
 .hidden {
     display: none !important;
@@ -56,17 +66,22 @@ h2 {
 ========================= */
 
 .panel {
-    margin-top: 14px;
+    margin: 10px 0;
     padding: 18px;
+
     background: #1a1a1a;
+
     border: 1px solid #2d2d2d;
     border-radius: 12px;
 }
 
+
 .section-header {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
+
     gap: 12px;
 }
 
@@ -77,6 +92,7 @@ h2 {
 
 button {
     min-height: 38px;
+
     padding: 8px 13px;
 
     border: 1px solid #3a3a3a;
@@ -96,32 +112,42 @@ button {
         transform .05s;
 }
 
+
 button:hover {
     background: #303030;
     border-color: #555;
 }
 
+
 button:active {
     transform: translateY(1px);
 }
 
+
 .primary-button {
     background: #ddd;
     color: #111;
+
     border-color: #ddd;
+
     font-weight: 600;
 }
+
 
 .primary-button:hover {
     background: #fff;
     border-color: #fff;
 }
 
+
 .danger-button {
     color: #d6a5a5;
+
     border-color: #493535;
+
     background: #241919;
 }
+
 
 .danger-button:hover {
     background: #302020;
@@ -135,14 +161,19 @@ button:active {
 
 #setList {
     display: grid;
-    gap: 8px;
-    margin-top: 14px;
+
+    gap: 6px;
+
+    margin-top: 10px;
 }
+
 
 .set-item {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
+
     gap: 12px;
 
     padding: 13px 14px;
@@ -159,62 +190,84 @@ button:active {
         border-color .15s;
 }
 
+
 .set-item:hover {
     background: #1e1e1e;
     border-color: #444;
 }
+
 
 .set-item.active {
     background: #222;
     border-color: #666;
 }
 
+
 .set-info {
     min-width: 0;
+
     flex: 1;
 }
 
+
 .set-name {
     overflow: hidden;
+
     white-space: nowrap;
     text-overflow: ellipsis;
 
     color: #eee;
+
     font-weight: 600;
 }
 
+
 .set-count {
     margin-top: 3px;
+
     color: #777;
+
     font-size: .8rem;
 }
+
 
 .set-actions {
     flex-shrink: 0;
 }
 
+
 .delete-button {
     min-height: 32px;
+
     padding: 5px 9px;
 
     color: #888;
+
     background: transparent;
+
     border-color: transparent;
 
     font-size: .8rem;
 }
 
+
 .delete-button:hover {
     color: #d0a0a0;
+
     background: #241919;
+
     border-color: #493535;
 }
+
 
 .empty-message {
     margin-top: 14px;
     padding: 20px;
+
     text-align: center;
+
     color: #666;
+
     border: 1px dashed #303030;
     border-radius: 9px;
 }
@@ -225,8 +278,11 @@ button:active {
 ========================= */
 
 #selectedPanel {
+    margin-top: 12px;
+
     padding: 20px;
 }
+
 
 #selectedSetName {
     font-size: 1.2rem;
@@ -239,23 +295,31 @@ button:active {
 
 .range {
     display: flex;
+
     align-items: center;
+
     gap: 10px;
 
-    margin-top: 20px;
+    margin-top: 16px;
 }
+
 
 .range label {
     display: flex;
+
     align-items: center;
+
     gap: 7px;
 
     color: #888;
+
     font-size: .85rem;
 }
 
+
 .range input {
     width: 80px;
+
     padding: 9px 8px;
 
     border: 1px solid #3a3a3a;
@@ -267,14 +331,18 @@ button:active {
     font: inherit;
 }
 
+
 .range input:focus {
     outline: none;
+
     border-color: #777;
 }
 
+
 #startButton {
     width: 100%;
-    margin-top: 16px;
+
+    margin-top: 14px;
 }
 
 
@@ -284,17 +352,23 @@ button:active {
 
 #averageMastery {
     color: #aaa;
+
     font-size: .95rem;
 }
 
+
 #masteryList {
     display: grid;
+
     gap: 9px;
-    margin-top: 16px;
+
+    margin-top: 12px;
 }
+
 
 .mastery-item {
     display: grid;
+
     grid-template-columns:
         30px
         minmax(80px, 1fr)
@@ -302,6 +376,7 @@ button:active {
         45px;
 
     align-items: center;
+
     gap: 9px;
 
     min-width: 0;
@@ -309,9 +384,11 @@ button:active {
     font-size: .82rem;
 }
 
+
 .mastery-number {
     color: #666;
 }
+
 
 .mastery-question {
     overflow: hidden;
@@ -322,26 +399,32 @@ button:active {
     color: #bbb;
 }
 
+
 .mastery-bar {
     height: 7px;
 
     overflow: hidden;
 
     background: #303030;
+
     border-radius: 999px;
 }
+
 
 .mastery-fill {
     height: 100%;
 
     background: #888;
+
     border-radius: inherit;
 
     transition: width .2s ease;
 }
 
+
 .mastery-value {
     text-align: right;
+
     color: #777;
 }
 
@@ -352,8 +435,12 @@ button:active {
 
 #resetPanel {
     display: flex;
+
     justify-content: flex-end;
+
     gap: 8px;
+
+    margin-top: 10px;
 }
 
 
@@ -365,17 +452,22 @@ button:active {
     margin-top: 10px;
 }
 
+
 #editScreen > label {
     display: block;
+
     margin-top: 20px;
 
     color: #999;
+
     font-size: .85rem;
 }
+
 
 #editName,
 #problemInput {
     display: block;
+
     width: 100%;
 
     margin-top: 7px;
@@ -389,12 +481,15 @@ button:active {
     font: inherit;
 }
 
+
 #editName {
     padding: 11px;
 }
 
+
 #problemInput {
     min-height: 320px;
+
     padding: 12px;
 
     resize: vertical;
@@ -402,15 +497,20 @@ button:active {
     line-height: 1.6;
 }
 
+
 #editName:focus,
 #problemInput:focus {
     outline: none;
+
     border-color: #777;
 }
 
+
 .button-row {
     display: flex;
+
     justify-content: center;
+
     gap: 9px;
 
     margin-top: 18px;
@@ -425,16 +525,20 @@ button:active {
     width: 100%;
 }
 
+
 .quiz-header {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
 
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 
     color: #777;
+
     font-size: .85rem;
 }
+
 
 #quizSetName {
     overflow: hidden;
@@ -445,65 +549,90 @@ button:active {
     max-width: 70%;
 }
 
+
 #progress {
     flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
+
+    font-variant-numeric:
+        tabular-nums;
 }
 
+
 .quiz-card {
-    padding: 34px 22px 24px;
+    padding: 24px 22px 20px;
 
     text-align: center;
 
     background: #1a1a1a;
+
     border: 1px solid #2d2d2d;
     border-radius: 14px;
 }
 
+
 .quiz-label {
-    margin-bottom: 22px;
+    margin-bottom: 16px;
 
     color: #666;
+
     font-size: .8rem;
+
     letter-spacing: .08em;
 }
 
+
+/*
+    問題を中央に浮かせず、
+    上から自然に配置する。
+*/
+
 .question {
-    min-height: 90px;
+    min-height: 0;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    margin-bottom: 28px;
+    margin: 0 0 14px;
 
     color: #f0f0f0;
 
-    font-size: clamp(2rem, 7vw, 3rem);
+    font-size:
+        clamp(2rem, 7vw, 3rem);
+
     font-weight: 650;
 
     line-height: 1.25;
+
     word-break: break-word;
 }
+
+
+/* 問題の説明 */
 
 .question-explanation {
     min-height: 1.5em;
 
-    margin: -10px 0 25px;
+    margin: 0 0 18px;
 
     color: #888;
+
     font-size: .95rem;
 }
 
+
+/* 答えを見る */
+
 #showAnswerButton {
     min-width: 190px;
+
+    margin-top: 0;
+
     padding: 11px 20px;
 }
 
+
 .keyboard-help {
-    margin-top: 13px;
+    margin-top: 10px;
 
     color: #555;
+
     font-size: .75rem;
 }
 
@@ -512,42 +641,59 @@ button:active {
    答え
 ========================= */
 
+#answerScreen .quiz-card {
+    padding-top: 24px;
+}
+
+
 .answer {
-    min-height: 90px;
+    min-height: 0;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    margin-bottom: 28px;
+    margin: 0 0 18px;
 
     color: #f0f0f0;
 
-    font-size: clamp(1.7rem, 6vw, 2.4rem);
+    font-size:
+        clamp(1.7rem, 6vw, 2.4rem);
+
     font-weight: 600;
 
     line-height: 1.35;
+
     word-break: break-word;
 }
+
+
+#answerScreen .button-row {
+    margin-top: 0;
+}
+
 
 #answerScreen .button-row button {
     min-width: 130px;
 }
 
+
 #unknownButton {
     background: #242020;
+
     border-color: #493838;
 }
+
 
 #unknownButton:hover {
     background: #302424;
 }
 
+
 #knowButton {
     background: #ddd;
+
     color: #111;
+
     border-color: #ddd;
 }
+
 
 #knowButton:hover {
     background: #fff;
@@ -562,13 +708,32 @@ button:active {
     padding: 40px 22px;
 }
 
+
 #completeScreen h2 {
     font-size: 1.4rem;
 }
 
+
 #completeScreen p {
     margin: 12px 0 24px;
+
     color: #888;
+}
+
+
+/* =========================
+   バージョン
+========================= */
+
+#version {
+    position: fixed;
+
+    right: 8px;
+    bottom: 6px;
+
+    color: #444;
+
+    font-size: .7rem;
 }
 
 
@@ -580,33 +745,45 @@ button:active {
 
     main {
         width: 92%;
-        padding-top: 20px;
+
+        margin-top: 20px;
     }
+
 
     h1 {
         margin-bottom: 22px;
     }
 
+
     .panel {
         padding: 16px;
     }
 
+
     .range {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+
+        grid-template-columns:
+            1fr
+            auto
+            1fr;
     }
+
 
     .range label {
         justify-content: space-between;
     }
 
+
     .range input {
         width: 70px;
     }
 
+
     #startButton {
         grid-column: 1 / -1;
     }
+
 
     .mastery-item {
         grid-template-columns:
@@ -620,143 +797,35 @@ button:active {
         font-size: .78rem;
     }
 
+
     #resetPanel {
         flex-direction: column;
     }
+
 
     #resetPanel button {
         width: 100%;
     }
 
+
     .quiz-card {
-        padding: 30px 18px 22px;
+        padding:
+            22px 18px 18px;
     }
+
 
     .button-row {
         flex-direction: column;
     }
 
+
     #answerScreen .button-row button {
         width: 100%;
     }
 
+
     #showAnswerButton {
         width: 100%;
     }
-}
-/* =========================
-   UI位置 微調整
-========================= */
 
-/* 全体を少し上寄せ */
-main {
-    width: min(700px, 94%);
-    margin: 20px auto 60px;
-}
-
-/* タイトル */
-h1 {
-    margin: 0 0 22px;
-}
-
-/* パネル同士の間隔 */
-.panel {
-    margin: 10px 0;
-}
-
-/* 問題セット一覧 */
-#setList {
-    margin-top: 10px;
-    gap: 6px;
-}
-
-/* 選択中セット */
-#selectedPanel {
-    margin-top: 12px;
-}
-
-/* 範囲入力 */
-.range {
-    margin-top: 16px;
-}
-
-/* 開始ボタン */
-#startButton {
-    margin-top: 14px;
-}
-
-/* 暗記度 */
-#masteryList {
-    margin-top: 12px;
-}
-
-/* リセット */
-#resetPanel {
-    margin-top: 10px;
-}
-
-/* =========================
-   クイズ画面
-========================= */
-
-.quiz-header {
-    margin-bottom: 10px;
-}
-
-.quiz-card {
-    padding-top: 28px;
-}
-
-/* 問題 */
-.question {
-    margin-bottom: 20px;
-}
-
-/* 問題の説明 */
-.question-explanation {
-    margin-top: -5px;
-    margin-bottom: 20px;
-}
-
-/* 答えを見る */
-#showAnswerButton {
-    margin-top: 2px;
-}
-
-/* キーボード説明 */
-.keyboard-help {
-    margin-top: 10px;
-}
-
-/* =========================
-   答え画面
-========================= */
-
-#answerScreen .quiz-card {
-    padding-top: 28px;
-}
-
-.answer {
-    margin-bottom: 20px;
-}
-
-/* わからない / わかる */
-#answerScreen .button-row {
-    margin-top: 0;
-}
-
-#answerScreen .keyboard-help {
-    margin-top: 10px;
-}
-
-/* =========================
-   編集画面
-========================= */
-
-#editScreen {
-    margin-top: 10px;
-}
-
-#editScreen .button-row {
-    margin-top: 14px;
 }

@@ -1,12 +1,24 @@
 "use strict";
 
-const $ = id => document.getElementById(id);
 
-const STORAGE_KEY = "problem-memorize-data-v3";
-const SELECTED_KEY = "problem-memorize-selected-v3";
+/* =========================
+   基本
+========================= */
+
+const $ = id =>
+    document.getElementById(id);
+
+
+const STORAGE_KEY =
+    "problem-memorize-data-v3";
+
+const SELECTED_KEY =
+    "problem-memorize-selected-v3";
+
 
 const CORRECT = 10;
 const WRONG = 15;
+
 
 /* =========================
    DOM
@@ -21,10 +33,11 @@ const [
     masteryPanel,
     averageMastery,
     masteryList,
-    rangeStart,
-    rangeEnd,
-    startButton,
+    resetPanel,
+    resetMasteryButton,
+    resetAllButton,
     newSetButton,
+    mainScreen,
     editScreen,
     editTitle,
     editName,
@@ -39,13 +52,13 @@ const [
     showAnswerButton,
     answerScreen,
     answer,
-    knowButton,
     unknownButton,
+    knowButton,
     completeScreen,
     backButton,
-    resetPanel,
-    resetMasteryButton,
-    resetAllButton
+    rangeStart,
+    rangeEnd,
+    startButton
 ] = [
     "questionCount",
     "setList",
@@ -55,10 +68,11 @@ const [
     "masteryPanel",
     "averageMastery",
     "masteryList",
-    "rangeStart",
-    "rangeEnd",
-    "startButton",
+    "resetPanel",
+    "resetMasteryButton",
+    "resetAllButton",
     "newSetButton",
+    "mainScreen",
     "editScreen",
     "editTitle",
     "editName",
@@ -73,13 +87,13 @@ const [
     "showAnswerButton",
     "answerScreen",
     "answer",
-    "knowButton",
     "unknownButton",
+    "knowButton",
     "completeScreen",
     "backButton",
-    "resetPanel",
-    "resetMasteryButton",
-    "resetAllButton"
+    "rangeStart",
+    "rangeEnd",
+    "startButton"
 ].map($);
 
 
@@ -87,18 +101,22 @@ const [
    状態
 ========================= */
 
-let sets = load();
-
-let selectedSetId =
-    localStorage.getItem(SELECTED_KEY);
+let sets = [];
+let selectedSetId = null;
 
 let editingSetId = null;
 
 let quizProblems = [];
-
 let currentProblem = null;
 
 let currentNumber = 0;
+
+/*
+    最初に出題する問題数。
+    「わからない」で問題が再追加されても
+    この値は変化しない。
+*/
+let quizTotal = 0;
 
 
 /* =========================
@@ -106,135 +124,160 @@ let currentNumber = 0;
 ========================= */
 
 function load() {
+
     try {
+
         const data =
             JSON.parse(
-                localStorage.getItem(STORAGE_KEY)
+                localStorage.getItem(
+                    STORAGE_KEY
+                )
             );
 
-        return Array.isArray(data)
-            ? data
-            : [];
+        if (Array.isArray(data)) {
+            sets = data;
+        }
 
     } catch {
-        return [];
+
+        sets = [];
+
     }
+
+
+    selectedSetId =
+        localStorage.getItem(
+            SELECTED_KEY
+        );
+
 }
 
+
 function save() {
+
     localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(sets)
     );
+
 }
 
+
 function saveSelected() {
+
     if (selectedSetId) {
+
         localStorage.setItem(
             SELECTED_KEY,
             selectedSetId
         );
+
     } else {
+
         localStorage.removeItem(
             SELECTED_KEY
         );
+
     }
+
 }
 
+
 function createId() {
+
     return (
         Date.now().toString(36) +
-        Math.random().toString(36).slice(2)
+        Math.random()
+            .toString(36)
+            .slice(2)
     );
+
 }
 
 
 /* =========================
-   Set
+   セット取得
 ========================= */
 
 function getSelectedSet() {
+
     return sets.find(
-        set => set.id === selectedSetId
-    );
+        set =>
+            set.id === selectedSetId
+    ) || null;
+
 }
 
 
 /* =========================
-   Screen
+   画面切り替え
 ========================= */
 
 function hideScreens() {
-    [
-        editScreen,
-        quizScreen,
-        answerScreen,
-        completeScreen
-    ].forEach(
-        element => {
-            element.classList.add("hidden");
-        }
-    );
-}
 
-function showMainScreen() {
-    hideScreens();
-
-    const hasSet =
-        !!selectedSetId;
-
-    selectedPanel.classList.toggle(
-        "hidden",
-        !hasSet
-    );
-
-    masteryPanel.classList.toggle(
-        "hidden",
-        !hasSet
-    );
-
-    resetPanel.classList.toggle(
-        "hidden",
-        !hasSet
-    );
-
-    renderSets();
-
-    if (hasSet) {
-        updateSelected();
-    }
-}
-
-function showEditScreen() {
-    hideScreens();
-
-    [
-        selectedPanel,
-        masteryPanel,
-        resetPanel
-    ].forEach(
-        element => {
-            element.classList.add("hidden");
-        }
-    );
-
-    editScreen.classList.remove("hidden");
-}
-
-function showQuizScreen() {
-    quizScreen.classList.remove("hidden");
+    mainScreen.classList.add("hidden");
+    editScreen.classList.add("hidden");
+    quizScreen.classList.add("hidden");
     answerScreen.classList.add("hidden");
     completeScreen.classList.add("hidden");
+
 }
 
+
+function showMainScreen() {
+
+    hideScreens();
+
+    mainScreen.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function showEditScreen() {
+
+    hideScreens();
+
+    editScreen.classList.remove(
+        "hidden"
+    );
+
+}
+
+
+function showQuizScreen() {
+
+    quizScreen.classList.remove(
+        "hidden"
+    );
+
+    answerScreen.classList.add(
+        "hidden"
+    );
+
+    completeScreen.classList.add(
+        "hidden"
+    );
+
+}
+
+
 function showAnswerScreen() {
-    quizScreen.classList.add("hidden");
-    answerScreen.classList.remove("hidden");
+
+    quizScreen.classList.add(
+        "hidden"
+    );
+
+    answerScreen.classList.remove(
+        "hidden"
+    );
+
 }
 
 
 /* =========================
-   出題問題作成
+   問題作成
 ========================= */
 
 function createQuizProblems(
@@ -242,12 +285,14 @@ function createQuizProblems(
     end,
     count
 ) {
+
     const set =
         getSelectedSet();
 
     if (!set) {
         return [];
     }
+
 
     const remaining = [
         ...set.problems.slice(
@@ -256,16 +301,20 @@ function createQuizProblems(
         )
     ];
 
+
     const result = [];
+
 
     count = Math.min(
         count,
         remaining.length
     );
 
+
     while (
         result.length < count
     ) {
+
         const total =
             remaining.reduce(
                 (sum, problem) =>
@@ -275,25 +324,33 @@ function createQuizProblems(
                 0
             );
 
+
         let random =
             Math.random() * total;
 
         let index = 0;
+
 
         for (
             let i = 0;
             i < remaining.length;
             i++
         ) {
+
             random -=
                 101 -
                 remaining[i].mastery;
 
+
             if (random <= 0) {
+
                 index = i;
                 break;
+
             }
+
         }
+
 
         result.push(
             remaining.splice(
@@ -301,192 +358,320 @@ function createQuizProblems(
                 1
             )[0]
         );
+
     }
 
+
     return result;
+
 }
 
 
 /* =========================
-   Set一覧
+   セット表示
 ========================= */
 
 function renderSets() {
+
     setList.innerHTML = "";
 
+
     if (!sets.length) {
-        setList.innerHTML = `
-            <div class="empty-message">
+
+        setList.innerHTML =
+            `<div class="empty-message">
                 問題セットがありません。
-            </div>
-        `;
+            </div>`;
 
         return;
+
     }
 
+
     sets.forEach(set => {
+
         const item =
             document.createElement("div");
 
         item.className =
             "set-item";
 
-        if (set.id === selectedSetId) {
-            item.classList.add("active");
+
+        if (
+            set.id === selectedSetId
+        ) {
+
+            item.classList.add(
+                "active"
+            );
+
         }
+
 
         item.innerHTML = `
             <div class="set-info">
-                <div class="set-name"></div>
+
+                <div class="set-name">
+                    ${escapeHTML(set.name)}
+                </div>
 
                 <div class="set-count">
-                    ${set.problems.length} 問
+                    ${set.problems.length}問
                 </div>
+
             </div>
 
             <div class="set-actions">
+
                 <button
+                    class="delete-button"
                     type="button"
-                    class="delete-button">
+                    data-id="${set.id}"
+                >
                     削除
                 </button>
+
             </div>
         `;
 
-        item.querySelector(
-            ".set-name"
-        ).textContent =
-            set.name;
 
-        item.onclick = () => {
-            selectedSetId =
-                set.id;
+        item.addEventListener(
+            "click",
+            event => {
 
-            saveSelected();
+                if (
+                    event.target.closest(
+                        ".delete-button"
+                    )
+                ) {
+                    return;
+                }
 
-            showMainScreen();
-        };
 
-        item.querySelector(
-            ".delete-button"
-        ).onclick = event => {
-            event.stopPropagation();
+                selectedSetId =
+                    set.id;
 
-            deleteSet(set.id);
-        };
+                saveSelected();
+
+                renderSets();
+                updateSelected();
+
+            }
+        );
+
+
+        const deleteButton =
+            item.querySelector(
+                ".delete-button"
+            );
+
+
+        deleteButton.addEventListener(
+            "click",
+            event => {
+
+                event.stopPropagation();
+
+                deleteSet(set.id);
+
+            }
+        );
+
 
         setList.appendChild(item);
+
     });
+
 }
 
 
 /* =========================
-   選択中セット
+   選択中セット更新
 ========================= */
 
 function updateSelected() {
+
     const set =
         getSelectedSet();
+
+
+    if (!set) {
+
+        selectedPanel.classList.add(
+            "hidden"
+        );
+
+        masteryPanel.classList.add(
+            "hidden"
+        );
+
+        resetPanel.classList.add(
+            "hidden"
+        );
+
+        return;
+
+    }
+
+
+    selectedPanel.classList.remove(
+        "hidden"
+    );
+
+    masteryPanel.classList.remove(
+        "hidden"
+    );
+
+    resetPanel.classList.remove(
+        "hidden"
+    );
+
+
+    selectedSetName.textContent =
+        set.name;
+
+
+    rangeStart.value = 1;
+
+    rangeEnd.value =
+        set.problems.length;
+
+    questionCount.value =
+        Math.min(
+            10,
+            set.problems.length
+        );
+
+
+    renderMastery();
+
+}
+
+
+/* =========================
+   暗記度表示
+========================= */
+
+function renderMastery() {
+
+    const set =
+        getSelectedSet();
+
 
     if (!set) {
         return;
     }
 
-    selectedSetName.textContent =
-        set.name;
 
-    rangeStart.max =
-        set.problems.length;
+    masteryList.innerHTML = "";
 
-    rangeEnd.max =
-        set.problems.length;
 
-    rangeStart.value =
-        1;
+    if (!set.problems.length) {
 
-    rangeEnd.value =
-        Math.max(
-            1,
+        masteryList.innerHTML =
+            `<div class="empty-message">
+                問題がありません。
+            </div>`;
+
+        averageMastery.textContent =
+            "0%";
+
+        return;
+
+    }
+
+
+    let total = 0;
+
+
+    set.problems.forEach(
+        (problem, index) => {
+
+            total +=
+                problem.mastery;
+
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "mastery-item";
+
+
+            item.innerHTML = `
+                <div class="mastery-number">
+                    ${index + 1}
+                </div>
+
+                <div
+                    class="mastery-question"
+                    title="${escapeHTML(
+                        problem.question
+                    )}"
+                >
+                    ${escapeHTML(
+                        problem.question
+                    )}
+                </div>
+
+                <div class="mastery-bar">
+                    <div
+                        class="mastery-fill"
+                        style="width:${problem.mastery}%"
+                    ></div>
+                </div>
+
+                <div class="mastery-value">
+                    ${problem.mastery}%
+                </div>
+            `;
+
+
+            masteryList.appendChild(
+                item
+            );
+
+        }
+    );
+
+
+    const average =
+        Math.round(
+            total /
             set.problems.length
         );
 
-    renderMastery(set);
-}
-
-
-/* =========================
-   暗記度
-========================= */
-
-function renderMastery(set) {
-    const problems =
-        set.problems;
-
-    const total =
-        problems.reduce(
-            (sum, problem) =>
-                sum + problem.mastery,
-            0
-        );
 
     averageMastery.textContent =
-        problems.length
-            ? `${Math.round(
-                total / problems.length
-            )}%`
-            : "0%";
+        `${average}%`;
 
-    masteryList.innerHTML =
-        problems.map(
-            (problem, index) => `
-                <div class="mastery-item">
-
-                    <div class="mastery-number">
-                        ${index + 1}
-                    </div>
-
-                    <div
-                        class="mastery-question"
-                        title="${escapeHTML(
-                            problem.question
-                        )}">
-                        ${escapeHTML(
-                            problem.question
-                        )}
-                    </div>
-
-                    <div class="mastery-bar">
-                        <div
-                            class="mastery-fill"
-                            style="width:${problem.mastery}%">
-                        </div>
-                    </div>
-
-                    <div class="mastery-value">
-                        ${problem.mastery}%
-                    </div>
-
-                </div>
-            `
-        ).join("");
-}
-
-function escapeHTML(text) {
-    const element =
-        document.createElement("div");
-
-    element.textContent =
-        text;
-
-    return element.innerHTML;
 }
 
 
 /* =========================
-   新規
+   HTMLエスケープ
+========================= */
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/* =========================
+   新規セット
 ========================= */
 
 function openNewSet() {
+
     editingSetId = null;
 
     editTitle.textContent =
@@ -498,71 +683,71 @@ function openNewSet() {
 
     showEditScreen();
 
-    editName.focus();
 }
 
 
 /* =========================
-   編集
+   セット編集
 ========================= */
 
 function openEditSet(id) {
+
     const set =
         sets.find(
-            set =>
-                set.id === id
+            item =>
+                item.id === id
         );
+
 
     if (!set) {
         return;
     }
 
+
     editingSetId = id;
+
 
     editTitle.textContent =
         "問題セットを編集";
 
+
     editName.value =
         set.name;
 
+
     problemInput.value =
         set.problems
-            .map(problem => {
-                const explanationText =
-                    problem.explanation
-                        ? ` * ${problem.explanation}`
-                        : "";
-
-                return (
-                    problem.question +
-                    explanationText +
-                    " / " +
-                    problem.answer
-                );
-            })
+            .map(problem =>
+                `${problem.question} * ${problem.explanation} / ${problem.answer}`
+            )
             .join("\n");
+
 
     showEditScreen();
 
-    editName.focus();
 }
 
 
 /* =========================
-   保存
+   編集保存
 ========================= */
 
 function saveEditor() {
+
     const name =
         editName.value.trim();
 
+
     if (!name) {
+
         alert(
             "セット名を入力してください。"
         );
 
         return;
+
     }
+
 
     const lines =
         problemInput.value
@@ -570,212 +755,252 @@ function saveEditor() {
             .map(line => line.trim())
             .filter(Boolean);
 
-    const problems = [];
 
-    for (const line of lines) {
+    const problems =
+        lines.map(line => {
 
-        /*
-         * 最初の / で分割
-         */
+            let separator =
+                line.indexOf("*");
 
-        const slash =
-            line.indexOf("/");
 
-        if (slash === -1) {
-            alert(
-                `形式が正しくありません。\n\n${line}\n\n「問題 * 説明 / 答え」の形式で入力してください。`
-            );
+            if (separator === -1) {
 
-            return;
-        }
+                separator =
+                    line.indexOf("＊");
 
-        const left =
-            line
-                .slice(0, slash)
-                .trim();
+            }
 
-        const answerText =
-            line
-                .slice(slash + 1)
-                .trim();
 
-        /*
-         * * または ＊ で問題と説明を分ける
-         */
+            let left = line;
+            let answerText = "";
 
-        const star =
-            left.search(/[*＊]/);
 
-        if (star === -1) {
-            alert(
-                `説明がありません。\n\n${line}\n\n「問題 * 説明 / 答え」の形式で入力してください。`
-            );
+            if (separator !== -1) {
 
-            return;
-        }
+                left =
+                    line.slice(
+                        0,
+                        separator
+                    ).trim();
 
-        const questionText =
-            left
-                .slice(0, star)
-                .trim();
+                const rest =
+                    line.slice(
+                        separator + 1
+                    );
 
-        const explanationText =
-            left
-                .slice(star + 1)
-                .trim();
 
-        if (
-            !questionText ||
-            !explanationText ||
-            !answerText
-        ) {
-            alert(
-                `問題・説明・答えのいずれかが空です。\n\n${line}`
-            );
+                const slash =
+                    rest.indexOf("/");
 
-            return;
-        }
 
-        /*
-         * 同じ問題なら暗記度を引き継ぐ
-         */
+                if (slash !== -1) {
 
-        let oldProblem = null;
+                    const explanation =
+                        rest
+                            .slice(
+                                0,
+                                slash
+                            )
+                            .trim();
 
-        if (editingSetId) {
-            const oldSet =
-                sets.find(
-                    set =>
-                        set.id === editingSetId
-                );
+                    answerText =
+                        rest
+                            .slice(
+                                slash + 1
+                            )
+                            .trim();
 
-            oldProblem =
-                oldSet?.problems.find(
-                    problem =>
-                        problem.question ===
-                            questionText &&
-                        problem.explanation ===
-                            explanationText &&
-                        problem.answer ===
-                            answerText
-                );
-        }
 
-        problems.push({
-            question:
-                questionText,
+                    return {
+                        question: left,
+                        explanation,
+                        answer: answerText
+                    };
 
-            explanation:
-                explanationText,
+                }
 
-            answer:
-                answerText,
+            }
 
-            mastery:
-                oldProblem?.mastery ?? 0
+
+            const slash =
+                left.indexOf("/");
+
+
+            if (slash !== -1) {
+
+                return {
+                    question:
+                        left
+                            .slice(
+                                0,
+                                slash
+                            )
+                            .trim(),
+
+                    explanation: "",
+
+                    answer:
+                        left
+                            .slice(
+                                slash + 1
+                            )
+                            .trim()
+                };
+
+            }
+
+
+            return {
+                question: left,
+                explanation: "",
+                answer: ""
+            };
+
         });
-    }
+
 
     if (!problems.length) {
+
         alert(
             "問題を1問以上入力してください。"
         );
 
         return;
+
     }
 
-    /*
-     * 編集
-     */
 
     if (editingSetId) {
+
         const set =
             sets.find(
-                set =>
-                    set.id === editingSetId
+                item =>
+                    item.id ===
+                    editingSetId
             );
 
-        if (!set) {
-            return;
+
+        if (set) {
+
+            problems.forEach(
+                problem => {
+
+                    const old =
+                        set.problems.find(
+                            oldProblem =>
+                                oldProblem.question ===
+                                    problem.question &&
+                                oldProblem.explanation ===
+                                    problem.explanation &&
+                                oldProblem.answer ===
+                                    problem.answer
+                        );
+
+
+                    problem.mastery =
+                        old?.mastery ?? 0;
+
+                }
+            );
+
+
+            set.name = name;
+            set.problems = problems;
+
         }
 
-        set.name =
-            name;
+    } else {
 
-        set.problems =
-            problems;
-    }
-
-    /*
-     * 新規
-     */
-
-    else {
-        const newSet = {
-            id:
-                createId(),
-
+        sets.push({
+            id: createId(),
             name,
+            problems:
+                problems.map(
+                    problem => ({
+                        ...problem,
+                        mastery: 0
+                    })
+                )
+        });
 
-            problems
-        };
-
-        sets.push(
-            newSet
-        );
-
-        selectedSetId =
-            newSet.id;
-
-        saveSelected();
     }
+
 
     save();
 
-    editingSetId = null;
+    renderSets();
+
+
+    if (!selectedSetId) {
+
+        selectedSetId =
+            sets[sets.length - 1].id;
+
+        saveSelected();
+
+    }
+
+
+    updateSelected();
 
     showMainScreen();
+
 }
 
 
 /* =========================
-   削除
+   セット削除
 ========================= */
 
 function deleteSet(id) {
+
     const set =
         sets.find(
-            set =>
-                set.id === id
+            item =>
+                item.id === id
         );
+
 
     if (!set) {
         return;
     }
+
 
     if (
         !confirm(
             `「${set.name}」を削除しますか？`
         )
     ) {
+
         return;
+
     }
+
 
     sets =
         sets.filter(
-            set =>
-                set.id !== id
+            item =>
+                item.id !== id
         );
 
-    if (selectedSetId === id) {
+
+    if (
+        selectedSetId === id
+    ) {
+
         selectedSetId = null;
 
         saveSelected();
+
     }
+
 
     save();
 
-    showMainScreen();
+    renderSets();
+
+    updateSelected();
+
 }
 
 
@@ -784,12 +1009,15 @@ function deleteSet(id) {
 ========================= */
 
 function startQuiz() {
+
     const set =
         getSelectedSet();
+
 
     if (!set) {
         return;
     }
+
 
     const start =
         Number(
@@ -806,6 +1034,7 @@ function startQuiz() {
             questionCount.value
         );
 
+
     if (
         !Number.isInteger(start) ||
         !Number.isInteger(end) ||
@@ -814,14 +1043,18 @@ function startQuiz() {
         end > set.problems.length ||
         start > end ||
         count < 1 ||
-        count > end - start + 1
+        count >
+            end - start + 1
     ) {
+
         alert(
             "出題範囲または問題数が正しくありません。"
         );
 
         return;
+
     }
+
 
     quizProblems =
         createQuizProblems(
@@ -830,12 +1063,27 @@ function startQuiz() {
             count
         );
 
+
+    /*
+        ここで最初の問題数を保存する。
+
+        例えば5問なら quizTotal は5。
+        「わからない」で問題が再追加されても
+        quizTotal は5のまま。
+    */
+    quizTotal =
+        quizProblems.length;
+
+
     currentNumber = 0;
+
 
     quizSetName.textContent =
         set.name;
 
+
     nextQuestion();
+
 }
 
 
@@ -846,64 +1094,54 @@ function startQuiz() {
 function nextQuestion() {
 
     if (!quizProblems.length) {
+
         finishQuiz();
 
         return;
+
     }
+
 
     currentProblem =
         quizProblems.shift();
 
+
     currentNumber++;
 
-    progress.textContent =
-        `${currentNumber} / ${
-            currentNumber +
-            quizProblems.length
-        }`;
 
     /*
-     * 問題
-     */
+        分母は quizProblems.length ではなく
+        最初に決めた quizTotal を使う。
+    */
+    progress.textContent =
+        `${currentNumber} / ${quizTotal}`;
+
 
     question.textContent =
         currentProblem.question;
 
-    /*
-     * 問題画面に説明を表示
-     */
 
     questionExplanation.textContent =
         currentProblem.explanation;
 
-    /*
-     * 答え画面用
-     */
 
     answer.textContent =
         currentProblem.answer;
 
+
     showQuizScreen();
+
 }
 
 
 /* =========================
-   答え
+   答えを見る
 ========================= */
 
 function showAnswer() {
-    if (!currentProblem) {
-        return;
-    }
-
-    /*
-     * 答え画面では答えだけ表示
-     */
-
-    answer.textContent =
-        currentProblem.answer;
 
     showAnswerScreen();
+
 }
 
 
@@ -913,14 +1151,17 @@ function showAnswer() {
 
 function updateMastery(
     problem,
-    known
+    amount
 ) {
+
     const set =
         getSelectedSet();
+
 
     if (!set) {
         return;
     }
+
 
     const target =
         set.problems.find(
@@ -933,25 +1174,24 @@ function updateMastery(
                     problem.answer
         );
 
+
     if (!target) {
         return;
     }
 
-    target.mastery +=
-        known
-            ? CORRECT
-            : -WRONG;
 
     target.mastery =
         Math.max(
             0,
             Math.min(
                 100,
-                target.mastery
+                target.mastery + amount
             )
         );
 
+
     save();
+
 }
 
 
@@ -960,20 +1200,15 @@ function updateMastery(
 ========================= */
 
 function markKnown() {
-    if (!currentProblem) {
-        return;
-    }
 
     updateMastery(
         currentProblem,
-        true
+        CORRECT
     );
 
-    currentProblem = null;
-
-    updateSelected();
 
     nextQuestion();
+
 }
 
 
@@ -982,37 +1217,34 @@ function markKnown() {
 ========================= */
 
 function markUnknown() {
-    if (!currentProblem) {
-        return;
-    }
 
     updateMastery(
         currentProblem,
-        false
+        -WRONG
     );
 
-    /*
-     * わからなかった問題を再出題
-     */
 
+    /*
+        問題を末尾に戻す。
+
+        quizTotal は変更しないため、
+        分母は最初の問題数のまま。
+    */
     quizProblems.push(
         currentProblem
     );
 
-    currentProblem = null;
-
-    updateSelected();
 
     nextQuestion();
+
 }
 
 
 /* =========================
-   完了
+   クイズ終了
 ========================= */
 
 function finishQuiz() {
-    currentProblem = null;
 
     quizScreen.classList.add(
         "hidden"
@@ -1026,206 +1258,246 @@ function finishQuiz() {
         "hidden"
     );
 
-    updateSelected();
 }
 
 
 /* =========================
-   リセット
+   暗記度リセット
 ========================= */
 
 function resetMastery() {
+
     const set =
         getSelectedSet();
+
 
     if (!set) {
         return;
     }
 
+
     if (
         !confirm(
-            "このセットの暗記度をすべて0%にしますか？"
+            "このセットの暗記度をリセットしますか？"
         )
     ) {
+
         return;
+
     }
+
 
     set.problems.forEach(
         problem => {
+
             problem.mastery = 0;
+
         }
     );
 
+
     save();
 
-    updateSelected();
+    renderMastery();
+
 }
 
+
+/* =========================
+   全削除
+========================= */
+
 function resetAll() {
+
     if (
         !confirm(
             "すべての問題セットを削除しますか？"
         )
     ) {
+
         return;
+
     }
+
 
     sets = [];
 
     selectedSetId = null;
 
+
     save();
 
     saveSelected();
 
-    showMainScreen();
+    renderSets();
+
+    updateSelected();
+
 }
 
 
 /* =========================
-   ボタン
+   イベント
 ========================= */
 
-newSetButton.onclick =
-    openNewSet;
+newSetButton.addEventListener(
+    "click",
+    openNewSet
+);
 
-editSelectedButton.onclick =
+
+editSelectedButton.addEventListener(
+    "click",
     () => {
+
         if (selectedSetId) {
+
             openEditSet(
                 selectedSetId
             );
+
         }
-    };
 
-startButton.onclick =
-    startQuiz;
+    }
+);
 
-showAnswerButton.onclick =
-    showAnswer;
 
-knowButton.onclick =
-    markKnown;
+saveEditButton.addEventListener(
+    "click",
+    saveEditor
+);
 
-unknownButton.onclick =
-    markUnknown;
 
-saveEditButton.onclick =
-    saveEditor;
-
-cancelEditButton.onclick =
+cancelEditButton.addEventListener(
+    "click",
     () => {
-        editingSetId = null;
 
         showMainScreen();
-    };
 
-backButton.onclick =
-    showMainScreen;
+    }
+);
 
-resetMasteryButton.onclick =
-    resetMastery;
 
-resetAllButton.onclick =
-    resetAll;
+startButton.addEventListener(
+    "click",
+    startQuiz
+);
+
+
+showAnswerButton.addEventListener(
+    "click",
+    showAnswer
+);
+
+
+unknownButton.addEventListener(
+    "click",
+    markUnknown
+);
+
+
+knowButton.addEventListener(
+    "click",
+    markKnown
+);
+
+
+backButton.addEventListener(
+    "click",
+    () => {
+
+        showMainScreen();
+
+    }
+);
+
+
+resetMasteryButton.addEventListener(
+    "click",
+    resetMastery
+);
+
+
+resetAllButton.addEventListener(
+    "click",
+    resetAll
+);
 
 
 /* =========================
    キーボード
 ========================= */
 
-document.onkeydown =
+document.addEventListener(
+    "keydown",
     event => {
 
-        /*
-         * 編集画面では無効
-         */
-
         if (
-            !editScreen.classList.contains(
-                "hidden"
-            )
-        ) {
-            return;
-        }
-
-        /*
-         * 入力欄では無効
-         */
-
-        if (
-            ["INPUT", "TEXTAREA"].includes(
-                event.target.tagName
-            )
-        ) {
-            return;
-        }
-
-        /*
-         * Space
-         * → 答えを表示
-         */
-
-        if (
+            event.code === "Space" &&
             !quizScreen.classList.contains(
                 "hidden"
-            ) &&
-            event.code === "Space"
+            )
         ) {
+
             event.preventDefault();
 
             showAnswer();
 
-            return;
         }
 
-        /*
-         * 左矢印
-         * → わからない
-         */
 
         if (
+            event.code === "ArrowLeft" &&
             !answerScreen.classList.contains(
                 "hidden"
             )
         ) {
 
-            if (
-                event.key === "ArrowLeft"
-            ) {
-                event.preventDefault();
+            event.preventDefault();
 
-                markUnknown();
-            }
+            markUnknown();
 
-            /*
-             * 右矢印
-             * → わかる
-             */
-
-            if (
-                event.key === "ArrowRight"
-            ) {
-                event.preventDefault();
-
-                markKnown();
-            }
         }
-    };
+
+
+        if (
+            event.code === "ArrowRight" &&
+            !answerScreen.classList.contains(
+                "hidden"
+            )
+        ) {
+
+            event.preventDefault();
+
+            markKnown();
+
+        }
+
+    }
+);
 
 
 /* =========================
    初期化
 ========================= */
 
+load();
+
+
 if (
     selectedSetId &&
-    !sets.some(
-        set =>
-            set.id === selectedSetId
-    )
+    !getSelectedSet()
 ) {
+
     selectedSetId = null;
+
+    saveSelected();
+
 }
+
+
+renderSets();
+
+updateSelected();
 
 showMainScreen();
