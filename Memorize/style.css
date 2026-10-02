@@ -5,7 +5,7 @@
 html,
 body {
     margin: 0;
-    min-height: 100vh;
+    min-height: 100%;
 }
 
 body {
@@ -19,31 +19,31 @@ body {
     color: #ddd;
 }
 
-.container {
-    width: min(700px, 94%);
-    margin: 30px auto 60px;
+main {
+    width: min(720px, 94%);
+    margin: 0 auto;
+    padding: 28px 0 60px;
 }
 
+
+/* =========================
+   基本
+========================= */
+
 h1 {
-    margin: 25px 0;
+    margin: 0 0 28px;
     text-align: center;
     font-size: 1.8rem;
+    font-weight: 650;
+    letter-spacing: .04em;
     color: #eee;
 }
 
 h2 {
     margin: 0;
     font-size: 1.05rem;
+    font-weight: 600;
     color: #eee;
-}
-
-.panel {
-    margin: 12px 0;
-    padding: 18px;
-    background: #1b1b1b;
-    border: 1px solid #303030;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.35);
 }
 
 .hidden {
@@ -51,38 +51,49 @@ h2 {
 }
 
 
-/* ヘッダー */
+/* =========================
+   共通パネル
+========================= */
 
-.section-header,
-.selected-header {
+.panel {
+    margin-top: 14px;
+    padding: 18px;
+    background: #1a1a1a;
+    border: 1px solid #2d2d2d;
+    border-radius: 12px;
+}
+
+.section-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-}
-
-.small-label {
-    margin-bottom: 3px;
-    color: #777;
-    font-size: .8rem;
-}
-
-#selectedSetName {
-    margin-top: 3px;
-    font-size: 1.2rem;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 
-/* ボタン */
+/* =========================
+   ボタン
+========================= */
 
 button {
-    padding: 9px 13px;
-    border: 1px solid #444;
+    min-height: 38px;
+    padding: 8px 13px;
+
+    border: 1px solid #3a3a3a;
     border-radius: 8px;
+
     background: #242424;
     color: #ddd;
+
+    font: inherit;
+    font-size: .9rem;
+
     cursor: pointer;
-    font-size: .95rem;
+
+    transition:
+        background .15s,
+        border-color .15s,
+        transform .05s;
 }
 
 button:hover {
@@ -94,12 +105,37 @@ button:active {
     transform: translateY(1px);
 }
 
+.primary-button {
+    background: #ddd;
+    color: #111;
+    border-color: #ddd;
+    font-weight: 600;
+}
 
-/* セット */
+.primary-button:hover {
+    background: #fff;
+    border-color: #fff;
+}
 
-.set-list {
+.danger-button {
+    color: #d6a5a5;
+    border-color: #493535;
+    background: #241919;
+}
+
+.danger-button:hover {
+    background: #302020;
+    border-color: #644444;
+}
+
+
+/* =========================
+   問題セット
+========================= */
+
+#setList {
     display: grid;
-    gap: 7px;
+    gap: 8px;
     margin-top: 14px;
 }
 
@@ -107,246 +143,250 @@ button:active {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 11px 12px;
-    border: 1px solid #303030;
-    border-radius: 8px;
-    background: #151515;
+    gap: 12px;
+
+    padding: 13px 14px;
+
+    border: 1px solid #2d2d2d;
+    border-radius: 9px;
+
+    background: #161616;
+
     cursor: pointer;
+
+    transition:
+        background .15s,
+        border-color .15s;
 }
 
 .set-item:hover {
-    background: #202020;
+    background: #1e1e1e;
+    border-color: #444;
 }
 
 .set-item.active {
+    background: #222;
     border-color: #666;
-    background: #252525;
 }
 
 .set-info {
+    min-width: 0;
     flex: 1;
 }
 
 .set-name {
-    font-weight: 600;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
     color: #eee;
+    font-weight: 600;
 }
 
 .set-count {
+    margin-top: 3px;
     color: #777;
-    font-size: .85rem;
-}
-
-.set-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.delete-button {
-    color: #aaa;
     font-size: .8rem;
 }
 
-.empty-message {
-    color: #777;
+.set-actions {
+    flex-shrink: 0;
 }
 
+.delete-button {
+    min-height: 32px;
+    padding: 5px 9px;
 
-/* 範囲 */
-
-.range-title {
-    margin: 20px 0 8px;
     color: #888;
-    font-size: .85rem;
+    background: transparent;
+    border-color: transparent;
+
+    font-size: .8rem;
 }
+
+.delete-button:hover {
+    color: #d0a0a0;
+    background: #241919;
+    border-color: #493535;
+}
+
+.empty-message {
+    margin-top: 14px;
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    border: 1px dashed #303030;
+    border-radius: 9px;
+}
+
+
+/* =========================
+   選択中セット
+========================= */
+
+#selectedPanel {
+    padding: 20px;
+}
+
+#selectedSetName {
+    font-size: 1.2rem;
+}
+
+
+/* =========================
+   範囲
+========================= */
 
 .range {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-top: 20px;
+}
+
+.range label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color: #888;
+    font-size: .85rem;
 }
 
 .range input {
-    width: 85px;
-    padding: 9px;
-    border: 1px solid #444;
+    width: 80px;
+    padding: 9px 8px;
+
+    border: 1px solid #3a3a3a;
     border-radius: 7px;
+
     background: #111;
     color: #ddd;
-    font-size: 1rem;
+
+    font: inherit;
+}
+
+.range input:focus {
+    outline: none;
+    border-color: #777;
 }
 
 #startButton {
-    margin-left: auto;
+    width: 100%;
+    margin-top: 16px;
 }
 
 
-/* 暗記度 */
-
-.mastery-list {
-    display: grid;
-    gap: 7px;
-    margin-top: 14px;
-}
+/* =========================
+   暗記度
+========================= */
 
 #averageMastery {
-    color: #ddd;
+    color: #aaa;
+    font-size: .95rem;
+}
+
+#masteryList {
+    display: grid;
+    gap: 9px;
+    margin-top: 16px;
 }
 
 .mastery-item {
     display: grid;
-    grid-template-columns: 42px 60px 1fr 50px;
+    grid-template-columns:
+        30px
+        minmax(80px, 1fr)
+        minmax(100px, 2fr)
+        45px;
+
     align-items: center;
-    gap: 8px;
-    font-size: .85rem;
+    gap: 9px;
+
+    min-width: 0;
+
+    font-size: .82rem;
 }
 
-.mastery-number,
-.mastery-value {
-    color: #777;
+.mastery-number {
+    color: #666;
 }
 
 .mastery-question {
     overflow: hidden;
+
     white-space: nowrap;
     text-overflow: ellipsis;
-    color: #ccc;
+
+    color: #bbb;
 }
 
 .mastery-bar {
-    height: 8px;
+    height: 7px;
+
     overflow: hidden;
+
     background: #303030;
     border-radius: 999px;
 }
 
 .mastery-fill {
     height: 100%;
-    background: #777;
-    border-radius: 999px;
-    transition: width .2s;
+
+    background: #888;
+    border-radius: inherit;
+
+    transition: width .2s ease;
 }
 
 .mastery-value {
     text-align: right;
-}
-
-
-/* クイズ */
-
-.quiz,
-.answer-screen {
-    padding: 25px 18px;
-    text-align: center;
-}
-
-.quiz-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 25px;
     color: #777;
-    font-size: .85rem;
 }
 
-.question-label {
-    margin-bottom: 8px;
-    color: #777;
-    font-size: .85rem;
-}
 
-.question {
-    min-height: 70px;
+/* =========================
+   リセット
+========================= */
+
+#resetPanel {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 25px;
-    font-size: 2.4rem;
-    font-weight: bold;
-    color: #eee;
-    word-break: break-word;
-}
-
-.show-answer-button {
-    min-width: 180px;
-    padding: 12px 20px;
-}
-
-.hint {
-    margin: 15px 0 0;
-    color: #666;
-    font-size: .8rem;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 
-/* 答え */
+/* =========================
+   編集画面
+========================= */
 
-.explanation {
-    margin: 10px 0;
-    color: #aaa;
-    font-size: 1.1rem;
+#editScreen {
+    margin-top: 10px;
 }
 
-.answer {
-    min-height: 70px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 25px;
-    font-size: 2rem;
-    font-weight: bold;
-    color: #eee;
-    word-break: break-word;
-}
-
-.self-assessment {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
-
-.self-assessment button {
-    min-width: 130px;
-    padding: 12px 18px;
-}
-
-.unknown-button {
-    background: #242020;
-    border-color: #493838;
-}
-
-.unknown-button:hover {
-    background: #302424;
-}
-
-.know-button {
-    background: #202424;
-    border-color: #384646;
-}
-
-.know-button:hover {
-    background: #293030;
-}
-
-
-/* 編集 */
-
-.form-label {
+#editScreen > label {
     display: block;
-    margin: 18px 0 7px;
+    margin-top: 20px;
+
     color: #999;
     font-size: .85rem;
 }
 
 #editName,
 #problemInput {
+    display: block;
     width: 100%;
-    border: 1px solid #444;
+
+    margin-top: 7px;
+
+    border: 1px solid #3a3a3a;
     border-radius: 8px;
+
     background: #111;
     color: #ddd;
-    font-size: 1rem;
+
+    font: inherit;
 }
 
 #editName {
@@ -354,15 +394,12 @@ button:active {
 }
 
 #problemInput {
-    min-height: 300px;
+    min-height: 320px;
     padding: 12px;
+
     resize: vertical;
+
     line-height: 1.6;
-    font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
 }
 
 #editName:focus,
@@ -371,39 +408,187 @@ button:active {
     border-color: #777;
 }
 
-.format-help {
-    color: #666;
-    font-size: .8rem;
-    line-height: 1.6;
-}
-
-
-/* 共通 */
-
-.buttons {
+.button-row {
     display: flex;
     justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 15px;
+    gap: 9px;
+
+    margin-top: 18px;
 }
 
 
-/* モバイル */
+/* =========================
+   クイズ
+========================= */
+
+.screen {
+    width: 100%;
+}
+
+.quiz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 12px;
+
+    color: #777;
+    font-size: .85rem;
+}
+
+#quizSetName {
+    overflow: hidden;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    max-width: 70%;
+}
+
+#progress {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.quiz-card {
+    padding: 34px 22px 24px;
+
+    text-align: center;
+
+    background: #1a1a1a;
+    border: 1px solid #2d2d2d;
+    border-radius: 14px;
+}
+
+.quiz-label {
+    margin-bottom: 22px;
+
+    color: #666;
+    font-size: .8rem;
+    letter-spacing: .08em;
+}
+
+.question {
+    min-height: 90px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 28px;
+
+    color: #f0f0f0;
+
+    font-size: clamp(2rem, 7vw, 3rem);
+    font-weight: 650;
+
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.question-explanation {
+    min-height: 1.5em;
+
+    margin: -10px 0 25px;
+
+    color: #888;
+    font-size: .95rem;
+}
+
+#showAnswerButton {
+    min-width: 190px;
+    padding: 11px 20px;
+}
+
+.keyboard-help {
+    margin-top: 13px;
+
+    color: #555;
+    font-size: .75rem;
+}
+
+
+/* =========================
+   答え
+========================= */
+
+.answer {
+    min-height: 90px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-bottom: 28px;
+
+    color: #f0f0f0;
+
+    font-size: clamp(1.7rem, 6vw, 2.4rem);
+    font-weight: 600;
+
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+#answerScreen .button-row button {
+    min-width: 130px;
+}
+
+#unknownButton {
+    background: #242020;
+    border-color: #493838;
+}
+
+#unknownButton:hover {
+    background: #302424;
+}
+
+#knowButton {
+    background: #ddd;
+    color: #111;
+    border-color: #ddd;
+}
+
+#knowButton:hover {
+    background: #fff;
+}
+
+
+/* =========================
+   完了
+========================= */
+
+#completeScreen .quiz-card {
+    padding: 40px 22px;
+}
+
+#completeScreen h2 {
+    font-size: 1.4rem;
+}
+
+#completeScreen p {
+    margin: 12px 0 24px;
+    color: #888;
+}
+
+
+/* =========================
+   モバイル
+========================= */
 
 @media (max-width: 500px) {
 
-    .container {
-        width: 94%;
-        margin-top: 20px;
+    main {
+        width: 92%;
+        padding-top: 20px;
     }
 
-    .question {
-        font-size: 2rem;
+    h1 {
+        margin-bottom: 22px;
     }
 
-    .answer {
-        font-size: 1.7rem;
+    .panel {
+        padding: 16px;
     }
 
     .range {
@@ -411,23 +596,167 @@ button:active {
         grid-template-columns: 1fr auto 1fr;
     }
 
+    .range label {
+        justify-content: space-between;
+    }
+
+    .range input {
+        width: 70px;
+    }
+
     #startButton {
         grid-column: 1 / -1;
-        width: 100%;
-        margin: 5px 0 0;
     }
 
     .mastery-item {
-        grid-template-columns: 32px 50px 1fr 45px;
-        font-size: .8rem;
+        grid-template-columns:
+            25px
+            minmax(70px, 1fr)
+            minmax(80px, 1.5fr)
+            42px;
+
+        gap: 7px;
+
+        font-size: .78rem;
     }
 
-    .self-assessment {
+    #resetPanel {
         flex-direction: column;
     }
 
-    .self-assessment button {
+    #resetPanel button {
         width: 100%;
     }
 
+    .quiz-card {
+        padding: 30px 18px 22px;
+    }
+
+    .button-row {
+        flex-direction: column;
+    }
+
+    #answerScreen .button-row button {
+        width: 100%;
+    }
+
+    #showAnswerButton {
+        width: 100%;
+    }
+}
+/* =========================
+   UI位置 微調整
+========================= */
+
+/* 全体を少し上寄せ */
+main {
+    width: min(700px, 94%);
+    margin: 20px auto 60px;
+}
+
+/* タイトル */
+h1 {
+    margin: 0 0 22px;
+}
+
+/* パネル同士の間隔 */
+.panel {
+    margin: 10px 0;
+}
+
+/* 問題セット一覧 */
+#setList {
+    margin-top: 10px;
+    gap: 6px;
+}
+
+/* 選択中セット */
+#selectedPanel {
+    margin-top: 12px;
+}
+
+/* 範囲入力 */
+.range {
+    margin-top: 16px;
+}
+
+/* 開始ボタン */
+#startButton {
+    margin-top: 14px;
+}
+
+/* 暗記度 */
+#masteryList {
+    margin-top: 12px;
+}
+
+/* リセット */
+#resetPanel {
+    margin-top: 10px;
+}
+
+/* =========================
+   クイズ画面
+========================= */
+
+.quiz-header {
+    margin-bottom: 10px;
+}
+
+.quiz-card {
+    padding-top: 28px;
+}
+
+/* 問題 */
+.question {
+    margin-bottom: 20px;
+}
+
+/* 問題の説明 */
+.question-explanation {
+    margin-top: -5px;
+    margin-bottom: 20px;
+}
+
+/* 答えを見る */
+#showAnswerButton {
+    margin-top: 2px;
+}
+
+/* キーボード説明 */
+.keyboard-help {
+    margin-top: 10px;
+}
+
+/* =========================
+   答え画面
+========================= */
+
+#answerScreen .quiz-card {
+    padding-top: 28px;
+}
+
+.answer {
+    margin-bottom: 20px;
+}
+
+/* わからない / わかる */
+#answerScreen .button-row {
+    margin-top: 0;
+}
+
+#answerScreen .keyboard-help {
+    margin-top: 10px;
+}
+
+/* =========================
+   編集画面
+========================= */
+
+#editScreen {
+    margin-top: 10px;
+}
+
+#editScreen .button-row {
+    margin-top: 14px;
 }
