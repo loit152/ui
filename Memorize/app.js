@@ -12,7 +12,10 @@ const SELECTED_KEY = "problem-memorize-selected-v3";
 const CORRECT = 10;
 const WRONG = 15;
 
-/* 保存の遅延時間 */
+/*
+    localStorageへの保存を少し遅らせる。
+    回答のたびに巨大なJSONを書き込むのを防ぐ。
+*/
 const SAVE_DELAY = 200;
 
 
@@ -80,28 +83,13 @@ let editingSetId = null;
 let quizProblems = [];
 let currentProblem = null;
 
-/*
-    quizTotal:
-    クイズ開始時点での問題数。
-    「わからない」で問題を再出題しても変化しない。
-*/
+let currentNumber = 0;
 let quizTotal = 0;
 
 /*
-    clearedCount:
-    現在のクイズで「初回に正解した問題」の数。
-*/
-let clearedCount = 0;
-
-/*
-    保存予約用タイマー
+    localStorage保存用タイマー
 */
 let saveTimer = null;
-
-/*
-    回答処理中の二重実行防止
-*/
-let answerProcessing = false;
 
 
 /* =========================
@@ -113,52 +101,6 @@ function createId() {
         Date.now().toString(36) +
         Math.random().toString(36).slice(2, 10)
     );
-}
-
-
-/* =========================
-   HTMLエスケープ
-========================= */
-
-function escapeHTML(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-
-/* =========================
-   数値を安全にする
-========================= */
-
-function normalizeMastery(value) {
-    const number = Number(value);
-
-    if (!Number.isFinite(number)) {
-        return 0;
-    }
-
-    return Math.max(0, Math.min(100, number));
-}
-
-
-/* =========================
-   問題データの正規化
-========================= */
-
-function normalizeProblem(problem) {
-    return {
-        id: problem.id || createId(),
-
-        question: String(problem.question ?? ""),
-        explanation: String(problem.explanation ?? ""),
-        answer: String(problem.answer ?? ""),
-
-        mastery: normalizeMastery(problem.mastery)
-    };
 }
 
 
@@ -182,18 +124,39 @@ function load() {
             return;
         }
 
-        sets = parsed.map(set => {
-            return {
-                id: set.id || createId(),
-                name: String(set.name ?? "無題"),
-                problems: Array.isArray(set.problems)
-                    ? set.problems.map(normalizeProblem)
-                    : []
-            };
-        });
+        /*
+            古いデータにも対応。
+            問題IDがなければここで追加する。
+        */
+        sets = parsed.map(set => ({
+            id: set.id || createId(),
+
+            name: String(set.name ?? ""),
+
+            problems: Array.isArray(set.problems)
+                ? set.problems.map(problem => ({
+                    id: problem.id || createId(),
+
+                    question:
+                        String(problem.question ?? ""),
+
+                    explanation:
+                        String(problem.explanation ?? ""),
+
+                    answer:
+                        String(problem.answer ?? ""),
+
+                    mastery:
+                        normalizeMastery(problem.mastery)
+                }))
+                : []
+        }));
 
     } catch (error) {
-        console.error("データ読み込みエラー:", error);
+        console.error(
+            "データ読み込みエラー:",
+            error
+        );
 
         sets = [];
 
@@ -206,22 +169,47 @@ function load() {
 
 
 /* =========================
+   習熟度の補正
+========================= */
+
+function normalizeMastery(value) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        Math.min(100, number)
+    );
+}
+
+
+/* =========================
    即時保存
 ========================= */
 
 function saveNow() {
+    /*
+        すでに予約されている保存があれば
+        先にキャンセルする。
+    */
+    if (saveTimer !== null) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+    }
+
     try {
         localStorage.setItem(
             STORAGE_KEY,
             JSON.stringify(sets)
         );
-
-        saveTimer = null;
-
     } catch (error) {
-        console.error("保存エラー:", error);
-
-        saveTimer = null;
+        console.error(
+            "保存エラー:",
+            error
+        );
 
         alert(
             "データを保存できませんでした。\n" +
@@ -235,36 +223,25 @@ function saveNow() {
    遅延保存
 ========================= */
 
-/*
-    習熟度変更など、短時間に何度も発生する処理では
-    毎回localStorageへ書き込まない。
-
-    例えば10問連続で回答した場合、
-
-        保存
-        保存
-        保存
-        保存
-        ...
-
-    ではなく、
-
-        200ms待つ
-        ↓
-        その間に変更があればタイマーを延長
-        ↓
-        最後に1回だけ保存
-
-    とする。
-*/
-
 function scheduleSave() {
     if (saveTimer !== null) {
         clearTimeout(saveTimer);
     }
 
     saveTimer = setTimeout(() => {
-        saveNow();
+        saveTimer = null;
+
+        try {
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(sets)
+            );
+        } catch (error) {
+            console.error(
+                "保存エラー:",
+                error
+            );
+        }
     }, SAVE_DELAY);
 }
 
@@ -281,17 +258,21 @@ function saveSelected() {
                 selectedSetId
             );
         } else {
-            localStorage.removeItem(SELECTED_KEY);
+            localStorage.removeItem(
+                SELECTED_KEY
+            );
         }
-
     } catch (error) {
-        console.error("選択セット保存エラー:", error);
+        console.error(
+            "選択セット保存エラー:",
+            error
+        );
     }
 }
 
 
 /* =========================
-   セット取得
+   選択中セット取得
 ========================= */
 
 function getSelectedSet() {
@@ -347,19 +328,23 @@ function renderSets() {
     setList.replaceChildren();
 
     if (sets.length === 0) {
-        const empty = document.createElement("p");
+        const empty =
+            document.createElement("p");
 
-        empty.textContent = "問題セットがありません。";
+        empty.textContent =
+            "問題セットがありません。";
 
         setList.appendChild(empty);
 
         return;
     }
 
-    const fragment = document.createDocumentFragment();
+    const fragment =
+        document.createDocumentFragment();
 
     for (const set of sets) {
-        const item = document.createElement("div");
+        const item =
+            document.createElement("div");
 
         item.className = "set-item";
 
@@ -369,11 +354,13 @@ function renderSets() {
 
         item.dataset.id = set.id;
 
-        const name = document.createElement("span");
+        const name =
+            document.createElement("span");
 
         name.textContent = set.name;
 
-        const count = document.createElement("span");
+        const count =
+            document.createElement("span");
 
         count.textContent =
             `${set.problems.length}問`;
@@ -452,20 +439,27 @@ function updateSelected() {
     masteryPanel.hidden = false;
     resetPanel.hidden = false;
 
-    selectedSetName.textContent = set.name;
+    selectedSetName.textContent =
+        set.name;
 
     rangeStart.value = 1;
-    rangeEnd.value = set.problems.length;
+    rangeEnd.value =
+        set.problems.length;
 
-    rangeStart.max = set.problems.length;
-    rangeEnd.max = set.problems.length;
+    rangeStart.max =
+        set.problems.length;
 
-    questionCount.max = set.problems.length;
+    rangeEnd.max =
+        set.problems.length;
 
-    questionCount.value = Math.min(
-        10,
-        set.problems.length
-    );
+    questionCount.max =
+        set.problems.length;
+
+    questionCount.value =
+        Math.min(
+            10,
+            set.problems.length
+        );
 
     renderMastery();
 }
@@ -489,9 +483,11 @@ function renderMastery() {
     if (problems.length === 0) {
         averageMastery.textContent = "0%";
 
-        const empty = document.createElement("p");
+        const empty =
+            document.createElement("p");
 
-        empty.textContent = "問題がありません。";
+        empty.textContent =
+            "問題がありません。";
 
         masteryList.appendChild(empty);
 
@@ -503,7 +499,11 @@ function renderMastery() {
     const fragment =
         document.createDocumentFragment();
 
-    for (let i = 0; i < problems.length; i++) {
+    for (
+        let i = 0;
+        i < problems.length;
+        i++
+    ) {
         const problem = problems[i];
 
         total += problem.mastery;
@@ -516,24 +516,32 @@ function renderMastery() {
         const number =
             document.createElement("div");
 
-        number.className = "mastery-number";
-        number.textContent = i + 1;
+        number.className =
+            "mastery-number";
+
+        number.textContent =
+            i + 1;
 
         const text =
             document.createElement("div");
 
-        text.className = "mastery-question";
-        text.textContent = problem.question;
+        text.className =
+            "mastery-question";
+
+        text.textContent =
+            problem.question;
 
         const bar =
             document.createElement("div");
 
-        bar.className = "mastery-bar";
+        bar.className =
+            "mastery-bar";
 
         const fill =
             document.createElement("div");
 
-        fill.className = "mastery-fill";
+        fill.className =
+            "mastery-fill";
 
         fill.style.width =
             `${problem.mastery}%`;
@@ -543,7 +551,8 @@ function renderMastery() {
         const percent =
             document.createElement("div");
 
-        percent.className = "mastery-percent";
+        percent.className =
+            "mastery-percent";
 
         percent.textContent =
             `${Math.round(problem.mastery)}%`;
@@ -559,7 +568,9 @@ function renderMastery() {
     masteryList.appendChild(fragment);
 
     averageMastery.textContent =
-        `${Math.round(total / problems.length)}%`;
+        `${Math.round(
+            total / problems.length
+        )}%`;
 }
 
 
@@ -568,9 +579,10 @@ function renderMastery() {
 ========================= */
 
 function deleteSet(id) {
-    const index = sets.findIndex(
-        set => set.id === id
-    );
+    const index =
+        sets.findIndex(
+            set => set.id === id
+        );
 
     if (index === -1) {
         return;
@@ -578,12 +590,12 @@ function deleteSet(id) {
 
     const set = sets[index];
 
-    const confirmed = confirm(
-        `「${set.name}」を削除しますか？\n` +
-        "この操作は元に戻せません。"
-    );
-
-    if (!confirmed) {
+    if (
+        !confirm(
+            `「${set.name}」を削除しますか？\n` +
+            "この操作は元に戻せません。"
+        )
+    ) {
         return;
     }
 
@@ -609,7 +621,8 @@ function deleteSet(id) {
 function openNewSet() {
     editingSetId = null;
 
-    editTitle.textContent = "新しい問題セット";
+    editTitle.textContent =
+        "新しい問題セット";
 
     editName.value = "";
 
@@ -620,7 +633,7 @@ function openNewSet() {
 
 
 /* =========================
-   編集
+   編集開始
 ========================= */
 
 function openEdit() {
@@ -635,35 +648,26 @@ function openEdit() {
     editTitle.textContent =
         "問題セットを編集";
 
-    editName.value = set.name;
-
-    /*
-        問題を再構築するときも、
-        既存問題のIDを保存するために
-        IDはここでは文字列に埋め込まない。
-
-        問題データはparseProblemsで生成し、
-        後で既存問題と対応させる。
-    */
+    editName.value =
+        set.name;
 
     problemInput.value =
         set.problems
             .map(problem => {
-                const explanation =
-                    problem.explanation
-                        ? ` * ${problem.explanation}`
-                        : "";
+                let line =
+                    problem.question;
 
-                const answer =
-                    problem.answer
-                        ? ` / ${problem.answer}`
-                        : "";
+                if (problem.explanation) {
+                    line +=
+                        ` * ${problem.explanation}`;
+                }
 
-                return (
-                    `${problem.question}` +
-                    `${explanation}` +
-                    `${answer}`
-                );
+                if (problem.answer) {
+                    line +=
+                        ` / ${problem.answer}`;
+                }
+
+                return line;
             })
             .join("\n");
 
@@ -676,78 +680,84 @@ function openEdit() {
 ========================= */
 
 function parseProblemLine(line) {
-    let text = line.trim();
+    const text = line.trim();
 
     if (!text) {
         return null;
     }
 
-    /*
-        問題 * 解説 / 答え
-
-        または
-
-        問題 / 答え
-    */
-
     let questionText = text;
     let explanationText = "";
     let answerText = "";
 
-    const asteriskIndex =
+    const normalAsterisk =
         text.indexOf("*");
 
-    const fullWidthAsteriskIndex =
+    const fullAsterisk =
         text.indexOf("＊");
 
-    let starIndex = -1;
+    let asteriskIndex = -1;
 
     if (
-        asteriskIndex !== -1 &&
-        fullWidthAsteriskIndex !== -1
+        normalAsterisk !== -1 &&
+        fullAsterisk !== -1
     ) {
-        starIndex =
+        asteriskIndex =
             Math.min(
-                asteriskIndex,
-                fullWidthAsteriskIndex
+                normalAsterisk,
+                fullAsterisk
             );
-    } else if (asteriskIndex !== -1) {
-        starIndex = asteriskIndex;
+    } else if (
+        normalAsterisk !== -1
+    ) {
+        asteriskIndex =
+            normalAsterisk;
     } else {
-        starIndex = fullWidthAsteriskIndex;
+        asteriskIndex =
+            fullAsterisk;
     }
 
-    if (starIndex !== -1) {
+    if (asteriskIndex !== -1) {
         questionText =
-            text.slice(0, starIndex).trim();
+            text
+                .slice(0, asteriskIndex)
+                .trim();
 
         const rest =
-            text.slice(starIndex + 1).trim();
+            text
+                .slice(asteriskIndex + 1)
+                .trim();
 
         const slashIndex =
             findSlash(rest);
 
         if (slashIndex !== -1) {
             explanationText =
-                rest.slice(0, slashIndex).trim();
+                rest
+                    .slice(0, slashIndex)
+                    .trim();
 
             answerText =
-                rest.slice(slashIndex + 1).trim();
-
+                rest
+                    .slice(slashIndex + 1)
+                    .trim();
         } else {
             explanationText = rest;
         }
-
     } else {
         const slashIndex =
             findSlash(text);
 
         if (slashIndex !== -1) {
             questionText =
-                text.slice(0, slashIndex).trim();
+                text
+                    .slice(0, slashIndex)
+                    .trim();
 
             answerText =
-                text.slice(slashIndex + 1).trim();
+                text
+                    .slice(slashIndex + 1)
+                    .trim();
         }
     }
 
@@ -760,7 +770,7 @@ function parseProblemLine(line) {
 
 
 /* =========================
-   スラッシュ検索
+   / と ／を探す
 ========================= */
 
 function findSlash(text) {
@@ -785,7 +795,10 @@ function findSlash(text) {
         return normal;
     }
 
-    return Math.min(normal, fullWidth);
+    return Math.min(
+        normal,
+        fullWidth
+    );
 }
 
 
@@ -797,13 +810,16 @@ function parseProblems(text) {
     return text
         .split(/\r?\n/)
         .map(parseProblemLine)
-        .filter(Boolean)
-        .filter(problem => problem.question !== "");
+        .filter(problem => problem !== null)
+        .filter(
+            problem =>
+                problem.question !== ""
+        );
 }
 
 
 /* =========================
-   編集時の習熟度・ID維持
+   既存問題のデータ維持
 ========================= */
 
 function preserveProblemData(
@@ -811,91 +827,85 @@ function preserveProblemData(
     oldProblems
 ) {
     /*
-        同じ内容の問題が複数ある場合でも
-        1つずつ対応させる。
-
-        例：
-
-        old
-        A
-        A
-        B
-
-        new
-        A
-        B
-        A
-
-        でも、
-
-        A → A
-        B → B
-        A → A
-
-        と順番に対応する。
+        同じ問題が複数存在する場合でも、
+        同じ古い問題を2回使用しない。
     */
 
-    const used = new Set();
+    const used =
+        new Set();
 
-    return newProblems.map(newProblem => {
-        let matchIndex = -1;
+    return newProblems.map(
+        newProblem => {
+            let matchIndex = -1;
 
-        for (
-            let i = 0;
-            i < oldProblems.length;
-            i++
-        ) {
-            if (used.has(i)) {
-                continue;
-            }
-
-            const oldProblem =
-                oldProblems[i];
-
-            if (
-                oldProblem.question ===
-                    newProblem.question &&
-                oldProblem.explanation ===
-                    newProblem.explanation &&
-                oldProblem.answer ===
-                    newProblem.answer
+            for (
+                let i = 0;
+                i < oldProblems.length;
+                i++
             ) {
-                matchIndex = i;
+                if (used.has(i)) {
+                    continue;
+                }
 
-                break;
+                const oldProblem =
+                    oldProblems[i];
+
+                if (
+                    oldProblem.question ===
+                        newProblem.question &&
+                    oldProblem.explanation ===
+                        newProblem.explanation &&
+                    oldProblem.answer ===
+                        newProblem.answer
+                ) {
+                    matchIndex = i;
+                    break;
+                }
             }
-        }
 
-        if (matchIndex !== -1) {
-            used.add(matchIndex);
+            if (matchIndex !== -1) {
+                used.add(matchIndex);
 
-            const oldProblem =
-                oldProblems[matchIndex];
+                const oldProblem =
+                    oldProblems[matchIndex];
+
+                return {
+                    id:
+                        oldProblem.id ||
+                        createId(),
+
+                    question:
+                        newProblem.question,
+
+                    explanation:
+                        newProblem.explanation,
+
+                    answer:
+                        newProblem.answer,
+
+                    mastery:
+                        normalizeMastery(
+                            oldProblem.mastery
+                        )
+                };
+            }
 
             return {
-                id: oldProblem.id || createId(),
+                id: createId(),
 
-                question: newProblem.question,
-                explanation: newProblem.explanation,
-                answer: newProblem.answer,
+                question:
+                    newProblem.question,
 
-                mastery:
-                    normalizeMastery(
-                        oldProblem.mastery
-                    )
+                explanation:
+                    newProblem.explanation,
+
+                answer:
+                    newProblem.answer,
+
+                mastery: 0
             };
         }
-
-        return {
-            id: createId(),
-
-            question: newProblem.question,
-            explanation: newProblem.explanation,
-            answer: newProblem.answer,
-
-            mastery: 0
-        };
-    });
+    );
 }
 
 
@@ -908,77 +918,100 @@ function saveEdit() {
         editName.value.trim();
 
     if (!name) {
-        alert("セット名を入力してください。");
+        alert(
+            "セット名を入力してください。"
+        );
+
         return;
     }
 
     const parsedProblems =
-        parseProblems(problemInput.value);
+        parseProblems(
+            problemInput.value
+        );
 
     if (parsedProblems.length === 0) {
-        alert("問題を1問以上入力してください。");
+        alert(
+            "問題を1問以上入力してください。"
+        );
+
         return;
     }
 
     if (editingSetId === null) {
         /*
-            新規作成
+            新規セット
         */
 
         const newSet = {
             id: createId(),
-            name,
-            problems: parsedProblems.map(problem => ({
-                id: createId(),
 
-                question: problem.question,
-                explanation: problem.explanation,
-                answer: problem.answer,
+            name: name,
 
-                mastery: 0
-            }))
+            problems:
+                parsedProblems.map(
+                    problem => ({
+                        id: createId(),
+
+                        question:
+                            problem.question,
+
+                        explanation:
+                            problem.explanation,
+
+                        answer:
+                            problem.answer,
+
+                        mastery: 0
+                    })
+                )
         };
 
         sets.push(newSet);
 
-        selectedSetId = newSet.id;
+        selectedSetId =
+            newSet.id;
 
         saveSelected();
 
     } else {
         /*
-            既存セット編集
+            既存セット
         */
 
         const set =
             sets.find(
-                set => set.id === editingSetId
+                set =>
+                    set.id ===
+                    editingSetId
             );
 
         if (!set) {
-            alert("編集対象のセットが見つかりません。");
+            alert(
+                "編集対象のセットが見つかりません。"
+            );
+
             return;
         }
 
-        const newProblems =
+        set.problems =
             preserveProblemData(
                 parsedProblems,
                 set.problems
             );
 
         set.name = name;
-        set.problems = newProblems;
 
-        selectedSetId = set.id;
+        selectedSetId =
+            set.id;
 
         saveSelected();
     }
 
     /*
-        セット構造を変更した場合は
-        ここでは即時保存する。
+        問題構造を変更した場合は
+        即時保存。
     */
-
     saveNow();
 
     showMainScreen();
@@ -986,7 +1019,7 @@ function saveEdit() {
 
 
 /* =========================
-   問題選択
+   出題問題作成
 ========================= */
 
 function createQuizProblems(
@@ -1006,10 +1039,8 @@ function createQuizProblems(
             end
         );
 
-    /*
-        残りの問題。
-    */
-    const remaining = [...source];
+    const remaining =
+        [...source];
 
     const result = [];
 
@@ -1020,18 +1051,13 @@ function createQuizProblems(
         let totalWeight = 0;
 
         for (const problem of remaining) {
-            /*
-                mastery 0  → weight 101
-                mastery 50 → weight 51
-                mastery100 → weight 1
-            */
-
             totalWeight +=
                 101 - problem.mastery;
         }
 
         let random =
-            Math.random() * totalWeight;
+            Math.random() *
+            totalWeight;
 
         let selectedIndex = 0;
 
@@ -1041,7 +1067,8 @@ function createQuizProblems(
             i++
         ) {
             random -=
-                101 - remaining[i].mastery;
+                101 -
+                remaining[i].mastery;
 
             if (random <= 0) {
                 selectedIndex = i;
@@ -1097,7 +1124,10 @@ function startQuiz() {
         !Number.isInteger(end) ||
         !Number.isInteger(count)
     ) {
-        alert("範囲と問題数を正しく入力してください。");
+        alert(
+            "範囲と問題数を正しく入力してください。"
+        );
+
         return;
     }
 
@@ -1106,7 +1136,10 @@ function startQuiz() {
         end > set.problems.length ||
         start > end
     ) {
-        alert("問題範囲が正しくありません。");
+        alert(
+            "問題範囲が正しくありません。"
+        );
+
         return;
     }
 
@@ -1132,18 +1165,19 @@ function startQuiz() {
         );
 
     if (quizProblems.length === 0) {
-        alert("問題を作成できませんでした。");
+        alert(
+            "問題を作成できませんでした。"
+        );
+
         return;
     }
 
     quizTotal =
         quizProblems.length;
 
-    clearedCount = 0;
+    currentNumber = 0;
 
     currentProblem = null;
-
-    answerProcessing = false;
 
     quizSetName.textContent =
         set.name;
@@ -1159,8 +1193,6 @@ function startQuiz() {
 ========================= */
 
 function nextQuestion() {
-    answerProcessing = false;
-
     if (quizProblems.length === 0) {
         finishQuiz();
         return;
@@ -1169,18 +1201,10 @@ function nextQuestion() {
     currentProblem =
         quizProblems.shift();
 
-    /*
-        重要：
-
-        clearedCount は
-        「正解した問題数」。
-
-        したがって「わからない」で
-        問題を再追加しても増えない。
-    */
+    currentNumber++;
 
     progress.textContent =
-        `${clearedCount + 1} / ${quizTotal}`;
+        `${currentNumber} / ${quizTotal}`;
 
     question.textContent =
         currentProblem.question;
@@ -1200,7 +1224,7 @@ function nextQuestion() {
 
 
 /* =========================
-   答えを表示
+   答え表示
 ========================= */
 
 function showAnswer() {
@@ -1208,27 +1232,54 @@ function showAnswer() {
         return;
     }
 
-    questionExplanation.hidden = false;
+    questionExplanation.hidden =
+        false;
 
-    showAnswerButton.disabled = true;
+    showAnswerButton.disabled =
+        true;
 
     showAnswerScreen();
 }
 
 
 /* =========================
-   問題をIDで探す
+   問題を探す
 ========================= */
 
-function findProblemById(id) {
+function findProblem(problem) {
     const set = getSelectedSet();
 
     if (!set) {
         return null;
     }
 
+    /*
+        新しいデータではIDで検索。
+    */
+    if (problem.id) {
+        const byId =
+            set.problems.find(
+                item =>
+                    item.id === problem.id
+            );
+
+        if (byId) {
+            return byId;
+        }
+    }
+
+    /*
+        IDが存在しない古い問題への
+        フォールバック。
+    */
     return set.problems.find(
-        problem => problem.id === id
+        item =>
+            item.question ===
+                problem.question &&
+            item.explanation ===
+                problem.explanation &&
+            item.answer ===
+                problem.answer
     );
 }
 
@@ -1238,31 +1289,26 @@ function findProblemById(id) {
 ========================= */
 
 function markKnown() {
-    if (
-        !currentProblem ||
-        answerProcessing
-    ) {
+    if (!currentProblem) {
         return;
     }
 
-    answerProcessing = true;
-
     const problem =
-        findProblemById(
-            currentProblem.id
+        findProblem(
+            currentProblem
         );
 
     if (problem) {
         problem.mastery =
             normalizeMastery(
-                problem.mastery + CORRECT
+                problem.mastery +
+                CORRECT
             );
     }
 
-    clearedCount++;
-
     /*
-        習熟度変更はまとめて保存。
+        変更はメモリ上で行い、
+        保存はまとめる。
     */
     scheduleSave();
 
@@ -1275,29 +1321,26 @@ function markKnown() {
 ========================= */
 
 function markUnknown() {
-    if (
-        !currentProblem ||
-        answerProcessing
-    ) {
+    if (!currentProblem) {
         return;
     }
 
-    answerProcessing = true;
-
     const problem =
-        findProblemById(
-            currentProblem.id
+        findProblem(
+            currentProblem
         );
 
     if (problem) {
         problem.mastery =
             normalizeMastery(
-                problem.mastery - WRONG
+                problem.mastery -
+                WRONG
             );
     }
 
     /*
-        同じ問題をもう一度出す。
+        わからない問題は
+        クイズ終了まで再出題対象に戻す。
     */
     quizProblems.push(
         currentProblem
@@ -1314,9 +1357,12 @@ function markUnknown() {
 ========================= */
 
 function finishQuiz() {
-    currentProblem = null;
+    /*
+        クイズ終了時点で保存を確定。
+    */
+    saveNow();
 
-    answerProcessing = false;
+    currentProblem = null;
 
     quizScreen.hidden = true;
     answerScreen.hidden = true;
@@ -1335,11 +1381,11 @@ function resetMastery() {
         return;
     }
 
-    const confirmed = confirm(
-        `「${set.name}」の習熟度をすべて0%にしますか？`
-    );
-
-    if (!confirmed) {
+    if (
+        !confirm(
+            `「${set.name}」の習熟度をすべて0%にしますか？`
+        )
+    ) {
         return;
     }
 
@@ -1358,12 +1404,12 @@ function resetMastery() {
 ========================= */
 
 function resetAll() {
-    const confirmed = confirm(
-        "すべての問題セットを削除しますか？\n" +
-        "この操作は元に戻せません。"
-    );
-
-    if (!confirmed) {
+    if (
+        !confirm(
+            "すべての問題セットを削除しますか？\n" +
+            "この操作は元に戻せません。"
+        )
+    ) {
         return;
     }
 
@@ -1441,7 +1487,7 @@ document.addEventListener(
     "keydown",
     event => {
         /*
-            キー長押しによる
+            長押しによる
             keydownの連続発火を無視。
         */
         if (event.repeat) {
@@ -1449,12 +1495,9 @@ document.addEventListener(
         }
 
         /*
-            クイズ画面
-
-            Space
-            → 答えを表示
+            問題画面
+            Space → 答え表示
         */
-
         if (
             !quizScreen.hidden &&
             event.code === "Space"
@@ -1468,11 +1511,8 @@ document.addEventListener(
 
         /*
             答え画面
-
-            ← わからない
-            → わかる
+            ← → で回答
         */
-
         if (!answerScreen.hidden) {
             if (
                 event.code === "ArrowLeft"
@@ -1506,27 +1546,21 @@ backButton.addEventListener(
     "click",
     () => {
         /*
-            クイズ中に変更された習熟度を
-            メイン画面にも反映。
+            showMainScreen() 内で
+            習熟度一覧も再描画される。
         */
-
         showMainScreen();
     }
 );
 
 
 /* =========================
-   ページ終了時保存
+   ページ終了時
 ========================= */
 
 window.addEventListener(
     "beforeunload",
     () => {
-        if (saveTimer !== null) {
-            clearTimeout(saveTimer);
-            saveTimer = null;
-        }
-
         saveNow();
     }
 );
@@ -1537,10 +1571,6 @@ window.addEventListener(
 ========================= */
 
 load();
-
-/*
-    選択中セットを復元。
-*/
 
 try {
     selectedSetId =
@@ -1556,8 +1586,10 @@ try {
     selectedSetId = null;
 }
 
+
 /*
-    存在しないセットが選択されていた場合。
+    保存されている選択セットが
+    現在存在しない場合。
 */
 
 if (
@@ -1570,5 +1602,6 @@ if (
 
     saveSelected();
 }
+
 
 showMainScreen();
