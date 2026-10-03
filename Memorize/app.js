@@ -1536,11 +1536,13 @@ function nextQuestion() {
         quizProblems.shift();
 
 
-    currentNumber++;
-
-
+    /*
+        ★修正ポイント：
+        ここでは currentNumber を増やさず、正解した時のみ加算する仕様に変更。
+        現在地は (消化済みの数 + 1) として表示します。
+    */
     progress.textContent =
-        `${currentNumber} / ${quizTotal}`;
+        `${currentNumber + 1} / ${quizTotal}`;
 
 
     question.textContent =
@@ -1639,6 +1641,13 @@ function markKnown() {
     }
 
 
+    /*
+        ★修正ポイント：
+        「わかる」を押した時のみ進捗カウントを+1
+    */
+    currentNumber++;
+
+
     saveData();
 
     nextQuestion();
@@ -1673,7 +1682,9 @@ function markUnknown() {
 
 
     /*
-        もう一度出題
+        もう一度出題するため末尾に追加。
+        ★修正ポイント：
+        currentNumber は進めずにそのまま次の問題へ移動
     */
 
     quizProblems.push(
