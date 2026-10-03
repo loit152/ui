@@ -1565,7 +1565,7 @@ function markKnown() {
         problem.mastery =
             normalizeMastery(
                 problem.mastery +
-                CORRECT
+                CORRECT_POINT
             );
     }
 
@@ -1598,7 +1598,7 @@ function markUnknown() {
         problem.mastery =
             normalizeMastery(
                 problem.mastery -
-                WRONG
+                WRONG_POINT
             );
     }
 
@@ -1780,6 +1780,21 @@ backButton.addEventListener(
 document.addEventListener(
     "keydown",
     event => {
+
+        const activeEl =
+            document.activeElement;
+
+        if (
+            activeEl &&
+            (
+                activeEl.tagName === "INPUT" ||
+                activeEl.tagName === "TEXTAREA"
+            )
+        ) {
+
+            return;
+        }
+
 
         if (
             event.code === "Space" &&
