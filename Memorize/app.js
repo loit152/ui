@@ -461,6 +461,77 @@ function selectSet(id) {
 
 
 /* =========================
+   出題数入力値の自動調整
+========================= */
+
+function adjustQuestionRange() {
+
+    const set =
+        getSelectedSet();
+
+
+    if (!set || set.problems.length === 0) {
+        return;
+    }
+
+
+    const problemCount =
+        set.problems.length;
+
+
+    let start =
+        Number(rangeStart.value);
+
+    let end =
+        Number(rangeEnd.value);
+
+
+    if (isNaN(start) || start < 1) start = 1;
+
+    if (start > problemCount) start = problemCount;
+
+
+    if (isNaN(end) || end > problemCount) end = problemCount;
+
+    if (end < start) end = start;
+
+
+    rangeStart.value = start;
+
+    rangeEnd.value = end;
+
+
+    const available =
+        end - start + 1;
+
+
+    questionCount.max =
+        available;
+
+
+    let currentCount =
+        Number(questionCount.value);
+
+
+    if (
+        isNaN(currentCount) ||
+        currentCount < 1
+    ) {
+
+        questionCount.value =
+            Math.min(10, available);
+
+    } else if (
+        currentCount > available
+    ) {
+
+        questionCount.value =
+            available;
+    }
+}
+
+
+/* =========================
    選択セット表示
 ========================= */
 
@@ -493,27 +564,21 @@ function updateSelectedSet() {
         set.problems.length;
 
 
-    rangeStart.max =
-        problemCount;
+    rangeStart.min = 1;
 
-    rangeEnd.max =
-        problemCount;
+    rangeStart.max = problemCount;
 
-    questionCount.max =
-        problemCount;
+    rangeEnd.min = 1;
+
+    rangeEnd.max = problemCount;
 
 
     rangeStart.value = 1;
 
-    rangeEnd.value =
-        problemCount;
+    rangeEnd.value = problemCount;
 
 
-    questionCount.value =
-        Math.min(
-            10,
-            problemCount
-        );
+    adjustQuestionRange();
 
 
     renderMastery();
@@ -664,10 +729,7 @@ function renderMastery() {
 function deleteSet(id) {
 
     const set =
-        sets.find(
-            set =>
-                set.id === id
-        );
+        getSelectedSet();
 
 
     if (!set) {
@@ -1262,6 +1324,10 @@ function createQuizProblems(
         );
 
 
+    const maxCount =
+        Math.min(count, source.length);
+
+
     const remaining =
         [...source];
 
@@ -1271,7 +1337,7 @@ function createQuizProblems(
 
     while (
         remaining.length > 0 &&
-        result.length < count
+        result.length < maxCount
     ) {
 
         let totalWeight = 0;
@@ -1346,6 +1412,9 @@ function startQuiz() {
     if (!set) {
         return;
     }
+
+
+    adjustQuestionRange();
 
 
     const start =
@@ -1734,6 +1803,18 @@ cancelEditButton.addEventListener(
 startButton.addEventListener(
     "click",
     startQuiz
+);
+
+
+rangeStart.addEventListener(
+    "change",
+    adjustQuestionRange
+);
+
+
+rangeEnd.addEventListener(
+    "change",
+    adjustQuestionRange
 );
 
 
