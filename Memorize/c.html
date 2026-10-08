@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>カードめくり</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#222;--card:#fff;--ac:#2f6fed;--ok:#1e9e5a;--ng:#d94646;--bd:#d8dbe0}
+@media(prefers-color-scheme:dark){:root{--bg:#16181c;--fg:#e8e8e8;--card:#22252b;--bd:#3a3e46}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;line-height:1.6}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:1.3rem}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+label{display:block;margin:4px 0}
+input[type=number]{width:5em;padding:4px}
+button{font:inherit;padding:10px 16px;border:0;border-radius:8px;background:var(--ac);color:#fff;cursor:pointer}
+button.ok{background:var(--ok)}button.ng{background:var(--ng)}button.sub{background:#777}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#card{min-height:200px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:1.3rem;white-space:pre-wrap;cursor:pointer;user-select:none}
+#card.back{border-color:var(--ac)}
+.hint{font-size:.85rem;opacity:.7}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>カードめくり</h1>
+
+<section id="setup">
+  <div class="box">
+    <b>1. 問題ファイル</b>
+    <p class="hint">data/list.txt（ファイル名を1行ずつ）があれば自動で読み込みます。なければ下のボタンで選択してください（複数可）。</p>
+    <div class="row">
+      <input type="file" id="pick" accept=".txt,.csv,text/plain" multiple>
+    </div>
+    <div id="files"></div>
+  </div>
+  <div class="box">
+    <b>2. 範囲と問題数</b>
+    <label>範囲: 各ファイルの <input type="number" id="from" min="1" value="1"> 行目 〜 <input type="number" id="to" min="1" placeholder="最後"> 行目</label>
+    <label>問題数: <input type="number" id="count" min="1" placeholder="全部"></label>
+    <label><input type="checkbox" id="flip"> 回答を先に表示（逆向き）</label>
+    <p class="hint" id="avail"></p>
+  </div>
+  <button id="start">スタート</button>
+</section>
+
+<section id="quiz" class="hide">
+  <p id="prog" class="hint"></p>
+  <div class="box" id="card"></div>
+  <div class="row" id="judge">
+    <button class="ok" id="okb">できた</button>
+    <button class="ng" id="ngb">間違えた</button>
+  </div>
+  <p class="hint">カードをタップ／スペースでめくる。1=できた、2=間違えた</p>
+  <button class="sub" id="quit">中断</button>
+</section>
+
+<section id="result" class="hide">
+  <div class="box" id="summary"></div>
+  <button id="again">設定に戻る</button>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let sets = []; // {name, cards:[[q,a],...], on:true}
+let queue = [], cur = null, shown = false, total = 0, done = 0, miss = 0;
+
+function parse(text){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(l => l).map(l => {
+    const i = l.indexOf('/');
+    return i < 0 ? null : [l.slice(0,i).trim(), l.slice(i+1).trim()];
+  });
+}
+function addSet(name, text){
+  sets = sets.filter(s => s.name !== name);
+  sets.push({name, cards: parse(text), on: true});
+  render();
+}
+function render(){
+  $('files').innerHTML = '';
+  sets.forEach(s => {
+    const l = document.createElement('label');
+    const c = document.createElement('input');
+    c.type = 'checkbox'; c.checked = s.on;
+    c.onchange = () => { s.on = c.checked; update(); };
+    l.append(c, ` ${s.name}（${s.cards.length}行）`);
+    $('files').append(l);
+  });
+  update();
+}
+function pool(){
+  const f = Math.max(1, +$('from').value || 1);
+  const t = +$('to').value || Infinity;
+  const out = [];
+  sets.filter(s => s.on).forEach(s => s.cards.forEach((c, i) => {
+    if (c && i + 1 >= f && i + 1 <= t) out.push(c);
+  }));
+  return out;
+}
+function update(){ $('avail').textContent = `出題対象: ${pool().length} 問`; }
+['from','to'].forEach(id => $(id).oninput = update);
+
+$('pick').onchange = async e => {
+  for (const f of e.target.files) addSet(f.name, await f.text());
+};
+(async () => {
+  try {
+    const r = await fetch('data/list.txt');
+    if (!r.ok) return;
+    const names = (await r.text()).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    for (const n of names) {
+      try {
+        const x = await fetch('data/' + encodeURIComponent(n));
+        if (x.ok) addSet(n, await x.text());
+      } catch(_){}
+    }
+  } catch(_){}
+})();
+
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function show(id){
+  ['setup','quiz','result'].forEach(s => $(s).classList.toggle('hide', s !== id));
+}
+$('start').onclick = () => {
+  let p = shuffle(pool());
+  if (!p.length) { alert('出題対象がありません'); return; }
+  const n = +$('count').value;
+  if (n > 0) p = p.slice(0, n);
+  queue = p; total = p.length; done = 0; miss = 0;
+  show('quiz'); next();
+};
+function next(){
+  if (!queue.length) {
+    $('summary').innerHTML = `完了！ ${total} 問<br>間違えた回数: ${miss} 回`;
+    show('result'); return;
+  }
+  cur = queue.shift(); shown = false; draw();
+}
+function draw(){
+  const flip = $('flip').checked;
+  const [q, a] = flip ? [cur[1], cur[0]] : cur;
+  const c = $('card');
+  c.textContent = shown ? a : q;
+  c.classList.toggle('back', shown);
+  $('judge').classList.toggle('hide', !shown);
+  $('prog').textContent = `完了 ${done}/${total}　残り ${queue.length + 1} 枚`;
+}
+function flipCard(){ shown = !shown; draw(); }
+function judge(ok){
+  if (!shown) return;
+  if (ok) done++;
+  else { miss++; queue.splice(Math.floor(Math.random() * (queue.length + 1)), 0, cur); }
+  next();
+}
+$('card').onclick = flipCard;
+$('okb').onclick = () => judge(true);
+$('ngb').onclick = () => judge(false);
+$('quit').onclick = () => show('setup');
+$('again').onclick = () => show('setup');
+document.addEventListener('keydown', e => {
+  if ($('quiz').classList.contains('hide')) return;
+  if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+  else if (e.key === '1') judge(true);
+  else if (e.key === '2') judge(false);
+});
+</script>
+</body>
+</html>
