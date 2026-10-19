@@ -352,6 +352,95 @@
 
         }
 
+        /* =========================
+        複数検索
+        ========================= */
+
+        .bulk-search-entry {
+            margin-top: 12px;
+        }
+
+        .bulk-search-entry button {
+            width: 100%;
+        }
+
+        .bulk-help {
+            color: #777;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .bulk-word-input {
+            display: block;
+            width: 100%;
+            min-height: 160px;
+            padding: 12px;
+
+            border: 1px solid #ccc;
+            border-radius: 6px;
+
+            background: white;
+            font: inherit;
+            font-size: 16px;
+            line-height: 1.7;
+
+            resize: vertical;
+        }
+
+        .bulk-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .bulk-buttons button {
+            flex: 1;
+        }
+
+        .bulk-cancel {
+            background: #777;
+        }
+
+        .bulk-result-item {
+            padding: 14px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .bulk-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .bulk-result-word {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .bulk-result-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .bulk-result-links a {
+            padding: 7px 10px;
+            border-radius: 5px;
+            background: #eee;
+            color: #222;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .bulk-result-links a:hover {
+            opacity: 0.7;
+        }
+
+        @media (max-width: 600px) {
+            .bulk-buttons {
+                flex-direction: column;
+            }
+        }
+
     </style>
 </head>
 
@@ -383,6 +472,48 @@
             </button>
 
         </form>
+
+<!-- 複数検索を開く -->
+<div class="bulk-search-entry">
+    <button id="openBulkSearch" type="button">
+        複数検索
+    </button>
+</div>
+
+<!-- 複数検索画面 -->
+<section id="bulkSearchPanel" class="search-result" hidden>
+    <h2>複数検索</h2>
+
+    <p class="bulk-help">
+        1行につき1単語を入力してください。
+        改行で区切ってまとめて検索できます。
+    </p>
+
+    <textarea
+        id="bulkWordInput"
+        class="bulk-word-input"
+        rows="8"
+        placeholder="accomplish&#10;peculiar&#10;curious&#10;withdraw"
+    ></textarea>
+
+    <div class="bulk-buttons">
+        <button id="bulkSearchButton" type="button">
+            まとめて検索
+        </button>
+
+        <button
+            id="closeBulkSearch"
+            class="bulk-cancel"
+            type="button"
+        >
+            戻る
+        </button>
+    </div>
+
+    <p id="bulkSearchStatus" aria-live="polite"></p>
+
+    <div id="bulkSearchResults"></div>
+</section>
 
 
         <!-- =====================
@@ -475,7 +606,27 @@
             document.querySelector("#historyList");
 
         const clearHistoryButton =
-            document.querySelector("#clearHistory");
+                document.querySelector("#clearHistory");
+    const openBulkSearch =
+        document.querySelector("#openBulkSearch");
+
+    const bulkSearchPanel =
+        document.querySelector("#bulkSearchPanel");
+
+    const bulkWordInput =
+        document.querySelector("#bulkWordInput");
+
+    const bulkSearchButton =
+        document.querySelector("#bulkSearchButton");
+
+    const closeBulkSearch =
+        document.querySelector("#closeBulkSearch");
+
+    const bulkSearchStatus =
+        document.querySelector("#bulkSearchStatus");
+
+    const bulkSearchResults =
+        document.querySelector("#bulkSearchResults");
 
 
         // ========================================
@@ -797,6 +948,127 @@
 
             }
         );
+                
+        /* ========================================
+        複数検索画面を開く
+        ======================================== */
+
+        openBulkSearch.addEventListener("click", function() {
+            bulkSearchPanel.hidden = false;
+            bulkSearchStatus.textContent = "";
+            bulkSearchResults.replaceChildren();
+            bulkWordInput.focus();
+        });
+
+
+        /* ========================================
+        複数検索画面を閉じる
+        ======================================== */
+
+        closeBulkSearch.addEventListener("click", function() {
+            bulkSearchPanel.hidden = true;
+        });
+
+
+        /* ========================================
+        複数検索
+        ======================================== */
+
+        bulkSearchButton.addEventListener("click", function() {
+
+            // 改行で分割し、空行を除去
+            const words = bulkWordInput.value
+                .split(/\r?\n/)
+                .map(word => word.trim())
+                .filter(Boolean);
+
+            if (words.length === 0) {
+                bulkSearchStatus.textContent =
+                    "英単語を1つ以上入力してください。";
+                return;
+            }
+
+            // 大文字・小文字を区別せず重複を除去
+            const uniqueWords = [
+                ...new Map(
+                    words.map(word => [
+                        word.toLowerCase(),
+                        word
+                    ])
+                ).values()
+            ];
+
+            const now = new Date().toLocaleString("ja-JP");
+
+            // 結果表示領域を初期化
+            bulkSearchResults.replaceChildren();
+
+            // 入力された各単語を履歴に登録
+            uniqueWords.forEach(function(word) {
+
+                const urls = createDictionaryURLs(word);
+
+                const existingIndex = history.findIndex(
+                    item =>
+                        item.word.toLowerCase() ===
+                        word.toLowerCase()
+                );
+
+                let item;
+
+                if (existingIndex !== -1) {
+                    // 既存データを再利用してメモを維持
+                    item = history.splice(existingIndex, 1)[0];
+
+                    item.word = word;
+                    item.date = now;
+                    item.weblio = urls.weblio;
+                    item.englishBattle = urls.englishBattle;
+                    item.memo = item.memo || "";
+                } else {
+                    item = {
+                        word: word,
+                        date: now,
+                        weblio: urls.weblio,
+                        englishBattle: urls.englishBattle,
+                        memo: ""
+                    };
+                }
+
+                // 履歴の先頭に追加
+                history.unshift(item);
+
+                // 辞書リンクを結果欄に表示
+                const row = document.createElement("div");
+                row.className = "bulk-result-item";
+
+                const wordLabel = document.createElement("div");
+                wordLabel.className = "bulk-result-word";
+                wordLabel.textContent = word;
+
+                const links = document.createElement("div");
+                links.className = "bulk-result-links";
+
+                const weblio = document.createElement("a");
+                weblio.href = urls.weblio;
+                weblio.textContent = "Weblio";
+
+                const englishBattle = document.createElement("a");
+                englishBattle.href = urls.englishBattle;
+                englishBattle.textContent = "EnglishBattle";
+
+                links.append(weblio, englishBattle);
+                row.append(wordLabel, links);
+                bulkSearchResults.appendChild(row);
+            });
+
+            saveHistory();
+            displayHistory();
+
+            bulkSearchStatus.textContent =
+                `${uniqueWords.length}語を検索履歴に登録しました。`;
+
+        });
 
 
         // ========================================
