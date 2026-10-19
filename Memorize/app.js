@@ -1520,53 +1520,46 @@ function startQuiz() {
    次の問題
 ========================= */
 
+
+/* =========================
+   次の問題
+========================= */
+
 function nextQuestion() {
 
-    if (
-        quizProblems.length === 0
-    ) {
-
+    if (quizProblems.length === 0) {
         finishQuiz();
-
         return;
     }
 
+    currentProblem = quizProblems.shift();
 
-    currentProblem =
-        quizProblems.shift();
-
-
-    /*
-        ★修正ポイント：
-        ここでは currentNumber を増やさず、正解した時のみ加算する仕様に変更。
-        現在地は (消化済みの数 + 1) として表示します。
-    */
     progress.textContent =
         `${currentNumber + 1} / ${quizTotal}`;
-
 
     question.textContent =
         currentProblem.question;
 
-
+    // * の後ろの補足を問題の直下に表示
     questionExplanation.textContent =
         currentProblem.explanation;
 
+    // 補足がある場合は最初から表示
+    questionExplanation.hidden =
+        !currentProblem.explanation.trim();
 
     answer.textContent =
         currentProblem.answer;
 
-
-    questionExplanation.hidden =
-        true;
-
-
-    showAnswerButton.disabled =
-        false;
-
+    showAnswerButton.disabled = false;
 
     showQuizScreen();
 }
+
+
+/* =========================
+   答えを見る
+========================= */
 
 
 /* =========================
@@ -1579,14 +1572,7 @@ function showAnswer() {
         return;
     }
 
-
-    questionExplanation.hidden =
-        false;
-
-
-    showAnswerButton.disabled =
-        true;
-
+    showAnswerButton.disabled = true;
 
     showAnswerScreen();
 }

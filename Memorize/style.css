@@ -529,4 +529,14 @@ input[type="number"] {
     .button-row button {
         width: 100%;
     }
+
+/* 問題文の補足説明 */
+.question-explanation {
+    margin-top: 8px;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: #888;
+    font-weight: normal;
+}
+
 }
